@@ -17,7 +17,8 @@ const BOT_USER_AGENTS: Record<string, string> = {
   Twitterbot: 'Twitterbot/1.0',
   TelegramBot: 'TelegramBot (like TwitterBot)',
   Slackbot: 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
-  LinkedInBot: 'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)',
+  LinkedInBot:
+    'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)',
   Discordbot: 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)',
 };
 
@@ -70,6 +71,13 @@ describe('createBotDetector', () => {
 
     expect(detect('My-Crawler/42')).toBe(true);
     expect(detect('My-Crawler/beta')).toBe(false);
+  });
+
+  it('preserves uppercase escape classes in regular-expression sources', () => {
+    const detect = createBotDetector(['^\\S+bot\\/\\d']);
+
+    expect(detect('Crawlerbot/1.0')).toBe(true);
+    expect(detect('Crawler bot/1.0')).toBe(false);
   });
 
   it('ignores invalid regular expressions and blank patterns without throwing', () => {

@@ -195,6 +195,16 @@ describe('parseProductUrl', () => {
       }
     });
 
+    it('ignores the variant id for non-eBay vendors', () => {
+      for (const path of ['/amazon-B0ABC12345-sony-tv.html', '/target-12345678-lamp.html']) {
+        const result = parseProductUrl(path, {
+          vendors,
+          searchParams: new URLSearchParams('var=999'),
+        });
+        expect(result?.sku).not.toContain('|');
+      }
+    });
+
     it('collapses a variant id equal to the sku', () => {
       const result = parseProductUrl('/ebay-5058O035-shirt.html', {
         vendors,
@@ -243,9 +253,9 @@ describe('parseProductUrl', () => {
     });
 
     it('honors a custom vendor allow-list', () => {
-      expect(
-        parseProductUrl('/walmart-123-x.html', { vendors: ['walmart'] })?.vendor,
-      ).toBe('walmart');
+      expect(parseProductUrl('/walmart-123-x.html', { vendors: ['walmart'] })?.vendor).toBe(
+        'walmart',
+      );
       expect(parseProductUrl('/amazon-B0ABC12345-x.html', { vendors: ['walmart'] })).toBeNull();
     });
 
@@ -259,9 +269,9 @@ describe('parseProductUrl', () => {
     });
 
     it('supports a custom suffix', () => {
-      expect(
-        parseProductUrl('/amazon-B0ABC12345-sony-tv', { vendors, suffix: '' })?.urlKey,
-      ).toBe('amazon-B0ABC12345-sony-tv');
+      expect(parseProductUrl('/amazon-B0ABC12345-sony-tv', { vendors, suffix: '' })?.urlKey).toBe(
+        'amazon-B0ABC12345-sony-tv',
+      );
       expect(
         parseProductUrl('/amazon-B0ABC12345-sony-tv.php', { vendors, suffix: '.php' })?.sku,
       ).toBe('B0ABC12345');

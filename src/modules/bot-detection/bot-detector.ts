@@ -14,10 +14,10 @@ const REGEX_METACHARACTERS = /[\\^$.*+?()[\]{}|]/;
  * copy-mutation calls for anonymous scripted traffic.
  */
 export function createBotDetector(patterns: readonly string[]): BotDetector {
-  const substrings = patterns
-    .map((pattern) => pattern.trim().toLowerCase())
-    .filter((pattern) => pattern.length > 0);
-  const regexes = substrings.flatMap(compileRegex);
+  const trimmed = patterns.map((pattern) => pattern.trim()).filter((pattern) => pattern.length > 0);
+  const substrings = trimmed.map((pattern) => pattern.toLowerCase());
+  // Compile from the original casing: lowercasing would turn \S, \D, \W, \B into their inverses.
+  const regexes = trimmed.flatMap(compileRegex);
 
   return (userAgent) => {
     const normalized = userAgent?.trim().toLowerCase() ?? '';

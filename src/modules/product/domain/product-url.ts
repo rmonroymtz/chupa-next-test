@@ -29,7 +29,7 @@ export interface ParsedProductUrl {
 }
 
 export interface ParseProductUrlOptions {
-  /** Request query; only `var` (eBay variant id) is read. */
+  /** Request query; only `var` (eBay variant id) is read, and only for eBay. */
   readonly searchParams?: URLSearchParams;
   /** Product URL suffix. Defaults to `.html`. */
   readonly suffix?: string;
@@ -95,7 +95,9 @@ export function parseProductUrl(
   const decoded = decodeSkuSegment(skuSegment, vendor);
   if (decoded === null) return null;
 
-  const sku = normalizeSku(applyVariant(decoded, options.searchParams));
+  const sku = normalizeSku(
+    vendor === VARIANT_VENDOR ? applyVariant(decoded, options.searchParams) : decoded,
+  );
   return { vendor, sku, urlKey, routeUrl };
 }
 
@@ -116,6 +118,9 @@ export function buildCanonicalUrl(baseUrl: string, relativeUrl: string): string 
     .replace(/%7c/gi, SKU_SEPARATOR);
   return `${base.origin}${basePath}/${path}`;
 }
+
+/** Only eBay URLs carry the `?var=` variant id (legacy PWA Studio behavior). */
+const VARIANT_VENDOR = 'ebay';
 
 function applyVariant(sku: string, searchParams: URLSearchParams | undefined): string {
   if (sku.includes(SKU_SEPARATOR)) return sku;
