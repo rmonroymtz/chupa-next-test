@@ -1,0 +1,37 @@
+{
+  "data": {
+    "storeConfig": {
+      "store_code": "default",
+      "store_name": "Chupaprecios",
+      "locale": "es_MX",
+      "product_url_suffix": ".html",
+      "base_media_url": "https://chupaprecios.com.mx/media/",
+      "secure_base_media_url": "https://chupaprecios.com.mx/media/",
+      "base_currency_code": "USD",
+      "default_display_currency_code": "MXN",
+      "engine_settings": {
+        "amazon_engine": "direct",
+        "ebay_engine": "api",
+        "acme_engine": "direct",
+        "target_engine": "direct",
+        "walmart_engine": "direct",
+        "homedepot_engine": "direct"
+      },
+      "service_fallback": {
+        "amazon": "amazon",
+        "ebay": "ebay",
+        "acme": "acme",
+        "target": "target",
+        "walmart": "walmart",
+        "homedepot": "amazon"
+      },
+      "engine_settings_json": "{\"ebay\":{\"detail\":\"api\",\"search\":\"api\"},\"amazon\":{\"detail\":\"direct\",\"search\":\"direct\"},\"walmart\":{\"detail\":\"direct\",\"search\":\"direct\"},\"homedepot\":{\"detail\":\"direct\",\"search\":\"direct\"},\"acme\":{\"detail\":\"direct\",\"search\":\"direct\"},\"target\":{\"detail\":\"direct\",\"search\":\"direct\"}}",
+      "service_fallback_json": "{\"amazon\":\"amazon\",\"ebay\":\"ebay\",\"walmart\":\"walmart\",\"homedepot\":\"amazon\",\"acme\":\"acme\",\"target\":\"target\"}",
+      "default_title": "Chupaprecios | Explora comprar sin fronteras.",
+      "title_prefix": null,
+      "title_suffix": null,
+      "title_separator": "-",
+      "default_description": null
+    }
+  }
+}

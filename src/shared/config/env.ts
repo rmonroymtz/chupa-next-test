@@ -96,6 +96,18 @@ const serverEnvSchema = z.object({
   MAGENTO_TIMEOUT_MS: timeoutMs(5000),
   CHAPI_TIMEOUT_MS: timeoutMs(15000),
   COPY_MUTATION_TIMEOUT_MS: timeoutMs(10000),
+  /** Sent as the `Store` header on every Magento GraphQL request. */
+  MAGENTO_STORE_CODE: z.preprocess(blankAsUndefined, z.string().trim().min(1).default('default')),
+  /** Sent as the `Content-Currency` header so Magento prices come back in it. */
+  MAGENTO_CURRENCY: z.preprocess(
+    blankAsUndefined,
+    z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z]{3}$/, 'Expected a three-letter ISO 4217 currency code')
+      .default('MXN'),
+  ),
   BOT_USER_AGENTS: botUserAgents,
   PRODUCT_VENDORS: productVendors,
   LOG_LEVEL: z.preprocess(blankAsUndefined, z.enum(LOG_LEVELS).default('info')),
