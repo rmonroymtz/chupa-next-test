@@ -52,8 +52,8 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 All checks above green; 4-case integration tests pass; phase report delivered (built, decisions, pending, risks).
 
 ## Progress / evidence
-- T1 (delegated, writer trigger: 15+ config/source files): install/typecheck/lint/test (20 passed)/build all exit 0; parent spot check `pnpm test` 20 passed. Next 16.4.0, React 19.3.0, TS 6.0.3 (typescript-eslint caps <6.1), ESLint 9. Root layout `dynamic = 'force-dynamic'`. Commit: PENDING (git identity not configured).
-- T2 (delegated, writer trigger: 3 new modules + tests): RED observed (3 suites import-fail, 3 env tests); GREEN typecheck/lint 0, 92 tests passed; parent spot check 92 passed. Bot detector: substring + guarded regex, empty UA = bot. `PRODUCT_VENDORS` env added. PENDING: `.env.example` line `PRODUCT_VENDORS=amazon,ebay,target,acme` (permission rule denies agent access to .env*). Commit: PENDING.
+- T1 (delegated, writer trigger: 15+ config/source files): install/typecheck/lint/test (20 passed)/build all exit 0; parent spot check `pnpm test` 20 passed. Next 16.4.0, React 19.3.0, TS 6.0.3 (typescript-eslint caps <6.1), ESLint 9. Root layout `dynamic = 'force-dynamic'`. Commit: 008dc76.
+- T2 (delegated, writer trigger: 3 new modules + tests): RED observed (3 suites import-fail, 3 env tests); GREEN typecheck/lint 0, 92 tests passed; parent spot check 92 passed. Bot detector: substring + guarded regex, empty UA = bot. `PRODUCT_VENDORS` env added. PENDING: `.env.example` line `PRODUCT_VENDORS=amazon,ebay,target,acme` (permission rule denies agent access to .env*). Commits: 05b68d3, fix f/up 6d45edb. RDD: medium, review granted → approved (lineage review-98f0c44d037a8180, acknowledged/burned). Two advisory findings (regex lowercasing inverted \\S/\\D; ?var applied to all vendors) fixed test-first in follow-up commit (94 tests). Reviewed boundary → 05b68d3.
 
 ## Known risks (out of scope)
 - No cache: every visit hits Magento.
@@ -62,4 +62,4 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - Status differs by UA for non-existing products (200 noindex vs 404); CDN cache key must account for it.
 
 ## Next step
-Resolve git identity → commit T1, T2 → T3 infrastructure.
+T3 infrastructure.
