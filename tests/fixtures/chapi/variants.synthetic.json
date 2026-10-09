@@ -1,0 +1,18 @@
+{
+  "asin": "B0TEST",
+  "vendor": "amazon",
+  "status": "ok",
+  "variants": [
+    {
+      "dimension": "size",
+      "type": "button",
+      "options": [
+        { "title": "M", "asin": "B0TEST", "image": null, "selected": true, "available": true },
+        { "title": "L", "asin": "B0TESTL", "selected": false, "available": false }
+      ]
+    }
+  ],
+  "combinations": [],
+  "search_time": 0.4,
+  "cache_hit": false
+}
