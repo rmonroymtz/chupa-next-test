@@ -1,0 +1,96 @@
+import { describe, expect, it } from 'vitest';
+import { DEFAULT_BOT_USER_AGENTS, parseServerEnv } from '@/shared/config/env';
+
+const required = {
+  MAGENTO_GRAPHQL_URL: 'https://magento.example.com/graphql',
+  PUBLIC_BASE_URL: 'https://chupaprecios.com.mx',
+  CHAPI_BASE_URL: 'https://chapi.example.com',
+};
+
+describe('parseServerEnv', () => {
+  it('applies defaults when only required variables are set', () => {
+    const env = parseServerEnv(required);
+
+    expect(env).toEqual({
+      ...required,
+      MAGENTO_TIMEOUT_MS: 5000,
+      CHAPI_TIMEOUT_MS: 15000,
+      COPY_MUTATION_TIMEOUT_MS: 10000,
+      BOT_USER_AGENTS: DEFAULT_BOT_USER_AGENTS,
+      LOG_LEVEL: 'info',
+      METRICS_NAMESPACE: 'ChupaStorefront',
+    });
+  });
+
+  it('includes the major crawlers and link-preview bots in the default list', () => {
+    for (const bot of ['googlebot', 'bingbot', 'facebookexternalhit', 'whatsapp', 'twitterbot']) {
+      expect(DEFAULT_BOT_USER_AGENTS).toContain(bot);
+    }
+  });
+
+  it('coerces numeric timeouts from strings', () => {
+    const env = parseServerEnv({
+      ...required,
+      MAGENTO_TIMEOUT_MS: '2500',
+      CHAPI_TIMEOUT_MS: '20000',
+      COPY_MUTATION_TIMEOUT_MS: '7000',
+    });
+
+    expect(env.MAGENTO_TIMEOUT_MS).toBe(2500);
+    expect(env.CHAPI_TIMEOUT_MS).toBe(20000);
+    expect(env.COPY_MUTATION_TIMEOUT_MS).toBe(7000);
+  });
+
+  it('rejects non-positive or non-integer timeouts', () => {
+    expect(() => parseServerEnv({ ...required, MAGENTO_TIMEOUT_MS: '0' })).toThrow(
+      /MAGENTO_TIMEOUT_MS/,
+    );
+    expect(() => parseServerEnv({ ...required, CHAPI_TIMEOUT_MS: 'abc' })).toThrow(
+      /CHAPI_TIMEOUT_MS/,
+    );
+  });
+
+  it('reports every missing required variable', () => {
+    expect(() => parseServerEnv({})).toThrow(
+      /MAGENTO_GRAPHQL_URL[\s\S]*PUBLIC_BASE_URL[\s\S]*CHAPI_BASE_URL/,
+    );
+  });
+
+  it('rejects invalid URLs', () => {
+    expect(() => parseServerEnv({ ...required, PUBLIC_BASE_URL: 'not a url' })).toThrow(
+      /PUBLIC_BASE_URL/,
+    );
+  });
+
+  it('strips a trailing slash from base URLs', () => {
+    const env = parseServerEnv({ ...required, PUBLIC_BASE_URL: 'https://chupaprecios.com.mx/' });
+
+    expect(env.PUBLIC_BASE_URL).toBe('https://chupaprecios.com.mx');
+  });
+
+  it('parses BOT_USER_AGENTS from comma or newline separated lists', () => {
+    const env = parseServerEnv({
+      ...required,
+      BOT_USER_AGENTS: ' Googlebot, bingbot\nMy-Crawler\\/\\d+ ,,\n',
+    });
+
+    expect(env.BOT_USER_AGENTS).toEqual(['googlebot', 'bingbot', 'my-crawler\\/\\d+']);
+  });
+
+  it('falls back to the default bot list when BOT_USER_AGENTS is blank', () => {
+    const env = parseServerEnv({ ...required, BOT_USER_AGENTS: '  ' });
+
+    expect(env.BOT_USER_AGENTS).toEqual(DEFAULT_BOT_USER_AGENTS);
+  });
+
+  it('rejects unknown log levels', () => {
+    expect(() => parseServerEnv({ ...required, LOG_LEVEL: 'verbose' })).toThrow(/LOG_LEVEL/);
+  });
+
+  it('treats empty strings as unset so defaults apply', () => {
+    const env = parseServerEnv({ ...required, LOG_LEVEL: '', MAGENTO_TIMEOUT_MS: '' });
+
+    expect(env.LOG_LEVEL).toBe('info');
+    expect(env.MAGENTO_TIMEOUT_MS).toBe(5000);
+  });
+});
