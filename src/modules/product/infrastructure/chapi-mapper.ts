@@ -11,39 +11,35 @@ import type {
  * zod schemas for the scraper API (CHAPI) payloads, following its OpenAPI
  * document. Only the fields the storefront reads are validated; unknown
  * fields are ignored.
+ *
+ * Product payloads are only rejected for core fields: `asin`, `title`, and a
+ * price whose amount is present but not a number (showing a wrong price is
+ * worse than showing none). Every other field is optional and degrades to
+ * its empty value when malformed, so one odd field never hides the product.
  */
-const localPriceSchema = z.object({
-  current_price: z.number(),
-  currency: z.string().nullish(),
-  before_price: z.number().nullish(),
-});
-
-const usdPriceSchema = z.object({
-  usd_current_price: z.number(),
-  usd_currency: z.string().nullish(),
-  usd_before_price: z.number().nullish(),
-});
+const optionalString = z.string().nullish().catch(null);
+const optionalBoolean = z.boolean().nullish().catch(null);
 
 const productDataSchema = z.object({
   asin: z.string().min(1),
-  parent_product_id: z.string().nullish(),
-  vendor: z.string().nullish(),
   title: z.string(),
-  brand: z.string().nullish(),
-  description: z.string().nullish(),
-  short_description: z.string().nullish(),
-  main_image: z.string().nullish(),
-  image: z.string().nullish(),
-  thumbnails: z.array(z.object({ link: z.string() })).nullish(),
-  price: z.union([localPriceSchema, usdPriceSchema, z.array(z.unknown())]).nullish(),
-  stock: z.number().int().nullish(),
-  stock_status: z.string().nullish(),
-  item_available: z.boolean().nullish(),
-  has_variants: z.boolean().nullish(),
-  delivery_to: z.boolean().nullish(),
-  status: z.string().nullish(),
-  breadcrumbs: z.string().nullish(),
-  categories: z.array(z.string()).nullish(),
+  price: z.unknown().optional(),
+  parent_product_id: optionalString,
+  vendor: optionalString,
+  brand: optionalString,
+  description: optionalString,
+  short_description: optionalString,
+  main_image: optionalString,
+  image: optionalString,
+  thumbnails: z.array(z.unknown()).nullish().catch(null),
+  stock: z.number().int().nullish().catch(null),
+  stock_status: optionalString,
+  item_available: optionalBoolean,
+  has_variants: optionalBoolean,
+  delivery_to: optionalBoolean,
+  status: optionalString,
+  breadcrumbs: optionalString,
+  categories: z.array(z.string()).nullish().catch(null),
 });
 
 const productEnvelopeSchema = z.object({
@@ -96,7 +92,12 @@ export function parseSearchProductResult(payload: unknown): ScraperResult<Scrape
 
   const parsed = productDataSchema.safeParse(data);
   if (!parsed.success) return INVALID;
-  return { status: 'found', product: toScrapedProduct(parsed.data, envelope.data.vendor) };
+  const price = toPrice(parsed.data.price);
+  if (price === INVALID_PRICE) return INVALID;
+  return {
+    status: 'found',
+    product: toScrapedProduct(parsed.data, price, envelope.data.vendor),
+  };
 }
 
 /** Parses `POST /api/v1/product/variants/`; a payload without asin is `not_found`. */
@@ -128,13 +129,10 @@ export function parseVariantsResult(payload: unknown): ScraperResult<ScrapedVari
 
 function toScrapedProduct(
   data: ProductData,
+  price: ScrapedPrice | null,
   envelopeVendor: string | null | undefined,
 ): ScrapedProduct {
-  const images = [
-    data.main_image,
-    data.image,
-    ...(data.thumbnails ?? []).map((thumb) => thumb.link),
-  ]
+  const images = [data.main_image, data.image, ...(data.thumbnails ?? []).map(thumbnailLink)]
     .map((url) => url?.trim() ?? '')
     .filter((url) => url !== '');
 
@@ -147,7 +145,7 @@ function toScrapedProduct(
     descriptionHtml: data.description ?? '',
     shortDescription: data.short_description ?? '',
     images: [...new Set(images)],
-    price: toPrice(data.price),
+    price,
     stock: data.stock ?? null,
     availability: toAvailability(data.stock_status),
     itemAvailable: data.item_available ?? true,
@@ -162,21 +160,44 @@ function toScrapedProduct(
   };
 }
 
-/** Copies the price as returned; zero or missing previous prices become null. */
-function toPrice(price: ProductData['price']): ScrapedPrice | null {
-  if (!price || Array.isArray(price)) return null;
-  if ('current_price' in price) {
-    return {
-      current: price.current_price,
-      currency: price.currency || null,
-      before: price.before_price || null,
-    };
+const INVALID_PRICE = Symbol('invalid price');
+
+/**
+ * Copies the price as returned; zero or missing previous prices become null.
+ * A payload without a recognizable price shape (`[]`, `{}`, no amount) has no
+ * price; an amount that is present but not a number is {@link INVALID_PRICE}.
+ */
+function toPrice(raw: unknown): ScrapedPrice | null | typeof INVALID_PRICE {
+  if (!isRecord(raw)) return null;
+  if ('current_price' in raw) {
+    return readPrice(raw.current_price, raw.currency, raw.before_price, null);
   }
+  if ('usd_current_price' in raw) {
+    return readPrice(raw.usd_current_price, raw.usd_currency, raw.usd_before_price, 'USD');
+  }
+  return null;
+}
+
+function readPrice(
+  current: unknown,
+  currency: unknown,
+  before: unknown,
+  defaultCurrency: string | null,
+): ScrapedPrice | typeof INVALID_PRICE {
+  if (typeof current !== 'number' || !Number.isFinite(current)) return INVALID_PRICE;
   return {
-    current: price.usd_current_price,
-    currency: price.usd_currency || 'USD',
-    before: price.usd_before_price || null,
+    current,
+    currency: (typeof currency === 'string' && currency) || defaultCurrency,
+    before: typeof before === 'number' && before !== 0 ? before : null,
   };
+}
+
+function thumbnailLink(thumbnail: unknown): string | null {
+  return isRecord(thumbnail) && typeof thumbnail.link === 'string' ? thumbnail.link : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function toAvailability(status: string | null | undefined): Availability {
