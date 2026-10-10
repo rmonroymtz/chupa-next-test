@@ -38,10 +38,12 @@ export function Tabs({
   styleId,
 }: TabsProps) {
   const id = useId();
-  const [active, setActive] = useState(defaultIndex);
+  const [selected, setActive] = useState(defaultIndex);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const count = panels.length;
   if (count === 0) return null;
+  // Clamped at render (bad default, panels that shrank): one tab is always selected and focusable.
+  const active = clampIndex(selected, count);
 
   const select = (index: number) => {
     setActive(index);
@@ -111,4 +113,9 @@ export function Tabs({
       </div>
     </div>
   );
+}
+
+function clampIndex(index: number, count: number): number {
+  if (!Number.isInteger(index)) return 0;
+  return Math.min(Math.max(index, 0), count - 1);
 }

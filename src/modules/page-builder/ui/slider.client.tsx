@@ -20,6 +20,8 @@ export interface SliderProps {
 }
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+/** Faster rotation is unreadable (WCAG 2.2.2); slower admin values are kept. */
+export const MIN_AUTOPLAY_SPEED_MS = 1000;
 
 /**
  * Page Builder slider: an accessible carousel (WAI-ARIA APG pattern) with no
@@ -43,19 +45,29 @@ export function Slider({
 }: SliderProps) {
   const id = useId();
   const count = slides.length;
-  const [active, setActive] = useState(0);
+  const [selected, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia(REDUCED_MOTION);
     const update = () => setReducedMotion(query.matches);
     update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
+    // Safari < 14 only implements the deprecated addListener/removeListener.
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', update);
+      return () => query.removeEventListener('change', update);
+    }
+    query.addListener(update);
+    return () => query.removeListener(update);
   }, []);
+
+  // Clamped at render: slides can shrink between renders.
+  const active = count === 0 ? 0 : Math.min(selected, count - 1);
+  const speed = autoplayInterval(autoplaySpeed);
 
   const goTo = useCallback(
     (index: number) => {
@@ -66,14 +78,20 @@ export function Slider({
     [count, infinite],
   );
 
-  const rotating = autoplay && count > 1 && !paused && !hovered && !focused && !reducedMotion;
+  const canAutoplay = autoplay && speed !== null && count > 1 && !reducedMotion;
+  // A finite slider stops on its last slide.
+  const atEnd = !infinite && active >= count - 1;
+  const rotating = canAutoplay && !atEnd && !paused && !hovered && !focused;
   useEffect(() => {
-    if (!rotating) return;
+    if (!rotating || speed === null) return;
     const timer = window.setInterval(() => {
-      setActive((current) => (current + 1 < count ? current + 1 : infinite ? 0 : current));
-    }, autoplaySpeed);
+      setActive((current) => {
+        const from = Math.min(current, count - 1);
+        return from + 1 < count ? from + 1 : infinite ? 0 : from;
+      });
+    }, speed);
     return () => window.clearInterval(timer);
-  }, [rotating, autoplaySpeed, count, infinite]);
+  }, [rotating, speed, count, infinite]);
 
   if (count === 0) return null;
   const canGoBack = infinite || active > 0;
@@ -93,7 +111,7 @@ export function Slider({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
       }}
     >
-      {autoplay && count > 1 && !reducedMotion ? (
+      {canAutoplay && !atEnd ? (
         <button
           type="button"
           className={styles.sliderPause}
@@ -168,6 +186,12 @@ export function Slider({
       ) : null}
     </section>
   );
+}
+
+/** Autoplay interval in ms, or null when the admin value cannot drive autoplay. */
+function autoplayInterval(value: number): number | null {
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.max(value, MIN_AUTOPLAY_SPEED_MS);
 }
 
 function Arrow({ direction }: { readonly direction: 'left' | 'right' }) {
