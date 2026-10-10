@@ -7,10 +7,10 @@ export interface RecordedCall {
   /** GraphQL operation name, or the CHAPI path. */
   readonly operation: string;
   readonly body: Record<string, unknown>;
-  /** Epoch ms when the request arrived. */
-  readonly receivedAt: number;
-  /** Epoch ms when the mock finished responding (after any delay). */
-  respondedAt?: number;
+  /** Position in the shared event order (see `MockBackends.nextSeq`) when the request arrived. */
+  readonly receivedSeq: number;
+  /** Event order position when the mock finished responding (after any delay). */
+  respondedSeq?: number;
 }
 
 export interface ChapiScenario {
@@ -32,6 +32,12 @@ export interface MockBackends {
   readonly magentoUrl: string;
   readonly chapiUrl: string;
   readonly calls: RecordedCall[];
+  /**
+   * Next position in one monotonic event order shared by the mocks and the
+   * test client (same process). Ordering assertions compare positions instead
+   * of wall-clock timestamps, so they never depend on timer resolution.
+   */
+  nextSeq(): number;
   callsTo(service: RecordedCall['service'], operation?: string): RecordedCall[];
   reset(): void;
   close(): Promise<void>;
@@ -40,9 +46,11 @@ export interface MockBackends {
 /** Starts mock Magento GraphQL and CHAPI HTTP servers that record every request. */
 export async function startMockBackends(config: MockBackendsConfig): Promise<MockBackends> {
   const calls: RecordedCall[] = [];
+  let seq = 0;
+  const nextSeq = () => ++seq;
 
   const magento = createServer((req, res) => {
-    void handle(req, res, async (body) => {
+    void handle(req, res, nextSeq, async (body) => {
       const operation = String(body.operationName ?? '');
       const call = record('magento', operation, body);
       const variables = (body.variables ?? {}) as Record<string, unknown>;
@@ -73,7 +81,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   });
 
   const chapi = createServer((req, res) => {
-    void handle(req, res, async (body) => {
+    void handle(req, res, nextSeq, async (body) => {
       const call = record('chapi', req.url ?? '', body);
       const scenario = config.chapi[`${String(body.store)}:${String(body.sku)}`];
       await delay(scenario?.delayMs ?? config.chapiDefaultDelayMs);
@@ -90,7 +98,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     operation: string,
     body: Record<string, unknown>,
   ) {
-    const call: RecordedCall = { service, operation, body, receivedAt: Date.now() };
+    const call: RecordedCall = { service, operation, body, receivedSeq: nextSeq() };
     calls.push(call);
     return call;
   }
@@ -100,6 +108,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     magentoUrl: `http://127.0.0.1:${magentoPort}/graphql`,
     chapiUrl: `http://127.0.0.1:${chapiPort}`,
     calls,
+    nextSeq,
     callsTo: (service, operation) =>
       calls.filter(
         (c) => c.service === service && (operation === undefined || c.operation === operation),
@@ -116,6 +125,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
 async function handle(
   req: IncomingMessage,
   res: ServerResponse,
+  nextSeq: () => number,
   respond: (
     body: Record<string, unknown>,
   ) => Promise<{ call: RecordedCall; status: number; body: unknown }>,
@@ -132,7 +142,7 @@ async function handle(
   if (res.destroyed) return; // The client gave up (timeout).
   res.writeHead(result.status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(result.body), () => {
-    result.call.respondedAt = Date.now();
+    result.call.respondedSeq = nextSeq();
   });
 }
 
