@@ -10,6 +10,7 @@ import {
   resolveDirectives,
 } from '@/modules/page-builder/parser/directives';
 import { parsePageBuilder } from '@/modules/page-builder/parser/parse-page-builder';
+import { stripAllDirectives } from '@/modules/page-builder/application/strip-directives';
 import type { ProductListRepository } from '@/modules/product/application/ports';
 import type { ProductCard } from '@/modules/product/domain/product';
 import { DEFAULT_PRODUCT_URL_SUFFIX } from '@/modules/product/domain/product-url';
@@ -88,7 +89,6 @@ export function createPageBuilderLoader(deps: PageBuilderLoaderDeps): PageBuilde
 }
 
 const EMPTY_DOCUMENT: PageBuilderDocument = { isPageBuilder: false, nodes: [], warnings: [] };
-const ANY_DIRECTIVE = /\{\{[^}]*\}\}/g;
 
 async function resolveContentDirectives(
   content: string,
@@ -97,22 +97,31 @@ async function resolveContentDirectives(
   storeSettings: () => Promise<PageBuilderStoreSettings | null>,
 ): Promise<string> {
   try {
-    if (!hasDirectives(content)) return content;
-    const mediaBaseUrl = hasMediaDirective(content)
-      ? ((await storeSettings())?.baseMediaUrl ?? null)
-      : null;
-    const resolved = resolveDirectives(content, { mediaBaseUrl });
-    if (resolved.stripped.length > 0) {
+    let html = content;
+    const stripped: string[] = [];
+    if (hasDirectives(content)) {
+      const mediaBaseUrl = hasMediaDirective(content)
+        ? ((await storeSettings())?.baseMediaUrl ?? null)
+        : null;
+      const resolved = resolveDirectives(content, { mediaBaseUrl });
+      html = resolved.html;
+      stripped.push(...resolved.stripped);
+    }
+    // Safety net: the resolver's regex misses directives with `}` inside quoted
+    // arguments; the quote-aware scanner removes whatever is left.
+    const leftovers = stripAllDirectives(html);
+    stripped.push(...leftovers.stripped);
+    if (stripped.length > 0) {
       deps.logger.warn(
-        { source, directives: [...new Set(resolved.stripped)] },
+        { source, directives: [...new Set(stripped)] },
         'page builder directives stripped',
       );
     }
-    return resolved.html;
+    return leftovers.html;
   } catch (error) {
     // Never show raw directives to shoppers: drop them all and keep the content.
     deps.logger.error({ source, err: error }, 'page builder directives failed');
-    return content.replace(ANY_DIRECTIVE, '');
+    return stripAllDirectives(content).html;
   }
 }
 

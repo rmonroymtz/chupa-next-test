@@ -96,6 +96,20 @@ describe('PageBuilderLoader', () => {
     );
   });
 
+  it('never shows a directive whose quoted arguments contain `}` (resolver regex misses it)', async () => {
+    const { loader, logger } = setup();
+    const view = await loader.load(
+      '<div data-content-type="text"><p>Hola {{widget template="a}b"}} mundo</p></div>',
+      'cms:x',
+    );
+    const text = view.document.nodes[0];
+    expect(text?.type === 'text' && text.html).toBe('<p>Hola  mundo</p>');
+    expect(logger.warn).toHaveBeenCalledWith(
+      { source: 'cms:x', directives: ['widget'] },
+      'page builder directives stripped',
+    );
+  });
+
   it('logs unsupported content types once per page', async () => {
     const { loader, logger } = setup();
     await loader.load(

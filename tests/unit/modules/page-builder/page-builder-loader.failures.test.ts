@@ -42,6 +42,19 @@ describe('PageBuilderLoader: never rejects', () => {
     );
   });
 
+  it('the fallback also strips directives whose quoted arguments contain `}`', async () => {
+    vi.mocked(directives.resolveDirectives).mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    const { loader } = setup();
+    const view = await loader.load(
+      '<div data-content-type="text" data-element="main"><p>Hola {{widget template="a}b"}} mundo</p></div>',
+      'cms:x',
+    );
+    const node = view.document.nodes[0];
+    expect(node?.type === 'text' && node.html).toBe('<p>Hola  mundo</p>');
+  });
+
   it('a parser failure yields an empty document and is logged', async () => {
     vi.mocked(parser.parsePageBuilder).mockImplementationOnce(() => {
       throw new Error('boom');

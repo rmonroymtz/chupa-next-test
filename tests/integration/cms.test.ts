@@ -40,6 +40,27 @@ const PROMO_CONTENT =
   '<div data-content-type="text" data-element="main"><p>Envíos a todo México.</p></div></div></div></div>' +
   '</div></div>';
 
+/**
+ * Three top-level rows; the middle one lists a product whose name Magento
+ * returns malformed (an object). The mapper only checks truthiness, so the
+ * value reaches the product card and React throws while rendering it
+ * ("Objects are not valid as a React child"), after the node's element tree
+ * was built: the synchronous try/catch cannot see it, only the per-node
+ * Suspense boundary can.
+ */
+const BROKEN_NODE_CONTENT =
+  '<div data-content-type="row" data-appearance="contained" data-element="main"><div data-element="inner">' +
+  '<h2 data-content-type="heading" data-appearance="default" data-element="main">Antes del nodo roto</h2>' +
+  '</div></div>' +
+  '<div data-content-type="row" data-appearance="contained" data-element="main"><div data-element="inner">' +
+  '<h3 data-content-type="heading" data-appearance="default" data-element="main">Fila del nodo roto</h3>' +
+  '<div data-content-type="products" data-appearance="grid" data-element="main"><ol>' +
+  productLink('amazon-B0BROKEN01-broken-product') +
+  '</ol></div></div></div>' +
+  '<div data-content-type="row" data-appearance="contained" data-element="main"><div data-element="inner">' +
+  '<div data-content-type="text" data-element="main"><p>Después del nodo roto</p></div>' +
+  '</div></div>';
+
 let backends: MockBackends;
 let next: RunningNext;
 
@@ -50,6 +71,7 @@ beforeAll(async () => {
       promociones: cmsRoute('promociones'),
       'pagina-borrada': cmsRoute('pagina-borrada'),
       'cms-caido': cmsRoute('cms-caido'),
+      'nodo-roto': cmsRoute('nodo-roto'),
     },
     cmsPages: {
       'aviso-privacidad': aviso.data.route,
@@ -66,8 +88,30 @@ beforeAll(async () => {
         page_layout: 'cms-full-width',
       },
       'cms-caido': 'outage',
+      'nodo-roto': {
+        identifier: 'nodo-roto',
+        url_key: 'nodo-roto',
+        relative_url: 'nodo-roto',
+        title: 'Nodo roto',
+        content_heading: null,
+        content: BROKEN_NODE_CONTENT,
+        meta_title: null,
+        meta_description: null,
+        meta_keywords: null,
+        page_layout: 'cms-full-width',
+      },
     },
     productsByUrlKey: {
+      'amazon-B0BROKEN01-broken-product': {
+        uid: 'broken',
+        sku: 'B0BROKEN01',
+        name: { label: 'Malformed name' },
+        url_key: 'amazon-B0BROKEN01-broken-product',
+        url_suffix: '.html',
+        stock_status: 'IN_STOCK',
+        small_image: null,
+        price_range: null,
+      },
       'amazon-B0LAMP0001-desk-lamp': {
         uid: 'lamp',
         sku: 'B0LAMP0001',
@@ -114,6 +158,7 @@ async function get(path: string, userAgent = BROWSER_UA) {
 
 const robots = (html: string) => /<meta name="robots" content="([^"]*)"/.exec(html)?.[1] ?? null;
 const canonical = (html: string) => /<link rel="canonical" href="([^"]*)"/.exec(html)?.[1] ?? null;
+const withoutScripts = (html: string) => html.replace(/<script\b[\s\S]*?<\/script>/g, '');
 const title = (html: string) => /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
 
 describe('CMS pages', () => {
@@ -163,6 +208,23 @@ describe('CMS pages', () => {
     expect(page.html).toContain('href="/amazon-B0LAMP0001-desk-lamp.html"');
     expect(page.html).toContain(formatPrice(899.5, 'MXN'));
     expect(page.html).toContain(formatPrice(1299, 'MXN'));
+  });
+
+  it('a node that throws while React renders it is left out; the page is 200 and the rest renders', async () => {
+    const page = await get('/nodo-roto');
+    // Rendered markup only: the inline RSC payload scripts still carry every node's data.
+    const markup = withoutScripts(page.html);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('index, follow');
+    expect(markup).toContain('Antes del nodo roto</h2>');
+    expect(markup).toContain('<p>Después del nodo roto</p>');
+    // The failing top-level node is not in the server HTML: its Suspense
+    // boundary switched to client rendering (`<!--$!-->`), where the node
+    // error boundary drops it.
+    expect(markup).not.toContain('Fila del nodo roto');
+    expect(markup).toContain('<!--$!-->');
+    expect(backends.callsTo('magento', 'ProductsByUrlKeys')).toHaveLength(1);
   });
 
   it('identifier routed by Magento but the page is gone: 404', async () => {
