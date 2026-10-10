@@ -42,7 +42,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 - [x] T2 Domain (TDD): product URL parse/normalize/extract (real cases, acme, `?var`, `%7C`), indexability rule, bot detector. Check: unit tests RED→GREEN.
 - [x] T3 Infrastructure: GraphQL client with timeouts, Magento route resolver, product repo, storeConfig engine settings, copy-mutation adapter, CHAPI gateway, mock adapters. Check: unit tests with MSW.
 - [x] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
-- [ ] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
+- [x] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
 - [ ] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
 - [ ] T7 Layout: header/footer, theme tokens, self-hosted fonts, next/image remote config.
 - [ ] T8 Cart: PWA storage compat, add-to-cart, mini-cart (client). Check: unit tests + Playwright e2e scaffold (PDP → cart → PWA checkout).
@@ -67,5 +67,9 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - T4 (delegated, writer trigger: route + service + ~12 UI files + harness): RED observed (22 follow-up tests, service/loader/ui suites); typecheck/lint/build ok; 236 unit + 13 integration (real standalone server vs mock Magento/CHAPI), passed twice; parent spot check integration 13 passed. Commits a503996 (R3-003/R3-004 follow-ups), fc93b1d (PDP + integration suite). Next 16.4 quirk: catch-all params decoded in generateMetadata, encoded in page → normalized. htmlLimitedBots /.*/ → blocking metadata for all UAs, Suspense still streams. RDD medium granted → approved (lineage review-1ac5176d3bf03290); boundary → fc93b1d. Advisory → T5: R3-001 image URLs with query rejected by optimizer, R3-002 wall-clock ordering assertion flaky, R3-003 CMS placeholder noindex not asserted.
 - PENDING .env.example: IMAGE_REMOTE_HOSTS (build-time).
 
+- T5 (delegated): RED observed (image-hosts 16, new suites import-fail, metadata 4); typecheck/lint/build ok; 287 unit, 18 integration ×2; parent spot check 287. Commits 52a2d10 (T4 advisories: query-string images unoptimizable, server-side ordering via TCP proxy + seq counter, CMS noindex asserted), c1b0559 (metadata, JSON-LD, single getDisplayPrice for price parity, robots.txt). Breadcrumb category links → /search.html?query= (blocked by robots Disallow /*?*, documented). RDD medium granted → approved (acknowledged); boundary → c1b0559. Advisory (not fixed, low risk): ordering proxy stamps could share a poll iteration.
+- Slice S3 (T4+T5) ready for PR (push/PR are user decisions).
+- PENDING .env.example: ORGANIZATION_LOGO_URL, ORGANIZATION_SAME_AS (optional).
+
 ## Next step
-T5 SEO (+ T4 advisory follow-ups).
+T6 Page Builder + CMS.
