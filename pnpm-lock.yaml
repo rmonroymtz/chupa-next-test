@@ -11,6 +11,9 @@ importers:
       next:
         specifier: 16.4.0
         version: 16.4.0(@babel/core@7.29.7)(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      parse5:
+        specifier: 8.0.1
+        version: 8.0.1
       pino:
         specifier: 10.4.0
         version: 10.4.0

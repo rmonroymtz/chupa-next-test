@@ -1,0 +1,17 @@
+{
+  "_source": "live cmsPage(identifier:\"home\") 2026-10-10",
+  "data": {
+    "cmsPage": {
+      "identifier": "home",
+      "url_key": "home",
+      "relative_url": null,
+      "title": "Home page",
+      "content_heading": "Home Page",
+      "meta_title": "Acceso a más de 300 millones de productos",
+      "meta_description": "Conseguimos productos de Estados Unidos para tu empresa y tu casa en México. Precio final en pesos, factura CFDI y tiempo de entrega antes de pagar.",
+      "meta_keywords": null,
+      "page_layout": "1column",
+      "content": "<p>CMS homepage content goes here.</p>\r\n"
+    }
+  }
+}
