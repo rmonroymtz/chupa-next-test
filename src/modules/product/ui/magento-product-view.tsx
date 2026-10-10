@@ -2,14 +2,14 @@ import type { ReactNode } from 'react';
 import type { MagentoProduct } from '@/modules/product/domain/product';
 import { AvailabilityBadge } from '@/modules/product/ui/availability-badge';
 import { ProductGallery } from '@/modules/product/ui/product-gallery';
-import { ProductPrice } from '@/modules/product/ui/product-price';
+import { MagentoProductPrice } from '@/modules/product/ui/magento-product-price';
 import { RelatedProducts } from '@/modules/product/ui/related-products';
 
 interface MagentoProductViewProps {
   readonly product: MagentoProduct;
   /** Slot for the add-to-cart control (T8). */
   readonly addToCart?: ReactNode;
-  /** Slot for JSON-LD structured data (T5). */
+  /** Slot for JSON-LD structured data. */
   readonly structuredData?: ReactNode;
 }
 
@@ -36,13 +36,7 @@ export function MagentoProductView({
         <div className="flex flex-col gap-4">
           {product.brand ? <p className="text-sm text-neutral-600">{product.brand}</p> : null}
           <h1 className="text-2xl font-semibold text-neutral-900">{product.name}</h1>
-          {product.price ? (
-            <ProductPrice
-              amount={product.price.final.amount}
-              currency={product.price.final.currency}
-              previous={product.price.regular.amount}
-            />
-          ) : null}
+          <MagentoProductPrice product={product} />
           <AvailabilityBadge availability={product.availability} />
           {outOfStock ? (
             <p className="text-sm text-neutral-700">

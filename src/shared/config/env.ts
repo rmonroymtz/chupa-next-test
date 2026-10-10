@@ -89,6 +89,28 @@ const productVendors = z.preprocess(
     }),
 );
 
+const httpUrl = z.url({ protocol: /^https?$/ });
+
+/** Comma-separated absolute http(s) urls; blank means none. */
+const urlList = z.preprocess(
+  blankAsUndefined,
+  z
+    .string()
+    .optional()
+    .transform((raw, ctx): readonly string[] => {
+      const entries = (raw ?? '')
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+      const invalid = entries.filter((entry) => !httpUrl.safeParse(entry).success);
+      if (invalid.length > 0) {
+        ctx.addIssue({ code: 'custom', message: `Invalid http(s) urls: ${invalid.join(', ')}` });
+        return z.NEVER;
+      }
+      return entries;
+    }),
+);
+
 const serverEnvSchema = z.object({
   MAGENTO_GRAPHQL_URL: baseUrl,
   PUBLIC_BASE_URL: baseUrl,
@@ -115,6 +137,10 @@ const serverEnvSchema = z.object({
     blankAsUndefined,
     z.string().trim().min(1).default('ChupaStorefront'),
   ),
+  /** Organization logo for structured data (absolute url); optional. */
+  ORGANIZATION_LOGO_URL: z.preprocess(blankAsUndefined, httpUrl.optional()),
+  /** Official social profiles for Organization `sameAs` (comma-separated urls). */
+  ORGANIZATION_SAME_AS: urlList,
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

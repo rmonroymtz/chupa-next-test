@@ -11,7 +11,13 @@ import {
 import { MagentoProductView } from '@/modules/product/ui/magento-product-view';
 import { buildProductPageMetadata } from '@/modules/product/ui/product-page-metadata';
 import { ProductSkeleton } from '@/modules/product/ui/product-skeleton';
+import {
+  buildBreadcrumbJsonLd,
+  buildProductJsonLd,
+} from '@/modules/product/ui/product-structured-data';
 import { ScrapedProductSection } from '@/modules/product/ui/scraped-product-section';
+import { getSiteConfig } from '@/modules/seo/infrastructure/site-config';
+import { JsonLd } from '@/modules/seo/ui/json-ld';
 
 // Rendered per request; no data cache. There is deliberately no loading.tsx:
 // it would commit a 200 before the Magento lookup decides 404/redirect.
@@ -46,11 +52,23 @@ export default async function CatchAllPage(props: CatchAllProps) {
     case 'cms':
       return <CmsPage identifier={decision.identifier} />;
     case 'magento_product': {
-      const { copyRequest } = decision;
+      const { copyRequest, product, canonicalUrl } = decision;
       if (copyRequest) after(() => getCopyTrigger().trigger(copyRequest));
+      // Structured data only for products stored in Magento (indexable pages).
+      const structuredData = (
+        <>
+          <JsonLd data={buildProductJsonLd(product, canonicalUrl)} />
+          <JsonLd
+            data={buildBreadcrumbJsonLd(product, {
+              baseUrl: getSiteConfig().baseUrl,
+              canonicalUrl,
+            })}
+          />
+        </>
+      );
       return (
         <main>
-          <MagentoProductView product={decision.product} />
+          <MagentoProductView product={product} structuredData={structuredData} />
         </main>
       );
     }
