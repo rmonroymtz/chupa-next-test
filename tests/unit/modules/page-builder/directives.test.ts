@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hasDirectives, resolveDirectives } from '@/modules/page-builder/parser/directives';
+import {
+  hasDirectives,
+  hasMediaDirective,
+  resolveDirectives,
+} from '@/modules/page-builder/parser/directives';
 
 const MEDIA = 'https://chupaprecios.com.mx/media/';
 
@@ -56,5 +60,15 @@ describe('resolveDirectives', () => {
   it('leaves content without directives untouched', () => {
     const html = '<p>Precio {final}</p>';
     expect(resolveDirectives(html, { mediaBaseUrl: MEDIA })).toEqual({ html, stripped: [] });
+  });
+});
+
+describe('hasMediaDirective', () => {
+  it('is true only when a {{media}} directive is present', () => {
+    expect(hasMediaDirective('<img src="{{media url=wysiwyg/a.png}}">')).toBe(true);
+    expect(hasMediaDirective('<img src="{{ media url="a.png"}}">')).toBe(true);
+    expect(hasMediaDirective('{{widget type="x"}}')).toBe(false);
+    expect(hasMediaDirective('{{mediaurl}}')).toBe(false);
+    expect(hasMediaDirective('<p>media</p>')).toBe(false);
   });
 });

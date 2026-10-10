@@ -28,4 +28,9 @@ describe('toProductUrlKeys (legacy Products content type)', () => {
   it('works without a suffix', () => {
     expect(toProductUrlKeys(['/a-1-x.html'], '')).toEqual(['a-1-x.html']);
   });
+
+  it('protocol-relative links: a bare host is not a key, a path is', () => {
+    expect(toProductUrlKeys(['//example.com', '//example.com/'], '.html')).toEqual([]);
+    expect(toProductUrlKeys(['//example.com/a-1-x.html?x=1'], '.html')).toEqual(['a-1-x']);
+  });
 });

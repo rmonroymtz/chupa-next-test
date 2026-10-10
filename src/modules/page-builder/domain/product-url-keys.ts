@@ -14,7 +14,8 @@ export function toProductUrlKeys(hrefs: readonly string[], suffix: string): stri
 }
 
 function toUrlKey(href: string, suffix: string): string | null {
-  const path = href.replace(/[?#].*$/, '').replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');
+  // Drops the query, the fragment and the scheme + host (`https://host`, `//host`).
+  const path = href.replace(/[?#].*$/, '').replace(/^(?:[a-z][a-z0-9+.-]*:)?\/\/[^/]*/i, '');
   const segment = path
     .split('/')
     .filter((part) => part !== '')
