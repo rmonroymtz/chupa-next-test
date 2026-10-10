@@ -55,22 +55,8 @@ export function createPageBuilderLoader(deps: PageBuilderLoaderDeps): PageBuilde
           return null;
         }));
 
-      let html = content;
-      if (hasDirectives(html)) {
-        const mediaBaseUrl = hasMediaDirective(html)
-          ? ((await storeSettings())?.baseMediaUrl ?? null)
-          : null;
-        const resolved = resolveDirectives(html, { mediaBaseUrl });
-        html = resolved.html;
-        if (resolved.stripped.length > 0) {
-          deps.logger.warn(
-            { source, directives: [...new Set(resolved.stripped)] },
-            'page builder directives stripped',
-          );
-        }
-      }
-
-      const document = parsePageBuilder(html);
+      const html = await resolveContentDirectives(content, source, deps, storeSettings);
+      const document = parseSafely(html, source, deps.logger);
       if (document.warnings.length > 0) {
         deps.logger.warn({ source, warnings: document.warnings }, 'page builder content degraded');
       }
@@ -80,25 +66,83 @@ export function createPageBuilderLoader(deps: PageBuilderLoaderDeps): PageBuilde
       if (productNodes.length > 0) {
         const suffix = (await storeSettings())?.productUrlSuffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
         const keysByNode = new Map(
-          productNodes.map((node) => [node, toProductUrlKeys(node.productHrefs, suffix)]),
+          productNodes.map((node) => [node, productKeys(node, suffix, source, deps.logger)]),
         );
         const allKeys = [...new Set([...keysByNode.values()].flat())];
-        const cards = await deps.products.findByUrlKeys(allKeys).catch((error: unknown) => {
-          deps.logger.error({ source, err: error }, 'page builder products failed');
-          return [] as ProductCard[];
-        });
+        const cards =
+          allKeys.length === 0
+            ? []
+            : await deps.products.findByUrlKeys(allKeys).catch((error: unknown) => {
+                deps.logger.error({ source, err: error }, 'page builder products failed');
+                return [] as ProductCard[];
+              });
         const byKey = new Map(cards.map((item) => [item.urlKey, item]));
         for (const [node, keys] of keysByNode) {
-          cardsByNode.set(
-            node,
-            keys.flatMap((key) => byKey.get(key) ?? []),
-          );
+          cardsByNode.set(node, uniqueCards(keys.flatMap((key) => byKey.get(key) ?? [])));
         }
       }
 
       return { document, productsFor: (node) => cardsByNode.get(node) ?? [] };
     },
   };
+}
+
+const EMPTY_DOCUMENT: PageBuilderDocument = { isPageBuilder: false, nodes: [], warnings: [] };
+const ANY_DIRECTIVE = /\{\{[^}]*\}\}/g;
+
+async function resolveContentDirectives(
+  content: string,
+  source: string,
+  deps: PageBuilderLoaderDeps,
+  storeSettings: () => Promise<PageBuilderStoreSettings | null>,
+): Promise<string> {
+  try {
+    if (!hasDirectives(content)) return content;
+    const mediaBaseUrl = hasMediaDirective(content)
+      ? ((await storeSettings())?.baseMediaUrl ?? null)
+      : null;
+    const resolved = resolveDirectives(content, { mediaBaseUrl });
+    if (resolved.stripped.length > 0) {
+      deps.logger.warn(
+        { source, directives: [...new Set(resolved.stripped)] },
+        'page builder directives stripped',
+      );
+    }
+    return resolved.html;
+  } catch (error) {
+    // Never show raw directives to shoppers: drop them all and keep the content.
+    deps.logger.error({ source, err: error }, 'page builder directives failed');
+    return content.replace(ANY_DIRECTIVE, '');
+  }
+}
+
+function parseSafely(html: string, source: string, logger: PageBuilderLogger): PageBuilderDocument {
+  try {
+    return parsePageBuilder(html);
+  } catch (error) {
+    logger.error({ source, err: error }, 'page builder parse failed');
+    return EMPTY_DOCUMENT;
+  }
+}
+
+function productKeys(
+  node: ProductsNode,
+  suffix: string,
+  source: string,
+  logger: PageBuilderLogger,
+): string[] {
+  try {
+    return toProductUrlKeys(node.productHrefs, suffix);
+  } catch (error) {
+    logger.error({ source, err: error }, 'page builder product keys failed');
+    return [];
+  }
+}
+
+/** One card per product (url rewrite aliases resolve to the same uid); first wins. */
+function uniqueCards(cards: readonly ProductCard[]): ProductCard[] {
+  const seen = new Set<string>();
+  return cards.filter((card) => !seen.has(card.uid) && Boolean(seen.add(card.uid)));
 }
 
 function collectProducts(nodes: readonly ContentNode[]): ProductsNode[] {

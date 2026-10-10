@@ -108,4 +108,24 @@ describe('PageBuilderLoader', () => {
       'page builder content degraded',
     );
   });
+
+  it('de-duplicates product cards per node, keeping first occurrence order', async () => {
+    const { loader } = setup({
+      products: {
+        // `b-2-old` is a url rewrite alias of the same product as `b-2`.
+        findByUrlKeys: vi.fn(async () => [
+          card('a-1'),
+          card('b-2'),
+          { ...card('b-2'), urlKey: 'b-2-old' },
+        ]),
+      },
+    });
+    const view = await loader.load(
+      productsHtml('grid', ['b-2', 'a-1', 'b-2', 'b-2-old', 'a-1']),
+      'cms:x',
+    );
+    expect(
+      view.productsFor(view.document.nodes[0] as ProductsNode).map((item) => item.uid),
+    ).toEqual(['b-2', 'a-1']);
+  });
 });

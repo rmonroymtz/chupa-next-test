@@ -1,7 +1,7 @@
 import { getImageProps } from 'next/image';
 import Image from 'next/image';
 import { preload } from 'react-dom';
-import { Fragment, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, Suspense, type CSSProperties, type ReactNode } from 'react';
 import type { PageBuilderView } from '@/modules/page-builder/application/page-builder-loader';
 import type {
   BannerNode,
@@ -21,6 +21,7 @@ import { toEmbedUrl } from '@/modules/page-builder/domain/video-source';
 import { MagentoProductPrice } from '@/modules/product/ui/magento-product-price';
 import { isOptimizableImageUrl, parseImageRemoteHosts } from '@/shared/config/image-hosts';
 import { backgroundPreloadUrl, backgroundStyle } from './background';
+import { NodeErrorBoundary } from './node-error-boundary.client';
 import styles from './page-builder.module.css';
 import { Slider } from './slider.client';
 import { Tabs } from './tabs.client';
@@ -48,7 +49,15 @@ interface RenderContext {
 /**
  * Renders parsed Page Builder content as Server Components (only the slider
  * and tabs hydrate). Every top-level node renders in isolation: a node that
- * fails is logged and left out, the rest of the page still renders.
+ * fails is left out and the rest of the page still renders.
+ *
+ * Isolation has two layers. Errors while building a node's element tree are
+ * caught synchronously (`renderSafely`) and logged with the content type.
+ * Errors thrown later, while React renders nested components (Server or
+ * Client), cannot be caught with try/catch, and React 19 has no server-side
+ * error boundaries: they surface at the nearest `<Suspense>` during server
+ * rendering (empty fallback, retried on the client) and at the nearest error
+ * boundary on the client. So each top-level node gets both.
  */
 export function renderPageBuilder(
   view: PageBuilderView,
@@ -63,7 +72,11 @@ export function renderPageBuilder(
   const nodes = view.document.nodes.map((node, index) => {
     // Best effort: the hero (first row) image or background is the likely LCP element.
     context.lcpAvailable = index === 0;
-    return <Fragment key={index}>{renderSafely(node, context)}</Fragment>;
+    return (
+      <Suspense key={index} fallback={null}>
+        <NodeErrorBoundary>{renderSafely(node, context)}</NodeErrorBoundary>
+      </Suspense>
+    );
   });
   context.lcpAvailable = false;
   const css = mediaCss(context.mediaRules);
