@@ -23,6 +23,13 @@ export interface MockBackendsConfig {
   /** `route()` payloads by url; `'outage'` answers HTTP 503. Unknown urls resolve null. */
   readonly routes: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
   readonly storeConfig: Record<string, unknown>;
+  /**
+   * `cmsPage` payloads by identifier; `'outage'` answers HTTP 503. Unknown
+   * identifiers answer Magento's "doesn't exist" GraphQL error.
+   */
+  readonly cmsPages?: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
+  /** `products(filter: {url_key: {in}})` items by url key. */
+  readonly productsByUrlKey?: Readonly<Record<string, Record<string, unknown>>>;
   /** CHAPI answers by `${store}:${sku}`; unknown keys answer an empty `data`. */
   readonly chapi: Readonly<Record<string, ChapiScenario>>;
   readonly chapiDefaultDelayMs: number;
@@ -61,6 +68,27 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
           route === 'outage'
             ? { status: 503, body: { message: 'Service Unavailable' } }
             : { status: 200, body: { data: { route: route ?? null } } };
+      } else if (operation === 'CmsPage') {
+        const identifier = String(variables.identifier);
+        const page = config.cmsPages?.[identifier];
+        response =
+          page === 'outage'
+            ? { status: 503, body: { message: 'Service Unavailable' } }
+            : page
+              ? { status: 200, body: { data: { cmsPage: page } } }
+              : {
+                  status: 200,
+                  body: {
+                    errors: [
+                      { message: `The CMS page with the "${identifier}" ID doesn't exist.` },
+                    ],
+                    data: { cmsPage: null },
+                  },
+                };
+      } else if (operation === 'ProductsByUrlKeys') {
+        const keys = Array.isArray(variables.urlKeys) ? variables.urlKeys.map(String) : [];
+        const items = keys.flatMap((key) => config.productsByUrlKey?.[key] ?? []);
+        response = { status: 200, body: { data: { products: { items } } } };
       } else if (operation === 'StoreConfig') {
         response = { status: 200, body: { data: { storeConfig: config.storeConfig } } };
       } else if (operation === 'generateMagentoSku') {

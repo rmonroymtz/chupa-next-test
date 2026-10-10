@@ -68,6 +68,21 @@ export interface RelatedProduct {
   readonly price: Money | null;
 }
 
+/** Product listed by CMS content (Page Builder `products`), priced like the PDP. */
+export interface ProductCard {
+  readonly uid: string;
+  readonly sku: string;
+  readonly name: string;
+  /** Magento url key, as listed in the CMS content. */
+  readonly urlKey: string;
+  /** Url path relative to the site root, e.g. `ebay-1-shirt.html`. */
+  readonly relativeUrl: string;
+  readonly image: ProductImage | null;
+  /** Same shape the PDP uses, so `getDisplayPrice` gives the same answer. */
+  readonly price: MagentoPrice | null;
+  readonly availability: Availability;
+}
+
 /** Product copy stored in Magento. */
 export interface MagentoProduct {
   readonly uid: string;

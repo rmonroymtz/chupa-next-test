@@ -26,7 +26,7 @@ interface PriceDto {
   discount?: Nullable<{ amount_off?: Nullable<number>; percent_off?: Nullable<number> }>;
 }
 
-interface PriceRangeDto {
+export interface PriceRangeDto {
   minimum_price?: Nullable<PriceDto>;
 }
 
@@ -182,7 +182,8 @@ function mapMoney(dto: Nullable<MoneyDto>): Money | null {
   return { amount: dto.value, currency: dto.currency };
 }
 
-function mapPrice(dto: Nullable<PriceDto>): MagentoPrice | null {
+/** Magento `minimum_price` to the domain price (the PDP and cards share it). */
+export function mapPrice(dto: Nullable<PriceDto>): MagentoPrice | null {
   const final = mapMoney(dto?.final_price);
   if (!final) return null;
   const discount = dto?.discount;
@@ -195,7 +196,7 @@ function mapPrice(dto: Nullable<PriceDto>): MagentoPrice | null {
   };
 }
 
-function mapAvailability(status: Nullable<string>): Availability {
+export function mapAvailability(status: Nullable<string>): Availability {
   if (status === 'IN_STOCK') return 'in_stock';
   if (status === 'OUT_OF_STOCK') return 'out_of_stock';
   return 'unknown';

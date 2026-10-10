@@ -3,7 +3,9 @@ import { headers } from 'next/headers';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { Suspense } from 'react';
+import { getCmsCanonicalUrl, getCmsPage } from '@/modules/cms/infrastructure/cms-page.composition';
 import { CmsPage } from '@/modules/cms/ui/cms-page';
+import { buildCmsPageMetadata } from '@/modules/cms/ui/cms-page-metadata';
 import {
   getCopyTrigger,
   resolveProductPage,
@@ -35,7 +37,13 @@ async function decide({ params, searchParams }: CatchAllProps) {
 }
 
 export async function generateMetadata(props: CatchAllProps): Promise<Metadata> {
-  return buildProductPageMetadata(await decide(props));
+  const decision = await decide(props);
+  if (decision.kind === 'cms') {
+    // Same cached lookup as the page; a Magento failure rejects (5xx, never 404).
+    const page = await getCmsPage(decision.identifier);
+    return page ? buildCmsPageMetadata(page, getCmsCanonicalUrl(page)) : {};
+  }
+  return buildProductPageMetadata(decision);
 }
 
 export default async function CatchAllPage(props: CatchAllProps) {
@@ -49,8 +57,12 @@ export default async function CatchAllPage(props: CatchAllProps) {
         : redirect(decision.location);
     case 'not_found':
       return notFound();
-    case 'cms':
-      return <CmsPage identifier={decision.identifier} />;
+    case 'cms': {
+      // Read before anything streams, so a missing page is a real 404.
+      const page = await getCmsPage(decision.identifier);
+      if (!page) return notFound();
+      return <CmsPage page={page} />;
+    }
     case 'magento_product': {
       const { copyRequest, product, canonicalUrl } = decision;
       if (copyRequest) after(() => getCopyTrigger().trigger(copyRequest));

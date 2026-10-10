@@ -4,11 +4,19 @@ import { ProductPrice } from '@/modules/product/ui/product-price';
 
 interface MagentoProductPriceProps {
   readonly product: Pick<MagentoProduct, 'price'>;
+  readonly size?: 'lg' | 'sm' | undefined;
 }
 
 /** Visible price of a Magento product; same value as its JSON-LD offer. */
-export function MagentoProductPrice({ product }: MagentoProductPriceProps) {
+export function MagentoProductPrice({ product, size }: MagentoProductPriceProps) {
   const price = getDisplayPrice(product);
   if (!price) return null;
-  return <ProductPrice amount={price.amount} currency={price.currency} previous={price.previous} />;
+  return (
+    <ProductPrice
+      amount={price.amount}
+      currency={price.currency}
+      previous={price.previous}
+      size={size}
+    />
+  );
 }

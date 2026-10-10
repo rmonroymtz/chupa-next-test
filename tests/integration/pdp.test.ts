@@ -77,12 +77,6 @@ beforeAll(async () => {
         },
       },
       'old-product.html': { type: 'PRODUCT', redirect_code: 301, relative_url: EXISTING },
-      'about-us': {
-        type: 'CMS_PAGE',
-        redirect_code: 0,
-        relative_url: 'about-us',
-        identifier: 'about-us',
-      },
       [OUTAGE]: 'outage',
     },
     storeConfig: storeConfig.data.storeConfig,
@@ -398,14 +392,6 @@ describe('catch-all — other outcomes', () => {
 
     expect(page.status).toBe(404);
     expect(chapiCalls()).toEqual([]);
-  });
-
-  it('CMS page: dispatched to the CMS renderer, noindex while it is a placeholder', async () => {
-    const page = await get('/about-us', BROWSER_UA);
-
-    expect(page.status).toBe(200);
-    expect(page.html).toContain('data-testid="cms-placeholder"');
-    expect(robots(page.html)).toBe('noindex, follow');
   });
 });
 

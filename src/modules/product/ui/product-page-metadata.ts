@@ -21,10 +21,8 @@ export function buildProductPageMetadata(decision: ProductPageDecision): Metadat
         robots: { index: decision.robots.index, follow: decision.robots.follow },
         alternates: { canonical: decision.canonicalUrl },
       };
-    case 'cms':
-      // Placeholder content until T6 renders CMS pages: keep it out of the index.
-      return { robots: { index: false, follow: true } };
     default:
+      // CMS pages build their metadata from the CMS page (`buildCmsPageMetadata`).
       // Redirects and 404s are handled by the page before anything is sent.
       return {};
   }
