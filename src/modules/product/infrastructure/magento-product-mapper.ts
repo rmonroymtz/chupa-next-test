@@ -11,6 +11,7 @@ import type {
   RelatedProduct,
 } from '@/modules/product/domain/product';
 import { DEFAULT_PRODUCT_URL_SUFFIX } from '@/modules/product/domain/product-url';
+import { usableRedirectTarget } from '@/modules/routing/domain/redirect-target';
 
 type Nullable<T> = T | null | undefined;
 
@@ -36,6 +37,8 @@ export interface ProductRouteDto {
   redirect_code?: Nullable<number>;
   relative_url?: Nullable<string>;
   uid?: Nullable<string>;
+  /** CMS page identifier (only for `CMS_PAGE` routes). */
+  identifier?: Nullable<string>;
   sku?: Nullable<string>;
   name?: Nullable<string>;
   url_key?: Nullable<string>;
@@ -120,7 +123,10 @@ export interface ProductRouteDto {
 
 /**
  * Maps a `route()` result selected with the PDP fields. Pure: a null route or
- * a non-product entity is `not_found`; a redirect code wins over the entity.
+ * an entity missing its identifier is `not_found`; CMS pages and categories
+ * are reported as such. A redirect code wins over the entity unless its
+ * target is empty or the requested url itself (a self-redirect), in which
+ * case it is ignored.
  */
 export function mapProductRoute(
   route: Nullable<ProductRouteDto>,
@@ -128,9 +134,20 @@ export function mapProductRoute(
 ): MagentoProductLookup {
   if (!route) return { kind: 'not_found' };
 
-  const relativeUrl = route.relative_url || requestedUrl;
   const code = route.redirect_code ?? 0;
-  if (code > 0) return { kind: 'redirect', relativeUrl, code };
+  const redirectTarget = code > 0 ? usableRedirectTarget(route.relative_url, requestedUrl) : null;
+  if (redirectTarget !== null) return { kind: 'redirect', relativeUrl: redirectTarget, code };
+
+  // A self-redirect's relative_url may be empty or encoded: keep the requested url.
+  const relativeUrl = (code > 0 ? null : route.relative_url) || requestedUrl;
+  if (route.type === 'CMS_PAGE') {
+    return route.identifier
+      ? { kind: 'cms', identifier: route.identifier, relativeUrl }
+      : { kind: 'not_found' };
+  }
+  if (route.type === 'CATEGORY') {
+    return route.uid ? { kind: 'category', uid: route.uid, relativeUrl } : { kind: 'not_found' };
+  }
   if (route.type !== 'PRODUCT' || !route.uid || !route.sku) return { kind: 'not_found' };
 
   return {

@@ -45,13 +45,16 @@ export class FakeMagentoProductRepository implements MagentoProductRepository {
   constructor(
     private readonly products: Readonly<Record<string, MagentoProduct>> = {},
     private readonly failing: ReadonlySet<string> = new Set(),
+    /** Non-product lookups (redirect, cms, category) keyed by route url. */
+    private readonly lookups: Readonly<Record<string, MagentoProductLookup>> = {},
   ) {}
 
   async findByRouteUrl(routeUrl: string): Promise<MagentoProductLookup> {
     this.calls.push(routeUrl);
     if (this.failing.has(routeUrl)) throw magentoOutage('ProductByRoute');
     const product = this.products[routeUrl];
-    return product ? { kind: 'product', product } : { kind: 'not_found' };
+    if (product) return { kind: 'product', product };
+    return this.lookups[routeUrl] ?? { kind: 'not_found' };
   }
 }
 
@@ -104,9 +107,15 @@ export const FAKE_STORE_CONFIG: StoreConfig = {
 };
 
 export class FakeStoreConfigRepository implements StoreConfigRepository {
-  constructor(private readonly config: StoreConfig = FAKE_STORE_CONFIG) {}
+  calls = 0;
+  constructor(
+    private readonly config: StoreConfig = FAKE_STORE_CONFIG,
+    private readonly failing = false,
+  ) {}
 
   async get(): Promise<StoreConfig> {
+    this.calls += 1;
+    if (this.failing) throw magentoOutage('StoreConfig');
     return this.config;
   }
 }

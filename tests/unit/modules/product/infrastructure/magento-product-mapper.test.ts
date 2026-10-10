@@ -162,11 +162,50 @@ describe('mapProductRoute', () => {
     ]);
   });
 
-  it('returns not_found for a null route or a non-product entity', () => {
+  it('returns not_found for a null route or an entity without its identifier', () => {
     expect(mapProductRoute(null, URL)).toEqual({ kind: 'not_found' });
     expect(
       mapProductRoute({ type: 'CMS_PAGE', redirect_code: 0, relative_url: 'about-us' }, 'about-us'),
     ).toEqual({ kind: 'not_found' });
+    expect(mapProductRoute({ type: null, redirect_code: 0 }, 'x.html')).toEqual({
+      kind: 'not_found',
+    });
+  });
+
+  it('reports CMS pages and categories so the page can dispatch them', () => {
+    expect(
+      mapProductRoute(
+        { type: 'CMS_PAGE', redirect_code: 0, relative_url: 'about-us', identifier: 'about-us' },
+        'about-us',
+      ),
+    ).toEqual({ kind: 'cms', identifier: 'about-us', relativeUrl: 'about-us' });
+    expect(
+      mapProductRoute(
+        { type: 'CATEGORY', redirect_code: 0, relative_url: 'men.html', uid: 'MTI=' },
+        'men.html',
+      ),
+    ).toEqual({ kind: 'category', uid: 'MTI=', relativeUrl: 'men.html' });
+  });
+
+  it.each([
+    ['an empty relative_url', ''],
+    ['a null relative_url', null],
+    ['the requested url', URL],
+  ])('ignores a redirect with %s and resolves the product (R3-003)', (_label, relativeUrl) => {
+    const result = mapProductRoute(
+      { ...recorded, redirect_code: 301, relative_url: relativeUrl },
+      URL,
+    );
+
+    expect(result.kind).toBe('product');
+  });
+
+  it('maps a self-redirect without an entity to not_found (R3-003)', () => {
+    expect(
+      mapProductRoute({ type: null, redirect_code: 302, relative_url: 'x.html' }, 'x.html'),
+    ).toEqual({
+      kind: 'not_found',
+    });
   });
 
   it('returns a redirect when Magento reports a redirect code', () => {
