@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
 import { DesktopCategoryNav, MobileCategoryMenu } from '@/modules/layout/ui/category-nav';
 import { SiteHeader } from '@/modules/layout/ui/site-header';
+
+vi.mock('@/modules/cart/ui/cart-actions', () => ({
+  addToCartAction: vi.fn(),
+  getCartCountAction: vi.fn(),
+  getMiniCartAction: vi.fn(),
+}));
 
 afterEach(cleanup);
 
@@ -36,8 +42,9 @@ describe('SiteHeader', () => {
     // Desktop pill and the entry inside the mobile drawer.
     const signIn = within(banner).getAllByRole('link', { name: 'Iniciar sesión' });
     expect(signIn.map((link) => link.getAttribute('href'))).toEqual(['/sign-in', '/sign-in']);
-    const cart = within(banner).getByRole('link', { name: 'Carrito de compras' });
-    expect(cart.getAttribute('href')).toBe('/cart');
+    // Mini-cart trigger (T8): opens a dialog linking to the PWA cart and checkout.
+    const cart = within(banner).getByRole('button', { name: /mini carrito/ });
+    expect(cart.getAttribute('aria-haspopup')).toBe('dialog');
     expect(cart.dataset.slot).toBe('cart-trigger');
   });
 

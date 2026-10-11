@@ -372,6 +372,47 @@ describe('PDP — product missing from Magento', () => {
   });
 });
 
+describe('PDP — add to cart (shared cart with PWA Studio)', () => {
+  const submitButton = (html: string) =>
+    /<form[^>]*data-testid="add-to-cart"[\s\S]*?(<button type="submit"[^>]*>)/.exec(html)?.[1];
+  const DISABLED = /\sdisabled(=""|[\s>])/;
+
+  it('renders an enabled add-to-cart form for an in-stock Magento product, without cart calls', async () => {
+    const page = await get(`/${EXISTING}`, BROWSER_UA);
+
+    const button = submitButton(page.html);
+    expect(button).toBeDefined();
+    expect(button).not.toMatch(DISABLED);
+    expect(page.html).toContain('Agregar al carrito');
+    // The cart lives in the browser: rendering a page never touches a Magento cart.
+    await settle();
+    const cartCalls = backends
+      .callsTo('magento')
+      .filter((call) => /cart|ItemCount/i.test(call.operation));
+    expect(cartCalls).toEqual([]);
+  });
+
+  it('disables add to cart when Magento reports the product out of stock', async () => {
+    const page = await get(`/${OUT_OF_STOCK}`, BROWSER_UA);
+
+    expect(submitButton(page.html)).toMatch(DISABLED);
+  });
+
+  it('renders add to cart for a scraped product (Magento does not have it yet)', async () => {
+    const page = await get(`/${MISSING}?var=428130345038`, BROWSER_UA);
+
+    const button = submitButton(page.html);
+    expect(button).toBeDefined();
+    expect(button).not.toMatch(DISABLED);
+  });
+
+  it('renders the mini-cart trigger in the header', async () => {
+    const page = await get(`/${EXISTING}`, BROWSER_UA);
+
+    expect(page.html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*data-slot="cart-trigger"/);
+  });
+});
+
 describe('catch-all — other outcomes', () => {
   it('Magento outage: 5xx, never a 404, no scraper call', async () => {
     const page = await get(`/${OUTAGE}`, BROWSER_UA);
