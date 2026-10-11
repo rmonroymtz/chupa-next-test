@@ -83,5 +83,7 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - T7-fix evidence: RED per item where applicable; 471 unit, 32 integration (also with PDP_IT_SKIP_BUILD=1); parent spot check 471. Commits fa659e6, 90e788b, 28c9203, 87b6945. RDD high (payments path) → 4-lens, approved, acknowledged; boundary → 87b6945. Advisory (deferred to T9 cleanup): nested directive inside quoted arg skipped (content arrives pre-filtered in prod), dead ternary/unused g flag, repeated full scans, stale test name, slow-menu ordering test scheduling-dependent.
 - Item 12 root cause: Next 16.4 dynamic render cannot SSR page-level notFound() (client-only boundary) → empty __next_error__ shell with 404 status; /_not-found SSRs fine. Options: (a) proxy rewrite to /_not-found, (b) accept (404 + noindex correct, content rendered client-side). Characterization test in place.
 
+- Item 12 DECISION (user, 2026-10-11): accept Next 16.4 behavior (404 + noindex correct, content client-rendered); characterization test flags future Next change.
+
 ## Next step
-User decision on 404 rendering → T8 cart.
+T8 cart.
