@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { cpSync, existsSync } from 'node:fs';
+import { cpSync, existsSync, rmSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 
@@ -25,15 +25,20 @@ export async function buildNext(): Promise<void> {
 /**
  * `output: 'standalone'` does not include `public/` or `.next/static`; a
  * deployment copies them next to `server.js` (as the Dockerfile must). Done
- * here too so tests can load the layout assets from the real server.
+ * here too so tests can load the layout assets from the real server. Each
+ * destination is cleared first so a reused build (`PDP_IT_SKIP_BUILD=1`)
+ * never serves files deleted or renamed since the previous copy.
  */
 function copyStandaloneAssets(): void {
   const standalone = `${PROJECT_ROOT}.next/standalone`;
   if (!existsSync(standalone)) return;
-  if (existsSync(`${PROJECT_ROOT}public`)) {
-    cpSync(`${PROJECT_ROOT}public`, `${standalone}/public`, { recursive: true });
-  }
-  cpSync(`${PROJECT_ROOT}.next/static`, `${standalone}/.next/static`, { recursive: true });
+  replaceDirectory(`${PROJECT_ROOT}public`, `${standalone}/public`);
+  replaceDirectory(`${PROJECT_ROOT}.next/static`, `${standalone}/.next/static`);
+}
+
+function replaceDirectory(source: string, destination: string): void {
+  rmSync(destination, { recursive: true, force: true });
+  if (existsSync(source)) cpSync(source, destination, { recursive: true });
 }
 
 /** Starts the standalone Next server on a free port with the given environment and waits until it answers. */

@@ -24,7 +24,7 @@ export function generateMetadata(): Metadata {
   };
 }
 
-/** Skip-link target; pages render their own `<main>` landmark inside it. */
+/** Skip-link target: the page's single `<main>` landmark, rendered here for every route. */
 const MAIN_CONTENT_ID = 'main-content';
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -42,10 +42,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <JsonLd data={buildOrganizationJsonLd(site)} />
         <JsonLd data={buildWebSiteJsonLd(site)} />
         <SiteHeaderContainer />
-        {/* Not a <main>: every page renders its own (one landmark per page). */}
-        <div id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 outline-none">
+        {/* The only <main> landmark: pages render plain containers inside it. */}
+        <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 outline-none">
           {children}
-        </div>
+        </main>
         <SiteFooter />
       </body>
     </html>
