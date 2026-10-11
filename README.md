@@ -26,9 +26,13 @@ pnpm dev
 | `pnpm typecheck`        | `tsc --noEmit`                                                                               |
 | `pnpm test`             | Run unit tests once (Vitest, fast)                                                           |
 | `pnpm test:integration` | Build, start the real server against mock Magento/CHAPI HTTP servers, test PDP and CMS pages |
+| `pnpm test:e2e`         | Playwright: shared-cart suite on the standalone server + mocks; PWA checkout suite (opt-in)  |
 | `pnpm test:watch`       | Vitest in watch mode                                                                         |
 
-Unit tests live in `tests/unit`; server-level tests live in `tests/integration` (set `PDP_IT_SKIP_BUILD=1` to reuse an existing `.next` build).
+Unit tests live in `tests/unit`; server-level tests live in `tests/integration` (set `PDP_IT_SKIP_BUILD=1` to reuse an existing `.next` build). Browser tests live in `e2e/` (Playwright; install the browser once with `pnpm exec playwright install chromium`):
+
+- `e2e/local/`: builds (unless `PDP_IT_SKIP_BUILD=1`), starts mock Magento/CHAPI and the standalone server, adds to cart on a Magento PDP and a scraped PDP, and checks `M2_VENIA_BROWSER_PERSISTENCE__cartId` in the exact PWA format, the mini-cart count and contents, and recovery of a stale cart id.
+- `e2e/pwa-checkout.spec.ts`: skipped unless `E2E_BASE_URL` is set. With `E2E_BASE_URL=https://<env>` and `E2E_PRODUCT_PATH=/<vendor>-<sku>-<slug>.html` (an in-stock product served by Next) it adds to cart on the Next PDP, opens PWA Studio `/checkout` on the same domain and checks the cart id survived. It creates a real guest cart; the local stack is not started in this mode.
 
 ## Catch-all route (`src/app/[...path]/page.tsx`)
 
@@ -85,10 +89,30 @@ All configuration comes from server-side environment variables, validated with z
 
 - **Theme**: tokens from `@chupaprecios/pwa-ch-theme` ported to Tailwind v4 `@theme` in `src/app/globals.css` with legacy names (`brand-red`, `marketplace-amazon`, `neutral-black-base`, `ch-dark-grey`, `max-w-site`, `container-padded`...). The legacy type scale replaces Tailwind's (`text-2xl` is 2.125rem, every step line-height 1.5); legacy named spacing is not ported (it would change `max-w-sm`/`max-w-md` in Tailwind v4).
 - **Fonts**: `next/font/google` downloads Roboto Flex (base), Noto Sans (desktop menu) and Montserrat (footer) at build time and serves them from `/_next/static/media` (no request to Google from the browser; the build needs network). Variable fonts, latin subset, `display: swap` with metric-adjusted fallbacks; only Roboto Flex is preloaded.
-- **Header**: logo, a plain GET search form to `/search.html` (`query`, `store`, `page=1`; store tabs ChupaChoice/Amazon/eBay/Target/Acme as radio buttons, CSS only), sign-in, a static cart link (T8 replaces it with the mini-cart; `data-slot="cart-trigger"`) and the category menu. The menu comes from one `HeaderMenu` Magento query per request (legacy `getMegaMenu` + `category_url_suffix`; `include_in_menu` filter and `position` order like legacy; own timeout `MAGENTO_MENU_TIMEOUT_MS`, default 1500 ms). It streams in Suspense boundaries with same-size placeholders, so it never delays the page or changes its status, and on any failure the header renders without categories. Top-level links go to `/search.html?query={url_path}&store=amazon&page=1` (legacy megamenu), desktop submenus to category pages, mobile (`<details>`, no JS) to the search page like the legacy drawer.
+- **Header**: logo, a plain GET search form to `/search.html` (`query`, `store`, `page=1`; store tabs ChupaChoice/Amazon/eBay/Target/Acme as radio buttons, CSS only), sign-in, the mini-cart trigger (`data-slot="cart-trigger"`, see below) and the category menu. The menu comes from one `HeaderMenu` Magento query per request (legacy `getMegaMenu` + `category_url_suffix`; `include_in_menu` filter and `position` order like legacy; own timeout `MAGENTO_MENU_TIMEOUT_MS`, default 1500 ms). It streams in Suspense boundaries with same-size placeholders, so it never delays the page or changes its status, and on any failure the header renders without categories. Top-level links go to `/search.html?query={url_path}&store=amazon&page=1` (legacy megamenu), desktop submenus to category pages, mobile (`<details>`, no JS) to the search page like the legacy drawer.
 - **Links**: every header/footer link targets pages PWA Studio (or Magento CMS) serves, so they are plain `<a>` (full navigation, no Next prefetch), as for product links.
 - **Not replicated**: search autocomplete, remembering the last store (`currentStoreSearcher` in browser storage) and the SKU shortcut to `/{store}-{sku}-search.html`; PWA Studio pages keep them.
 - **Assets**: `public/images/layout/` (logo, cart, store and payment logos, AMVO seal), converted from the legacy inline SVG components. With `output: 'standalone'`, deployments must copy `public/` and `.next/static/` next to `server.js` (the integration harness does).
+
+## Cart shared with PWA Studio
+
+While checkout stays on PWA Studio (same domain), the cart and session live in PWA Studio's browser storage, read and written in its exact format (`src/modules/cart/domain/browser-persistence.ts`, from peregrine `simplePersistence.js`): key `M2_VENIA_BROWSER_PERSISTENCE__<name>`, value `JSON.stringify({ value: JSON.stringify(v), timeStored, ttl })`, expired when `ttl` is truthy and `now - timeStored > ttl * 1000`.
+
+- **Browser** (`src/modules/cart/ui/`): two client islands. `AddToCart` on both PDP kinds and `MiniCart` in the header slot. They read `cartId` and, when unexpired, the read-only `signin_token`. The storefront writes `cartId` only when it created the cart (no `ttl`, like peregrine `saveCartId`); it never writes, refreshes or removes `signin_token`, and leaves expired items for PWA Studio to clean. Unavailable storage degrades to "no cart".
+- **Server** (`src/modules/cart/ui/cart-actions.ts`): Server Actions are the only path to Magento; the browser never calls Magento or the scraper API. There is no `/api/*` route, since the edge proxies that prefix to the scraper API. Inputs are validated with zod. Tokens and cart ids are never logged, and nothing is cached. The signed-in token goes in `Authorization: Bearer` like the PWA auth link.
+- **Operations** (legacy GraphQL, `src/modules/cart/infrastructure/cart.queries.ts`): `createCart { cartId: createEmptyCart }`, `AddProductToCart` (`addProductsToCart(cartId, [{ sku, quantity, vendor, selected_options? }])` with `cart { total_quantity }` and `user_errors`), `getItemCount` (count on page load when a cart id exists) and `MiniCartQuery` (when the drawer opens).
+- **Recovery** (peregrine `isInvalidCart`): when Magento answers `Could not find a cart`, `The cart isn't active` or `The current user cannot perform operations on cart`, add to cart creates a new cart, retries once, and the browser stores the new id. A freshly created cart is never retried. Unlike peregrine, a signed-in shopper is not signed out (the token is read-only here). Reads with a rejected id show an empty cart and leave storage alone.
+- **Add-to-cart rules** (`src/modules/cart/domain/add-to-cart.ts`, from the legacy `useProductFullDetail` override):
+  - `vendor` is `pathname.split('-')[0]` without its first character.
+  - Scraped products send the scraper `asin` as `sku`, are never blocked on stock (legacy forces `IN_STOCK`), and cap the quantity at the scraper stock when it is ≥ 1.
+  - Magento products are blocked when out of stock.
+  - Configurable products need every option. They send `selected_options` uids and are blocked when the selected variant (or every variant) is out of stock.
+  - No price is validated: Magento's `user_errors` are shown as returned.
+  - On success the GA4 `add_to_cart` event of the legacy GTM handler is pushed when `window.dataLayer` exists.
+- **Mini cart**: the trigger keeps the legacy accessible name and a `99+` badge, and announces count changes in a polite live region. A native modal `<dialog>` drawer lists items (variant options, quantity, unit price), the `subtotal_excluding_tax` and plain links to `/checkout` and `/cart`.
+- **Metrics**: `CartAddToCart` (`Outcome` = success, user_error, failure), `CartCreated` (`Reason` = missing, recovery), `CartRecovered`, `CartReadFailure` (`Operation`, `Outcome`), plus `MagentoLatency`/`MagentoError` per operation.
+- **Not replicated**: removing items from the mini cart (PWA cart page), the scraped variant selector and its "selected variant unavailable" check (the PDP does not render scraped variants yet), live count sync with other tabs.
+- **Deployment**: Server Actions post to the page url (a PDP or CMS path), so those paths must reach Next for `POST` too. Behind a proxy that rewrites `Host`, Next's Server Action origin check needs `X-Forwarded-Host` to match the browser origin (or `experimental.serverActions.allowedOrigins`).
 
 ## Observability
 
