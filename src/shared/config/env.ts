@@ -118,6 +118,11 @@ const serverEnvSchema = z.object({
   MAGENTO_TIMEOUT_MS: timeoutMs(5000),
   CHAPI_TIMEOUT_MS: timeoutMs(15000),
   COPY_MUTATION_TIMEOUT_MS: timeoutMs(10000),
+  /**
+   * Header category menu query. Short: the menu streams inside its own
+   * Suspense boundary and the header renders without it on timeout.
+   */
+  MAGENTO_MENU_TIMEOUT_MS: timeoutMs(1500),
   /** Sent as the `Store` header on every Magento GraphQL request. */
   MAGENTO_STORE_CODE: z.preprocess(blankAsUndefined, z.string().trim().min(1).default('default')),
   /** Sent as the `Content-Currency` header so Magento prices come back in it. */
