@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { cpSync, existsSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 
@@ -14,9 +15,25 @@ export interface RunningNext {
 }
 
 /** Runs `next build` once (skipped with `PDP_IT_SKIP_BUILD=1`). */
-export function buildNext(): Promise<void> {
-  if (process.env.PDP_IT_SKIP_BUILD === '1') return Promise.resolve();
-  return run(process.execPath, [NEXT_BIN, 'build'], { ...process.env, NODE_ENV: 'production' });
+export async function buildNext(): Promise<void> {
+  if (process.env.PDP_IT_SKIP_BUILD !== '1') {
+    await run(process.execPath, [NEXT_BIN, 'build'], { ...process.env, NODE_ENV: 'production' });
+  }
+  copyStandaloneAssets();
+}
+
+/**
+ * `output: 'standalone'` does not include `public/` or `.next/static`; a
+ * deployment copies them next to `server.js` (as the Dockerfile must). Done
+ * here too so tests can load the layout assets from the real server.
+ */
+function copyStandaloneAssets(): void {
+  const standalone = `${PROJECT_ROOT}.next/standalone`;
+  if (!existsSync(standalone)) return;
+  if (existsSync(`${PROJECT_ROOT}public`)) {
+    cpSync(`${PROJECT_ROOT}public`, `${standalone}/public`, { recursive: true });
+  }
+  cpSync(`${PROJECT_ROOT}.next/static`, `${standalone}/.next/static`, { recursive: true });
 }
 
 /** Starts the standalone Next server on a free port with the given environment and waits until it answers. */

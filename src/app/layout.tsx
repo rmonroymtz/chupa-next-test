@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { fontVariables } from '@/modules/layout/ui/fonts';
+import { SiteFooter } from '@/modules/layout/ui/site-footer';
+import { SiteHeaderContainer } from '@/modules/layout/ui/site-header.container';
 import { OG_LOCALE, SITE_NAME } from '@/modules/seo/domain/site';
 import {
   buildOrganizationJsonLd,
@@ -21,15 +24,29 @@ export function generateMetadata(): Metadata {
   };
 }
 
+/** Skip-link target; pages render their own `<main>` landmark inside it. */
+const MAIN_CONTENT_ID = 'main-content';
+
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   const site = getSiteConfig();
   return (
-    <html lang="es-MX">
-      <body>
+    <html lang="es-MX" className={fontVariables}>
+      <body className="flex min-h-dvh flex-col">
+        <a
+          href={`#${MAIN_CONTENT_ID}`}
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-sm focus:bg-white focus:px-4 focus:py-2 focus:font-semibold focus:shadow-md"
+        >
+          Saltar al contenido principal
+        </a>
         {/* Site-wide structured data, rendered once per page. */}
         <JsonLd data={buildOrganizationJsonLd(site)} />
         <JsonLd data={buildWebSiteJsonLd(site)} />
-        {children}
+        <SiteHeaderContainer />
+        {/* Not a <main>: every page renders its own (one landmark per page). */}
+        <div id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 outline-none">
+          {children}
+        </div>
+        <SiteFooter />
       </body>
     </html>
   );

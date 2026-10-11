@@ -30,6 +30,12 @@ export interface MockBackendsConfig {
   readonly cmsPages?: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
   /** `products(filter: {url_key: {in}})` items by url key. */
   readonly productsByUrlKey?: Readonly<Record<string, Record<string, unknown>>>;
+  /**
+   * `HeaderMenu` payload (`storeConfig` + `categoryList`); `'outage'` answers
+   * HTTP 503. Unset answers HTTP 400 like any unknown operation. Changeable
+   * at runtime with `MockBackends.setMenu`.
+   */
+  readonly menu?: Record<string, unknown> | 'outage';
   /** CHAPI answers by `${store}:${sku}`; unknown keys answer an empty `data`. */
   readonly chapi: Readonly<Record<string, ChapiScenario>>;
   readonly chapiDefaultDelayMs: number;
@@ -46,6 +52,8 @@ export interface MockBackends {
    */
   nextSeq(): number;
   callsTo(service: RecordedCall['service'], operation?: string): RecordedCall[];
+  /** Replaces the `HeaderMenu` answer for the following requests. */
+  setMenu(menu: MockBackendsConfig['menu']): void;
   reset(): void;
   close(): Promise<void>;
 }
@@ -55,6 +63,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   const calls: RecordedCall[] = [];
   let seq = 0;
   const nextSeq = () => ++seq;
+  let menu = config.menu;
 
   const magento = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
@@ -89,6 +98,11 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
         const keys = Array.isArray(variables.urlKeys) ? variables.urlKeys.map(String) : [];
         const items = keys.flatMap((key) => config.productsByUrlKey?.[key] ?? []);
         response = { status: 200, body: { data: { products: { items } } } };
+      } else if (operation === 'HeaderMenu' && menu !== undefined) {
+        response =
+          menu === 'outage'
+            ? { status: 503, body: { message: 'Service Unavailable' } }
+            : { status: 200, body: { data: menu } };
       } else if (operation === 'StoreConfig') {
         response = { status: 200, body: { data: { storeConfig: config.storeConfig } } };
       } else if (operation === 'generateMagentoSku') {
@@ -141,6 +155,9 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
       calls.filter(
         (c) => c.service === service && (operation === undefined || c.operation === operation),
       ),
+    setMenu: (next) => {
+      menu = next;
+    },
     reset: () => {
       calls.length = 0;
     },
