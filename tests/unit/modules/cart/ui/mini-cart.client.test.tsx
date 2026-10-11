@@ -65,6 +65,38 @@ describe('MiniCart', () => {
     expect(screen.getByTestId('cart-count').textContent).toBe('99+');
   });
 
+  it('never lets a late initial count overwrite a newer count from add to cart', async () => {
+    window.localStorage.setItem(CART_KEY, encodePersisted('pwa-cart', Date.now()));
+    let resolveCount: (value: unknown) => void = () => {};
+    actions.getCartCountAction.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCount = resolve;
+      }),
+    );
+    await act(async () => render(<MiniCart />));
+
+    act(() => cartCountStore.set(5));
+    await act(async () => resolveCount({ status: 'ok', totalQuantity: 4 }));
+
+    expect(screen.getByTestId('cart-count').textContent).toBe('5');
+  });
+
+  it('never lets a late invalid-cart read reset a newer count to zero', async () => {
+    window.localStorage.setItem(CART_KEY, encodePersisted('pwa-cart', Date.now()));
+    let resolveCount: (value: unknown) => void = () => {};
+    actions.getCartCountAction.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCount = resolve;
+      }),
+    );
+    await act(async () => render(<MiniCart />));
+
+    act(() => cartCountStore.set(1));
+    await act(async () => resolveCount({ status: 'invalid_cart' }));
+
+    expect(screen.getByTestId('cart-count').textContent).toBe('1');
+  });
+
   it('updates and announces the count when an item is added', async () => {
     await act(async () => render(<MiniCart />));
     act(() => cartCountStore.set(2));
