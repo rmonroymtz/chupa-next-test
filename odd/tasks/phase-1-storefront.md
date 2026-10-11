@@ -77,8 +77,11 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 
 - T7 (delegated): RED observed (layout suites, env, loader `}` cases; B1 isolation 500 without per-node Suspense); 455 unit, 29 integration; parent spot check 455. Commits d9a939c (quote-aware directive strip + RSC isolation proof), 0a9c0af (tokens/fonts), 5d73796 (SVG assets), f5fd66e (menu adapter), 5ab68d2 (header/footer). Original layout commit a5cdd54 split locally (unpushed) because high-risk review exceeded lens budget. Fonts: Roboto Flex/Noto Sans/Montserrat self-hosted (build needs network). Not replicated (phase 3): autocomplete, remembered store, SKU shortcut.
 - RDD T7: 4 candidates, all granted → approved, acknowledged (assets got 4-lens high-risk review). Boundary → 5ab68d2.
-- [ ] T7-fix (delegated): directive scanner quote swallow; font var fallbacks; literal `{{` text preserved; empty uid menu ids; eager logger in composition; menu timeout delay in integration mock; standalone copy staleness; SVG cleanup (logo % height, chupachoice viewBox, ids); move `<main>` to layout; empty 404 shell (not-found layout/copy); parser/directives.ts `}` regex.
+- [x] T7-fix (delegated) — items 1–11 done, item 12 pending user decision: directive scanner quote swallow; font var fallbacks; literal `{{` text preserved; empty uid menu ids; eager logger in composition; menu timeout delay in integration mock; standalone copy staleness; SVG cleanup (logo % height, chupachoice viewBox, ids); move `<main>` to layout; empty 404 shell (not-found layout/copy); parser/directives.ts `}` regex.
 - NOTE: `.env.example` has uncommitted user changes (agent access denied) — user to commit.
 
+- T7-fix evidence: RED per item where applicable; 471 unit, 32 integration (also with PDP_IT_SKIP_BUILD=1); parent spot check 471. Commits fa659e6, 90e788b, 28c9203, 87b6945. RDD high (payments path) → 4-lens, approved, acknowledged; boundary → 87b6945. Advisory (deferred to T9 cleanup): nested directive inside quoted arg skipped (content arrives pre-filtered in prod), dead ternary/unused g flag, repeated full scans, stale test name, slow-menu ordering test scheduling-dependent.
+- Item 12 root cause: Next 16.4 dynamic render cannot SSR page-level notFound() (client-only boundary) → empty __next_error__ shell with 404 status; /_not-found SSRs fine. Options: (a) proxy rewrite to /_not-found, (b) accept (404 + noindex correct, content rendered client-side). Characterization test in place.
+
 ## Next step
-T7-fix → T8 cart.
+User decision on 404 rendering → T8 cart.
