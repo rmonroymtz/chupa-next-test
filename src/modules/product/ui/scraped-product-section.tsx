@@ -1,4 +1,6 @@
 import { after } from 'next/server';
+import { purchasableFromScraped } from '@/modules/cart/domain/add-to-cart';
+import { AddToCart } from '@/modules/cart/ui/add-to-cart.client';
 import type { VendorProductRef } from '@/modules/product/application/product-page-service';
 import {
   getCopyTrigger,
@@ -24,5 +26,10 @@ export async function ScrapedProductSection({ lookup, searchUrl }: ScrapedProduc
 
   const { copyRequest } = outcome;
   after(() => getCopyTrigger().trigger(copyRequest));
-  return <ScrapedProductView product={outcome.product} />;
+  return (
+    <ScrapedProductView
+      product={outcome.product}
+      addToCart={<AddToCart product={purchasableFromScraped(outcome.product)} />}
+    />
+  );
 }
