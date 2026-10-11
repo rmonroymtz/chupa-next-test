@@ -46,7 +46,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 - [ ] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
 - [x] T7 Layout: header/footer, theme tokens, self-hosted fonts, next/image remote config.
 - [x] T8 Cart: PWA storage compat, add-to-cart, mini-cart (client). Check: unit tests + Playwright e2e scaffold (PDP → cart → PWA checkout).
-- [ ] T9 Dockerfile (standalone), ECS notes, routing rules doc, phase report.
+- [x] T9 Dockerfile (standalone), ECS notes, routing rules doc, phase report.
 
 ## Acceptance criteria
 All checks above green; 4-case integration tests pass; phase report delivered (built, decisions, pending, risks).
@@ -87,5 +87,7 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 
 - T8 (delegated): RED observed (5 unit suites, 2 component suites, header test); 554 unit, 36 integration, e2e local 3 passed + 1 skipped (real PWA needs E2E_BASE_URL); parent spot check 554. Commits 998325d, 76d360b, 42bb2a9, 5f6bc90, a24684c. Server Actions only (no /api routes). Deviations from legacy (bug fixes): current user_errors shown, GA4 only on clean success, mini-cart checkout → /checkout + separate /cart link, cart recovery without sign-out. Gaps: scraped variants not rendered; CHAPI numeric-string stock dropped. Process slip: writer used git stash on one file (restored, no stash left). RDD medium granted → approved (acknowledged); boundary → a24684c. Advisory → T9: mini-cart initial count can overwrite newer add count; GraphQL client header override case-insensitive merge.
 
+- T9 (delegated): RED observed for all Part A items + healthz; 581 unit, 37 integration; docker build ok (388 MB, node:24-bookworm-slim, non-root), run: /healthz 200, /robots.txt ok; parent spot check 581. Commits bb6ebc2, c403929, e898bf0, 769510d, d3c922f, dfa88a5 (+ parent fix for table pipes). Findings: PWA `-search.html` shortcut matches product regex (edge rule order); CloudFront must forward User-Agent; vendor-prefixed CMS/category keys would route to Next.
+
 ## Next step
-T9 Docker, routing docs, phase report + deferred cleanups.
+Review T9 range, then user: push + stacked PRs, .env.example commit, staging deploy.
