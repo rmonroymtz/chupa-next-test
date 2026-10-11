@@ -96,6 +96,17 @@ describe('PageBuilderLoader', () => {
     );
   });
 
+  it('keeps literal double-brace copy that is not a Magento directive', async () => {
+    const { loader, logger } = setup();
+    const view = await loader.load(
+      '<div data-content-type="text"><p>Escribe {{text}} aquí</p></div>',
+      'cms:x',
+    );
+    const text = view.document.nodes[0];
+    expect(text?.type === 'text' && text.html).toBe('<p>Escribe {{text}} aquí</p>');
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
   it('never shows a directive whose quoted arguments contain `}` (resolver regex misses it)', async () => {
     const { loader, logger } = setup();
     const view = await loader.load(

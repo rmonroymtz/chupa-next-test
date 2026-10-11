@@ -97,27 +97,19 @@ async function resolveContentDirectives(
   storeSettings: () => Promise<PageBuilderStoreSettings | null>,
 ): Promise<string> {
   try {
-    let html = content;
-    const stripped: string[] = [];
-    if (hasDirectives(content)) {
-      const mediaBaseUrl = hasMediaDirective(content)
-        ? ((await storeSettings())?.baseMediaUrl ?? null)
-        : null;
-      const resolved = resolveDirectives(content, { mediaBaseUrl });
-      html = resolved.html;
-      stripped.push(...resolved.stripped);
-    }
-    // Safety net: the resolver's regex misses directives with `}` inside quoted
-    // arguments; the quote-aware scanner removes whatever is left.
-    const leftovers = stripAllDirectives(html);
-    stripped.push(...leftovers.stripped);
+    // Only recognized Magento directives are touched; literal `{{text}}` copy stays.
+    if (!hasDirectives(content)) return content;
+    const mediaBaseUrl = hasMediaDirective(content)
+      ? ((await storeSettings())?.baseMediaUrl ?? null)
+      : null;
+    const { html, stripped } = resolveDirectives(content, { mediaBaseUrl });
     if (stripped.length > 0) {
       deps.logger.warn(
         { source, directives: [...new Set(stripped)] },
         'page builder directives stripped',
       );
     }
-    return leftovers.html;
+    return html;
   } catch (error) {
     // Never show raw directives to shoppers: drop them all and keep the content.
     deps.logger.error({ source, err: error }, 'page builder directives failed');
