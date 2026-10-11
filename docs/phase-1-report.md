@@ -63,6 +63,7 @@ Accepted gaps (documented, not blocking):
 - 404 pages render their content client-side (see decisions).
 - Scraped product variants are not rendered (no variant selector for scraped products).
 - The Page Builder products content type misses products whose url key contains `|` (legacy parity).
+- Review follow-ups not yet fixed (low impact): two slow mini-cart reads can race so the drawer's count update is dropped until the next read; the directive scanner's nested-quote fallback can rescan content repeatedly on malformed admin content; a unit test imports an internal Next module to check Server Action origins.
 - Not replicated from PWA: search autocomplete, remembered store, SKU search shortcut, removing items from the mini cart, cross-tab count sync.
 
 ## Risks

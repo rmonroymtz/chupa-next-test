@@ -89,5 +89,8 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 
 - T9 (delegated): RED observed for all Part A items + healthz; 581 unit, 37 integration; docker build ok (388 MB, node:24-bookworm-slim, non-root), run: /healthz 200, /robots.txt ok; parent spot check 581. Commits bb6ebc2, c403929, e898bf0, 769510d, d3c922f, dfa88a5 (+ parent fix for table pipes). Findings: PWA `-search.html` shortcut matches product regex (edge rule order); CloudFront must forward User-Agent; vendor-prefixed CMS/category keys would route to Next.
 
+- RDD T9 medium granted → approved, acknowledged; boundary → HEAD. Advisory recorded as follow-ups in the phase report (mini-cart drawer race, scanner rescans on malformed content, internal Next import in test).
+- Phase 1 tasks complete.
+
 ## Next step
-Review T9 range, then user: push + stacked PRs, .env.example commit, staging deploy.
+User: push + stacked PRs, .env.example commit, staging deploy.
