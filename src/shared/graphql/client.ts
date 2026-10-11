@@ -41,6 +41,11 @@ export interface MagentoRequest<TVars> {
   readonly variables: TVars;
   /** Overrides the client timeout for this request. */
   readonly timeoutMs?: number;
+  /**
+   * Extra request headers (e.g. `Authorization` for a shopper's cart). Never
+   * logged; they cannot replace `Store`, `Content-Currency` or the content type.
+   */
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 export interface MagentoClient {
@@ -119,6 +124,7 @@ export function createMagentoClient(config: MagentoClientConfig): MagentoClient 
       cache: 'no-store',
       signal: AbortSignal.timeout(req.timeoutMs ?? config.timeoutMs),
       headers: {
+        ...req.headers,
         'Content-Type': 'application/json',
         Accept: 'application/json',
         Store: config.storeCode,

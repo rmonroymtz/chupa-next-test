@@ -7,6 +7,8 @@ export interface RecordedCall {
   /** GraphQL operation name, or the CHAPI path. */
   readonly operation: string;
   readonly body: Record<string, unknown>;
+  /** `Authorization` header as received (cart operations of signed-in shoppers). */
+  readonly authorization?: string;
   /** Position in the shared event order (see `MockBackends.nextSeq`) when the request arrived. */
   readonly receivedSeq: number;
   /** Event order position when the mock finished responding (after any delay). */
@@ -60,8 +62,16 @@ export interface MockBackends {
   setMenu(menu: MockBackendsConfig['menu']): void;
   /** Delays the following `HeaderMenu` answers by `ms`. */
   setMenuDelay(ms: number): void;
+  /** Cart ids the mock Magento knows, with their items (see the cart operations). */
+  readonly carts: ReadonlyMap<string, MockCartItem[]>;
   reset(): void;
   close(): Promise<void>;
+}
+
+export interface MockCartItem {
+  readonly sku: string;
+  quantity: number;
+  readonly vendor: string;
 }
 
 /** Starts mock Magento GraphQL and CHAPI HTTP servers that record every request. */
@@ -71,11 +81,12 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   const nextSeq = () => ++seq;
   let menu = config.menu;
   let menuDelayMs = config.menuDelayMs ?? 0;
+  const carts = new Map<string, MockCartItem[]>();
 
   const magento = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
       const operation = String(body.operationName ?? '');
-      const call = record('magento', operation, body, res);
+      const call = record('magento', operation, body, res, req.headers.authorization);
       const variables = (body.variables ?? {}) as Record<string, unknown>;
       let response: { status: number; body: unknown };
       if (operation === 'ProductByRoute') {
@@ -111,6 +122,8 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
           menu === 'outage'
             ? { status: 503, body: { message: 'Service Unavailable' } }
             : { status: 200, body: { data: menu } };
+      } else if (CART_OPERATIONS.has(operation)) {
+        response = { status: 200, body: answerCart(operation, variables, carts) };
       } else if (operation === 'StoreConfig') {
         response = { status: 200, body: { data: { storeConfig: config.storeConfig } } };
       } else if (operation === 'generateMagentoSku') {
@@ -148,8 +161,15 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     operation: string,
     body: Record<string, unknown>,
     res: ServerResponse,
+    authorization?: string,
   ) {
-    const call: RecordedCall = { service, operation, body, receivedSeq: nextSeq() };
+    const call: RecordedCall = {
+      service,
+      operation,
+      body,
+      receivedSeq: nextSeq(),
+      ...(authorization ? { authorization } : {}),
+    };
     // Stamped as the connection closes, so callers see it before any delay ends.
     res.once('close', () => {
       if (!res.writableFinished) call.abortedSeq = nextSeq();
@@ -174,8 +194,10 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     setMenuDelay: (ms) => {
       menuDelayMs = ms;
     },
+    carts,
     reset: () => {
       calls.length = 0;
+      carts.clear();
     },
     close: async () => {
       await Promise.all([close(magento), close(chapi)]);
@@ -220,4 +242,75 @@ function close(server: Server): Promise<void> {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const CART_OPERATIONS = new Set([
+  'createCart',
+  'AddProductToCart',
+  'getItemCount',
+  'MiniCartQuery',
+]);
+
+/**
+ * Minimal Magento cart for the storefront's cart operations: masked ids of 32
+ * characters, unknown ids answer Magento's "Could not find a cart" error.
+ */
+function answerCart(
+  operation: string,
+  variables: Record<string, unknown>,
+  carts: Map<string, MockCartItem[]>,
+): unknown {
+  if (operation === 'createCart') {
+    const cartId = `mockcart${String(carts.size + 1).padStart(24, '0')}`;
+    carts.set(cartId, []);
+    return { data: { cartId } };
+  }
+  const cartId = String(variables.cartId);
+  const items = carts.get(cartId);
+  if (!items) {
+    return {
+      errors: [{ message: `Could not find a cart with ID "${cartId}"` }],
+      data: operation === 'AddProductToCart' ? { addProductsToCart: null } : { cart: null },
+    };
+  }
+  if (operation === 'AddProductToCart') {
+    const product = (variables.product ?? {}) as Record<string, unknown>;
+    const sku = String(product.sku);
+    const existing = items.find((item) => item.sku === sku);
+    if (existing) existing.quantity += Number(product.quantity);
+    else items.push({ sku, quantity: Number(product.quantity), vendor: String(product.vendor) });
+  }
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  if (operation === 'AddProductToCart') {
+    return {
+      data: {
+        addProductsToCart: { cart: { id: cartId, total_quantity: totalQuantity }, user_errors: [] },
+      },
+    };
+  }
+  if (operation === 'getItemCount') {
+    return { data: { cart: { id: cartId, total_quantity: totalQuantity } } };
+  }
+  return {
+    data: {
+      cart: {
+        id: cartId,
+        total_quantity: totalQuantity,
+        prices: { subtotal_excluding_tax: { currency: 'MXN', value: 100 * totalQuantity } },
+        items: items.map((item, index) => ({
+          uid: `item-${index + 1}`,
+          quantity: item.quantity,
+          product: {
+            uid: `product-${index + 1}`,
+            name: `Producto ${item.sku}`,
+            sku: item.sku,
+            url_key: `${item.vendor}-${item.sku}-producto`,
+            thumbnail: null,
+            stock_status: 'IN_STOCK',
+          },
+          prices: { price: { currency: 'MXN', value: 100 } },
+        })),
+      },
+    },
+  };
 }
