@@ -76,9 +76,12 @@ async function waitUntilReady(
       throw new Error(`Next server exited with ${child.exitCode}:\n${output.join('')}`);
     }
     try {
-      const response = await fetch(`${baseUrl}/`, { signal: AbortSignal.timeout(2_000) });
+      // The liveness route answers without calling Magento, so readiness
+      // never leaves background requests (such as the header menu) behind.
+      const response = await fetch(`${baseUrl}/healthz`, { signal: AbortSignal.timeout(2_000) });
       await response.body?.cancel();
-      return;
+      if (response.ok) return;
+      await new Promise((resolve) => setTimeout(resolve, 200));
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
