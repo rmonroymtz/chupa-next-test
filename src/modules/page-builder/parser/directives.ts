@@ -1,4 +1,8 @@
-import { replaceDirectives, scanDirectives } from '@/modules/page-builder/parser/directive-scanner';
+import {
+  type DirectiveMatch,
+  replaceDirectives,
+  scanDirectives,
+} from '@/modules/page-builder/parser/directive-scanner';
 
 /**
  * Magento template directives (`{{media url=...}}`, `{{widget ...}}`).
@@ -28,26 +32,33 @@ export interface DirectiveResult {
 
 /** True when the content holds at least one recognized Magento directive. */
 export function hasDirectives(html: string): boolean {
-  return html.includes('{{') && scanDirectives(html).length > 0;
+  return scanDirectives(html).length > 0;
 }
 
-/** True when resolving needs the store media url. */
-export function hasMediaDirective(html: string): boolean {
-  return /\{\{\s*media\b/.test(html);
-}
-
-export function resolveDirectives(html: string, context: DirectiveContext): DirectiveResult {
-  if (!hasDirectives(html)) return { html, stripped: [] };
+/**
+ * Resolves `{{media}}` and removes every other directive. Pass `matches` from
+ * an earlier `scanDirectives(html)` to scan the content only once.
+ */
+export function resolveDirectives(
+  html: string,
+  context: DirectiveContext,
+  matches: readonly DirectiveMatch[] = scanDirectives(html),
+): DirectiveResult {
+  if (matches.length === 0) return { html, stripped: [] };
   const stripped: string[] = [];
-  const resolved = replaceDirectives(html, ({ name, args }) => {
-    if (name === 'media' && context.mediaBaseUrl) {
-      const match = MEDIA_URL.exec(args);
-      const path = match ? (match[1] ?? match[2] ?? match[3] ?? match[4] ?? '') : '';
-      if (path) return joinUrl(context.mediaBaseUrl, path);
-    }
-    stripped.push(name);
-    return '';
-  });
+  const resolved = replaceDirectives(
+    html,
+    ({ name, args }) => {
+      if (name === 'media' && context.mediaBaseUrl) {
+        const match = MEDIA_URL.exec(args);
+        const path = match ? (match[1] ?? match[2] ?? match[3] ?? match[4] ?? '') : '';
+        if (path) return joinUrl(context.mediaBaseUrl, path);
+      }
+      stripped.push(name);
+      return '';
+    },
+    matches,
+  );
   return { html: resolved, stripped };
 }
 

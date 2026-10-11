@@ -45,9 +45,11 @@ export interface DirectiveMatch {
   readonly args: string;
 }
 
-const DIRECTIVE_START = /\{\{\s*\/?([a-zA-Z_]+)/g;
+const DIRECTIVE_START = /\{\{\s*\/?([a-zA-Z_]+)/;
 // Quote tokens, longest first (attribute-encoded `&quot;`).
 const QUOTES = ['&quot;', '"', "'"] as const;
+// Nesting depth for `{{...}}` inside quoted values; deeper means "not closed".
+const MAX_NESTING = 4;
 
 /**
  * Every recognized directive in order of appearance.
@@ -55,18 +57,23 @@ const QUOTES = ['&quot;', '"', "'"] as const;
  * A quote only delimits a value when it opens one: right after `=` (optional
  * whitespace) or as the first positional argument (`{{trans "..."}}`). A
  * value closes on its quote followed by whitespace or `}`. Inside a value
- * `}`/`}}` do not end the directive. The scan never crosses the next `{{`:
- * when no end is found before it (unclosed value, stray quote), the
- * directive ends at its first `}}`; with no `}}` at all it is plain text.
+ * `}`/`}}` do not end the directive. Outside a value the scan never crosses
+ * the next `{{`: when no end is found before it (unclosed value, stray
+ * quote), the directive ends at its first `}}` before that `{{`. Only when
+ * there is none and a quoted value is open at that `{{` (a nested directive
+ * such as `title="{{trans "Hi"}}"`), the scan skips each complete nested
+ * `{{...}}` inside the value and keeps going to the end of the string. With
+ * no end at all the directive is plain text.
  */
 export function scanDirectives(html: string): DirectiveMatch[] {
   const matches: DirectiveMatch[] = [];
+  if (!html.includes('{{')) return matches;
   const pattern = new RegExp(DIRECTIVE_START.source, 'g');
   for (let found = pattern.exec(html); found !== null; found = pattern.exec(html)) {
     const name = found[1]!.toLowerCase();
     if (!MAGENTO_DIRECTIVES.has(name)) continue;
     const argsStart = found.index + found[0].length;
-    const end = findDirectiveEnd(html, argsStart);
+    const end = findDirectiveEnd(html, argsStart, 0);
     if (end === -1) continue;
     matches.push({ start: found.index, end, name, args: html.slice(argsStart, end - 2) });
     pattern.lastIndex = end;
@@ -74,14 +81,18 @@ export function scanDirectives(html: string): DirectiveMatch[] {
   return matches;
 }
 
-/** Replaces every recognized directive with `replace(match)`. */
+/**
+ * Replaces every recognized directive with `replace(match)`. Pass `matches`
+ * from an earlier `scanDirectives(html)` to avoid scanning twice.
+ */
 export function replaceDirectives(
   html: string,
   replace: (match: DirectiveMatch) => string,
+  matches: readonly DirectiveMatch[] = scanDirectives(html),
 ): string {
   let output = '';
   let cursor = 0;
-  for (const match of scanDirectives(html)) {
+  for (const match of matches) {
     output += html.slice(cursor, match.start) + replace(match);
     cursor = match.end;
   }
@@ -89,20 +100,32 @@ export function replaceDirectives(
 }
 
 /** Index just past the closing `}}`, or -1 when the directive never closes. */
-function findDirectiveEnd(html: string, from: number): number {
-  const nextStart = html.indexOf('{{', from);
-  const limit = nextStart === -1 ? html.length : nextStart;
-  const quoted = scanQuoted(html, from, limit);
+function findDirectiveEnd(html: string, from: number, depth: number): number {
+  const quoted = scanQuoted(html, from, depth, false);
   if (quoted !== -1) return quoted;
+  const nextStart = html.indexOf('{{', from);
   const plain = html.indexOf('}}', from);
-  return plain === -1 || plain + 2 > limit ? -1 : plain + 2;
+  if (plain !== -1 && (nextStart === -1 || plain + 2 <= nextStart)) return plain + 2;
+  return depth < MAX_NESTING ? scanQuoted(html, from, depth, true) : -1;
 }
 
-function scanQuoted(html: string, from: number, limit: number): number {
+/**
+ * Index just past the closing `}}`, honouring quoted values, or -1. A `{{`
+ * outside a value always stops the scan; inside a value it stops the scan
+ * unless `crossNested`, in which case the nested `{{...}}` must close.
+ */
+function scanQuoted(html: string, from: number, depth: number, crossNested: boolean): number {
   let quote: string | null = null;
   // A value may open at the first positional argument or right after `=`.
   let valueExpected = true;
-  for (let index = from; index < limit;) {
+  for (let index = from; index < html.length;) {
+    if (html.startsWith('{{', index)) {
+      if (!quote || !crossNested) return -1;
+      const nestedEnd = findDirectiveEnd(html, index + 2, depth + 1);
+      if (nestedEnd === -1) return -1;
+      index = nestedEnd;
+      continue;
+    }
     if (quote) {
       if (html.startsWith(quote, index) && closesValue(html, index + quote.length)) {
         index += quote.length;
@@ -113,7 +136,7 @@ function scanQuoted(html: string, from: number, limit: number): number {
       }
       continue;
     }
-    if (html.startsWith('}}', index)) return index + 2 <= limit ? index + 2 : -1;
+    if (html.startsWith('}}', index)) return index + 2;
     const char = html[index]!;
     const opening = valueExpected
       ? QUOTES.find((token) => html.startsWith(token, index))

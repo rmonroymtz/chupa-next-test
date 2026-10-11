@@ -4,11 +4,8 @@ import type {
   ProductsNode,
 } from '@/modules/page-builder/domain/content-node';
 import { toProductUrlKeys } from '@/modules/page-builder/domain/product-url-keys';
-import {
-  hasDirectives,
-  hasMediaDirective,
-  resolveDirectives,
-} from '@/modules/page-builder/parser/directives';
+import { scanDirectives } from '@/modules/page-builder/parser/directive-scanner';
+import { resolveDirectives } from '@/modules/page-builder/parser/directives';
 import { parsePageBuilder } from '@/modules/page-builder/parser/parse-page-builder';
 import { stripAllDirectives } from '@/modules/page-builder/application/strip-directives';
 import type { ProductListRepository } from '@/modules/product/application/ports';
@@ -98,11 +95,13 @@ async function resolveContentDirectives(
 ): Promise<string> {
   try {
     // Only recognized Magento directives are touched; literal `{{text}}` copy stays.
-    if (!hasDirectives(content)) return content;
-    const mediaBaseUrl = hasMediaDirective(content)
+    // One scan, shared by the media check and the resolver.
+    const matches = scanDirectives(content);
+    if (matches.length === 0) return content;
+    const mediaBaseUrl = matches.some((match) => match.name === 'media')
       ? ((await storeSettings())?.baseMediaUrl ?? null)
       : null;
-    const { html, stripped } = resolveDirectives(content, { mediaBaseUrl });
+    const { html, stripped } = resolveDirectives(content, { mediaBaseUrl }, matches);
     if (stripped.length > 0) {
       deps.logger.warn(
         { source, directives: [...new Set(stripped)] },

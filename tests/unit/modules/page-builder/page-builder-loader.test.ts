@@ -107,7 +107,7 @@ describe('PageBuilderLoader', () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it('never shows a directive whose quoted arguments contain `}` (resolver regex misses it)', async () => {
+  it('never shows a directive whose quoted arguments contain `}`', async () => {
     const { loader, logger } = setup();
     const view = await loader.load(
       '<div data-content-type="text"><p>Hola {{widget template="a}b"}} mundo</p></div>',
