@@ -109,13 +109,15 @@
  * Font families. The variables are set by `next/font` (self-hosted, see
  * `src/modules/layout/ui/fonts.ts`) on <html>; `inline` makes utilities use
  * them directly. Legacy: Roboto Flex is the base font, Noto Sans the
- * megamenu, Montserrat the footer text.
+ * megamenu, Montserrat the footer text. Each `var()` carries a fallback: an
+ * undefined variable without one would invalidate the whole font-family list.
  */
 @theme inline {
-  --font-sans: var(--next-font-roboto-flex), ui-sans-serif, system-ui, sans-serif;
-  --font-roboto: var(--next-font-roboto-flex), ui-sans-serif, system-ui, sans-serif;
-  --font-noto: var(--next-font-noto-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-montserrat: var(--next-font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--next-font-roboto-flex, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-roboto: var(--next-font-roboto-flex, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-noto: var(--next-font-noto-sans, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-montserrat:
+    var(--next-font-montserrat, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Legacy `.container-padded` (preset utility): 1600px site column with 1rem gutters. */

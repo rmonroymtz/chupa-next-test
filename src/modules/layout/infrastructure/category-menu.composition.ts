@@ -20,6 +20,15 @@ export const getCategoryMenu = cache(() =>
           timeoutMs: getServerEnv().MAGENTO_MENU_TIMEOUT_MS,
         }).getTree(),
     },
-    logger: getLogger().child({ component: 'layout' }),
+    logger: { warn: safeWarn },
   }),
 );
+
+/** Creates the logger only when needed; a failing logger must not reject the menu. */
+function safeWarn(context: Record<string, unknown>, message: string): void {
+  try {
+    getLogger().child({ component: 'layout' }).warn(context, message);
+  } catch {
+    // Logging is best effort here: the header still renders without categories.
+  }
+}

@@ -67,4 +67,33 @@ describe('buildCategoryMenu', () => {
     });
     expect(menu.map((item) => item.label)).toEqual(['Ok']);
   });
+
+  it('derives a stable id from the url path when Magento sends no uid', () => {
+    const menu = buildCategoryMenu({
+      categoryUrlSuffix: '',
+      roots: [
+        node('A', 1, { uid: '', urlPath: 'a' }),
+        node('B', 2, {
+          uid: '',
+          urlPath: 'b',
+          children: [node('C', 1, { uid: '', urlPath: 'b/c' })],
+        }),
+      ],
+    });
+    expect(menu.map((item) => item.id)).toEqual(['path:a', 'path:b']);
+    expect(menu[1]?.children[0]?.id).toBe('path:b/c');
+  });
+
+  it('never yields duplicate ids: later repeats of a category are dropped', () => {
+    const menu = buildCategoryMenu({
+      categoryUrlSuffix: '',
+      roots: [
+        node('A', 1, { uid: 'MQ==' }),
+        node('A bis', 2, { uid: 'MQ==' }),
+        node('Sin uid', 3, { uid: '', urlPath: 'x' }),
+        node('Sin uid bis', 4, { uid: '', urlPath: 'x' }),
+      ],
+    });
+    expect(menu.map((item) => item.label)).toEqual(['A', 'Sin uid']);
+  });
 });
