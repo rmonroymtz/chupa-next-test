@@ -43,7 +43,8 @@ export interface MagentoRequest<TVars> {
   readonly timeoutMs?: number;
   /**
    * Extra request headers (e.g. `Authorization` for a shopper's cart). Never
-   * logged; they cannot replace `Store`, `Content-Currency` or the content type.
+   * logged; `Store`, `Content-Currency`, `Content-Type` and `Accept` in any letter
+   * case are dropped.
    */
   readonly headers?: Readonly<Record<string, string>>;
 }
@@ -124,7 +125,7 @@ export function createMagentoClient(config: MagentoClientConfig): MagentoClient 
       cache: 'no-store',
       signal: AbortSignal.timeout(req.timeoutMs ?? config.timeoutMs),
       headers: {
-        ...req.headers,
+        ...callerHeaders(req.headers),
         'Content-Type': 'application/json',
         Accept: 'application/json',
         Store: config.storeCode,
@@ -170,6 +171,30 @@ export function createMagentoClient(config: MagentoClientConfig): MagentoClient 
   }
 
   return { request };
+}
+
+/** Headers the client always sets itself (lower case). */
+const RESERVED_HEADERS: ReadonlySet<string> = new Set([
+  'content-type',
+  'accept',
+  'store',
+  'content-currency',
+]);
+
+/**
+ * Caller headers with lower-case names, minus the reserved ones. Header names
+ * are case-insensitive, so `store` next to `Store` would otherwise be merged
+ * by `fetch` into `other, default`.
+ */
+function callerHeaders(
+  headers: Readonly<Record<string, string>> | undefined,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    const key = name.toLowerCase();
+    if (!RESERVED_HEADERS.has(key)) result[key] = value;
+  }
+  return result;
 }
 
 /** Parses a GraphQL JSON body; returns null when the body is not one. */

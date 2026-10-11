@@ -66,6 +66,34 @@ describe('createMagentoClient().request', () => {
     expect(JSON.stringify(logLines)).not.toContain('secret-token');
   });
 
+  it('drops reserved headers sent by the caller in any letter case', async () => {
+    let captured: Headers | undefined;
+    server.use(
+      http.post(URL, ({ request: req }) => {
+        captured = req.headers;
+        return HttpResponse.json({ data: { ping: 'pong' } });
+      }),
+    );
+    const { client } = setup();
+
+    await client.request({
+      ...request,
+      headers: {
+        store: 'other',
+        'CONTENT-CURRENCY': 'USD',
+        'content-type': 'text/plain',
+        accept: 'text/html',
+        'x-trace': 'kept',
+      },
+    });
+
+    expect(captured?.get('store')).toBe('default');
+    expect(captured?.get('content-currency')).toBe('MXN');
+    expect(captured?.get('content-type')).toBe('application/json');
+    expect(captured?.get('accept')).toBe('application/json');
+    expect(captured?.get('x-trace')).toBe('kept');
+  });
+
   it('emits a latency metric per operation with a success outcome', async () => {
     server.use(http.post(URL, () => HttpResponse.json({ data: { ping: 'pong' } })));
     const { client, metricsNamed } = setup();
