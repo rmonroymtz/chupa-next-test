@@ -46,6 +46,26 @@ describe('createMagentoClient().request', () => {
     });
   });
 
+  it('sends extra request headers without letting them replace the store headers', async () => {
+    let captured: Headers | undefined;
+    server.use(
+      http.post(URL, ({ request: req }) => {
+        captured = req.headers;
+        return HttpResponse.json({ data: { ping: 'pong' } });
+      }),
+    );
+    const { client, logLines } = setup();
+
+    await client.request({
+      ...request,
+      headers: { Authorization: 'Bearer secret-token', Store: 'other' },
+    });
+
+    expect(captured?.get('authorization')).toBe('Bearer secret-token');
+    expect(captured?.get('store')).toBe('default');
+    expect(JSON.stringify(logLines)).not.toContain('secret-token');
+  });
+
   it('emits a latency metric per operation with a success outcome', async () => {
     server.use(http.post(URL, () => HttpResponse.json({ data: { ping: 'pong' } })));
     const { client, metricsNamed } = setup();

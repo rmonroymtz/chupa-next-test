@@ -26,3 +26,7 @@ pnpm-debug.log*
 # tooling
 .vercel
 .codegraph/
+
+# playwright
+/test-results/
+/playwright-report/

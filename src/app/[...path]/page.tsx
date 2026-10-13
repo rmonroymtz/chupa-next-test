@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { Suspense } from 'react';
+import { purchasableFromMagento } from '@/modules/cart/domain/add-to-cart';
+import { AddToCart } from '@/modules/cart/ui/add-to-cart.client';
 import { getCmsCanonicalUrl, getCmsPage } from '@/modules/cms/infrastructure/cms-page.composition';
 import { CmsPage } from '@/modules/cms/ui/cms-page';
 import { buildCmsPageMetadata } from '@/modules/cms/ui/cms-page-metadata';
@@ -78,7 +80,13 @@ export default async function CatchAllPage(props: CatchAllProps) {
           />
         </>
       );
-      return <MagentoProductView product={product} structuredData={structuredData} />;
+      return (
+        <MagentoProductView
+          product={product}
+          structuredData={structuredData}
+          addToCart={<AddToCart product={purchasableFromMagento(product)} />}
+        />
+      );
     }
     case 'missing_product':
       return (
