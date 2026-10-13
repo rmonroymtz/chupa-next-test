@@ -11,6 +11,8 @@ export interface RecordedCall {
   readonly receivedSeq: number;
   /** Event order position when the mock finished responding (after any delay). */
   respondedSeq?: number;
+  /** Event order position when the client closed the request before any response (e.g. its timeout). */
+  abortedSeq?: number;
 }
 
 export interface ChapiScenario {
@@ -30,6 +32,14 @@ export interface MockBackendsConfig {
   readonly cmsPages?: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
   /** `products(filter: {url_key: {in}})` items by url key. */
   readonly productsByUrlKey?: Readonly<Record<string, Record<string, unknown>>>;
+  /**
+   * `HeaderMenu` payload (`storeConfig` + `categoryList`); `'outage'` answers
+   * HTTP 503. Unset answers HTTP 400 like any unknown operation. Changeable
+   * at runtime with `MockBackends.setMenu`.
+   */
+  readonly menu?: Record<string, unknown> | 'outage';
+  /** Delay before answering `HeaderMenu`; changeable with `MockBackends.setMenuDelay`. */
+  readonly menuDelayMs?: number;
   /** CHAPI answers by `${store}:${sku}`; unknown keys answer an empty `data`. */
   readonly chapi: Readonly<Record<string, ChapiScenario>>;
   readonly chapiDefaultDelayMs: number;
@@ -46,6 +56,10 @@ export interface MockBackends {
    */
   nextSeq(): number;
   callsTo(service: RecordedCall['service'], operation?: string): RecordedCall[];
+  /** Replaces the `HeaderMenu` answer for the following requests. */
+  setMenu(menu: MockBackendsConfig['menu']): void;
+  /** Delays the following `HeaderMenu` answers by `ms`. */
+  setMenuDelay(ms: number): void;
   reset(): void;
   close(): Promise<void>;
 }
@@ -55,11 +69,13 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   const calls: RecordedCall[] = [];
   let seq = 0;
   const nextSeq = () => ++seq;
+  let menu = config.menu;
+  let menuDelayMs = config.menuDelayMs ?? 0;
 
   const magento = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
       const operation = String(body.operationName ?? '');
-      const call = record('magento', operation, body);
+      const call = record('magento', operation, body, res);
       const variables = (body.variables ?? {}) as Record<string, unknown>;
       let response: { status: number; body: unknown };
       if (operation === 'ProductByRoute') {
@@ -89,6 +105,12 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
         const keys = Array.isArray(variables.urlKeys) ? variables.urlKeys.map(String) : [];
         const items = keys.flatMap((key) => config.productsByUrlKey?.[key] ?? []);
         response = { status: 200, body: { data: { products: { items } } } };
+      } else if (operation === 'HeaderMenu' && menu !== undefined) {
+        await delay(menuDelayMs);
+        response =
+          menu === 'outage'
+            ? { status: 503, body: { message: 'Service Unavailable' } }
+            : { status: 200, body: { data: menu } };
       } else if (operation === 'StoreConfig') {
         response = { status: 200, body: { data: { storeConfig: config.storeConfig } } };
       } else if (operation === 'generateMagentoSku') {
@@ -110,7 +132,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
 
   const chapi = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
-      const call = record('chapi', req.url ?? '', body);
+      const call = record('chapi', req.url ?? '', body, res);
       const scenario = config.chapi[`${String(body.store)}:${String(body.sku)}`];
       await delay(scenario?.delayMs ?? config.chapiDefaultDelayMs);
       return {
@@ -125,8 +147,13 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     service: RecordedCall['service'],
     operation: string,
     body: Record<string, unknown>,
+    res: ServerResponse,
   ) {
     const call: RecordedCall = { service, operation, body, receivedSeq: nextSeq() };
+    // Stamped as the connection closes, so callers see it before any delay ends.
+    res.once('close', () => {
+      if (!res.writableFinished) call.abortedSeq = nextSeq();
+    });
     calls.push(call);
     return call;
   }
@@ -141,6 +168,12 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
       calls.filter(
         (c) => c.service === service && (operation === undefined || c.operation === operation),
       ),
+    setMenu: (next) => {
+      menu = next;
+    },
+    setMenuDelay: (ms) => {
+      menuDelayMs = ms;
+    },
     reset: () => {
       calls.length = 0;
     },
@@ -167,7 +200,7 @@ async function handle(
     // Recorded with an empty body.
   }
   const result = await respond(body);
-  if (res.destroyed) return; // The client gave up (timeout).
+  if (res.destroyed) return; // The client gave up (timeout); see `abortedSeq`.
   res.writeHead(result.status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(result.body), () => {
     result.call.respondedSeq = nextSeq();

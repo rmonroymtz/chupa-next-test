@@ -12,7 +12,7 @@ interface CmsPageProps {
  */
 export function CmsPage({ page }: CmsPageProps) {
   return (
-    <main data-cms-identifier={page.identifier}>
+    <div data-cms-identifier={page.identifier}>
       {page.contentHeading ? (
         <h1 className="mx-auto max-w-[1280px] px-4 pt-6 text-2xl font-semibold">
           {page.contentHeading}
@@ -21,6 +21,6 @@ export function CmsPage({ page }: CmsPageProps) {
         <h1 className="sr-only">{page.title}</h1>
       )}
       <PageBuilderContent content={page.content} source={`cms:${page.identifier}`} />
-    </main>
+    </div>
   );
 }

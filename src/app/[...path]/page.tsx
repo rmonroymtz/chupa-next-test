@@ -78,19 +78,13 @@ export default async function CatchAllPage(props: CatchAllProps) {
           />
         </>
       );
-      return (
-        <main>
-          <MagentoProductView product={product} structuredData={structuredData} />
-        </main>
-      );
+      return <MagentoProductView product={product} structuredData={structuredData} />;
     }
     case 'missing_product':
       return (
-        <main>
-          <Suspense fallback={<ProductSkeleton />}>
-            <ScrapedProductSection lookup={decision.lookup} searchUrl={decision.searchUrl} />
-          </Suspense>
-        </main>
+        <Suspense fallback={<ProductSkeleton />}>
+          <ScrapedProductSection lookup={decision.lookup} searchUrl={decision.searchUrl} />
+        </Suspense>
       );
   }
 }

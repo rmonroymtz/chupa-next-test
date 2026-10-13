@@ -1,0 +1,137 @@
+/*
+ * Legacy search bar look: store tabs above the field, the selected tab and the
+ * field border take the store color. Pure CSS (`:has(:checked)`), no JS.
+ */
+.form {
+  --store-color: var(--color-marketplace-chupachoice);
+}
+
+.form:has(input[value='amazon']:checked) {
+  --store-color: var(--color-marketplace-amazon);
+}
+
+.form:has(input[value='ebay']:checked) {
+  --store-color: var(--color-marketplace-ebay);
+}
+
+.form:has(input[value='target']:checked) {
+  --store-color: var(--color-marketplace-target);
+}
+
+.form:has(input[value='acme']:checked) {
+  --store-color: var(--color-marketplace-acme);
+}
+
+.tabs {
+  display: flex;
+  align-items: flex-end;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .tab {
+    height: 2.25rem;
+    padding: 4px 8px;
+  }
+}
+
+.tab img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 14px;
+}
+
+@media (min-width: 640px) {
+  .tab img {
+    max-height: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tab img {
+    max-height: 26px;
+  }
+}
+
+.tab:has(input:checked) {
+  z-index: 1;
+  margin-bottom: -1px;
+  border-color: var(--store-color);
+  background-color: var(--color-neutral-white);
+  padding-bottom: 5px;
+}
+
+.tab:has(input:focus-visible) {
+  outline: 2px solid var(--store-color);
+  outline-offset: 2px;
+}
+
+/* Visually hidden, still focusable and announced as a radio group. */
+.radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.field {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 3rem 0 1rem;
+  border: 1px solid var(--store-color);
+  border-radius: 0 3px 3px 3px;
+  background-color: var(--color-neutral-white);
+  font-size: 1rem;
+}
+
+.input::placeholder {
+  color: rgb(46 46 46);
+  font-weight: 300;
+}
+
+@media (min-width: 640px) {
+  .input::placeholder {
+    font-size: 18px;
+  }
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--store-color);
+  outline-offset: 1px;
+}
+
+.submit {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  translate: 0 -50%;
+  place-items: center;
+  cursor: pointer;
+}

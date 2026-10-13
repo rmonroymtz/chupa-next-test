@@ -20,6 +20,7 @@ describe('parseServerEnv', () => {
       MAGENTO_TIMEOUT_MS: 5000,
       CHAPI_TIMEOUT_MS: 15000,
       COPY_MUTATION_TIMEOUT_MS: 10000,
+      MAGENTO_MENU_TIMEOUT_MS: 1500,
       MAGENTO_STORE_CODE: 'default',
       MAGENTO_CURRENCY: 'MXN',
       BOT_USER_AGENTS: DEFAULT_BOT_USER_AGENTS,
@@ -42,11 +43,13 @@ describe('parseServerEnv', () => {
       MAGENTO_TIMEOUT_MS: '2500',
       CHAPI_TIMEOUT_MS: '20000',
       COPY_MUTATION_TIMEOUT_MS: '7000',
+      MAGENTO_MENU_TIMEOUT_MS: '900',
     });
 
     expect(env.MAGENTO_TIMEOUT_MS).toBe(2500);
     expect(env.CHAPI_TIMEOUT_MS).toBe(20000);
     expect(env.COPY_MUTATION_TIMEOUT_MS).toBe(7000);
+    expect(env.MAGENTO_MENU_TIMEOUT_MS).toBe(900);
   });
 
   it('reads the Magento store code and display currency', () => {

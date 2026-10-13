@@ -44,7 +44,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 - [x] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
 - [x] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
 - [ ] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
-- [ ] T7 Layout: header/footer, theme tokens, self-hosted fonts, next/image remote config.
+- [x] T7 Layout: header/footer, theme tokens, self-hosted fonts, next/image remote config.
 - [ ] T8 Cart: PWA storage compat, add-to-cart, mini-cart (client). Check: unit tests + Playwright e2e scaffold (PDP → cart → PWA checkout).
 - [ ] T9 Dockerfile (standalone), ECS notes, routing rules doc, phase report.
 
@@ -75,5 +75,15 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - RDD: full T6 range hit lens_context_budget_exceeded → reviewed per commit (3 candidates, each granted → approved, acknowledged). Boundary → 74ac9ce. Advisory warnings being fixed in T6-fix (template script survives sanitize, svg xlink:href, untested fallback, protocol-relative keys, tabs/slider index clamps + autoplay validation + tests, render isolation only sync, loader guards, duplicate card keys).
 - [x] T6-fix review follow-ups (delegated): 11 items RED→GREEN (3 test-only); 421 unit, 22 integration; parent spot check 421 + build exit 0. Commits 1c80918, 6c847fd, 48d92bb. RDD medium granted → approved (acknowledged); boundary → 48d92bb. Advisory → T7: RSC-path node isolation unproved in running server; directive-strip fallback regex misses `}` inside quoted args.
 
+- T7 (delegated): RED observed (layout suites, env, loader `}` cases; B1 isolation 500 without per-node Suspense); 455 unit, 29 integration; parent spot check 455. Commits d9a939c (quote-aware directive strip + RSC isolation proof), 0a9c0af (tokens/fonts), 5d73796 (SVG assets), f5fd66e (menu adapter), 5ab68d2 (header/footer). Original layout commit a5cdd54 split locally (unpushed) because high-risk review exceeded lens budget. Fonts: Roboto Flex/Noto Sans/Montserrat self-hosted (build needs network). Not replicated (phase 3): autocomplete, remembered store, SKU shortcut.
+- RDD T7: 4 candidates, all granted → approved, acknowledged (assets got 4-lens high-risk review). Boundary → 5ab68d2.
+- [x] T7-fix (delegated) — items 1–11 done, item 12 pending user decision: directive scanner quote swallow; font var fallbacks; literal `{{` text preserved; empty uid menu ids; eager logger in composition; menu timeout delay in integration mock; standalone copy staleness; SVG cleanup (logo % height, chupachoice viewBox, ids); move `<main>` to layout; empty 404 shell (not-found layout/copy); parser/directives.ts `}` regex.
+- NOTE: `.env.example` has uncommitted user changes (agent access denied) — user to commit.
+
+- T7-fix evidence: RED per item where applicable; 471 unit, 32 integration (also with PDP_IT_SKIP_BUILD=1); parent spot check 471. Commits fa659e6, 90e788b, 28c9203, 87b6945. RDD high (payments path) → 4-lens, approved, acknowledged; boundary → 87b6945. Advisory (deferred to T9 cleanup): nested directive inside quoted arg skipped (content arrives pre-filtered in prod), dead ternary/unused g flag, repeated full scans, stale test name, slow-menu ordering test scheduling-dependent.
+- Item 12 root cause: Next 16.4 dynamic render cannot SSR page-level notFound() (client-only boundary) → empty __next_error__ shell with 404 status; /_not-found SSRs fine. Options: (a) proxy rewrite to /_not-found, (b) accept (404 + noindex correct, content rendered client-side). Characterization test in place.
+
+- Item 12 DECISION (user, 2026-10-11): accept Next 16.4 behavior (404 + noindex correct, content client-rendered); characterization test flags future Next change.
+
 ## Next step
-T7 layout (+ T6-fix advisories).
+T8 cart.

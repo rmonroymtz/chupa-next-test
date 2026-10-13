@@ -1,1 +1,136 @@
 @import 'tailwindcss';
+
+/*
+ * Theme tokens ported from the legacy PWA Studio theme
+ * (`@chupaprecios/pwa-ch-theme`: tokens/colors.js, tokens/typography.js,
+ * tokens/figma-variables.js and tailwind.preset.js). Names follow the legacy
+ * Tailwind class names (`bg-brand-red`, `text-marketplace-amazon`,
+ * `border-ch-logo-red`, `max-w-site`...) so styles read alike in both apps.
+ *
+ * Not ported: the legacy named spacing (`p-xs`, `gap-md`...), because Tailwind
+ * v4 also resolves `max-w-*` against `--spacing-*` and would change
+ * `max-w-sm`/`max-w-md`; use the numeric scale (legacy 2xs = 2, xs = 4,
+ * sm = 6, md = 8, lg = 12). Breakpoints already match Tailwind's defaults.
+ */
+@theme {
+  /* Brand (tokens/colors.js `brand` + preset `brandColors` scale). */
+  --color-brand-red: #d84752;
+  --color-brand-muted-red: #be424b;
+  --color-brand-yellow: #fdaa40;
+  --color-brand-base: #d84752;
+  --color-brand-dark: #be424b;
+  --color-brand-darkest: #af1e26;
+  --color-brand-light: #fdaa40;
+  --color-brand-100: #fdaa40;
+  --color-brand-400: #d84752;
+  --color-brand-600: #be424b;
+  --color-brand-700: #af1e26;
+  --color-brand-800: #a01921;
+
+  /* Marketplaces (tokens/colors.js; acme and chupachoice from the search bar `STORE_CONFIGS`). */
+  --color-marketplace-home-depot: #f96302;
+  --color-marketplace-amazon: #ff9901;
+  --color-marketplace-ebay: #8ab94a;
+  --color-marketplace-target: #cc0000;
+  --color-marketplace-acme: #ffcb05;
+  --color-marketplace-chupachoice: #d84752;
+
+  /* Neutrals. */
+  --color-neutral-black: #000000;
+  --color-neutral-dark-grey: #343434;
+  --color-neutral-black-base: #3b3b3b;
+  --color-neutral-medium-grey-dark: #707070;
+  --color-neutral-grey: #7e7e7e;
+  --color-neutral-medium-grey: #aaaaaa;
+  --color-neutral-inactive: #f0f0f0;
+  --color-neutral-background: #f8f8f8;
+  --color-neutral-white: #ffffff;
+
+  /* Feedback and accents. */
+  --color-feedback-success: #bdf0d3;
+  --color-feedback-warning: #ffebb4;
+  --color-feedback-error: #ffb4ba;
+  --color-accent-decoration-orange: #ff9f0f;
+
+  /* Legacy `ch-*` aliases still used across the PWA Studio CSS. */
+  --color-ch-red: #ff0000;
+  --color-ch-logo-red: #d84752;
+  --color-ch-muted-red: #be424b;
+  --color-ch-yellow: #fdaa40;
+  --color-ch-black: #000000;
+  --color-ch-dark-grey: #343434;
+  --color-ch-text: #3b3b3b;
+  --color-ch-grey: #7e7e7e;
+  --color-ch-medium-grey: #aaaaaa;
+
+  /* Type scale (preset `fontSize`, every step with line-height 1.5). */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.5;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.5;
+  --text-2xl: 2.125rem;
+  --text-2xl--line-height: 1.5;
+  --text-3xl: 3rem;
+  --text-3xl--line-height: 1.5;
+  --text-4xl: 3.75rem;
+  --text-4xl--line-height: 1.5;
+  --text-5xl: 6rem;
+  --text-5xl--line-height: 1;
+  --text-responsive-title: clamp(1.25rem, 1.8vw, 1.875rem);
+  --text-responsive-subtitle: clamp(1rem, 1.8vw, 1.625rem);
+
+  /* Radii (figma-variables `borderRadius` + semantic aliases). */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  --radius-box: 8px;
+  --radius-button: 9999px;
+  --radius-input: 8px;
+  --radius-badge: 8px;
+
+  /* Layout. */
+  --container-site: 1600px;
+  --shadow-header: 0 1px 3px 0 #00000029;
+}
+
+/*
+ * Font families. The variables are set by `next/font` (self-hosted, see
+ * `src/modules/layout/ui/fonts.ts`) on <html>; `inline` makes utilities use
+ * them directly. Legacy: Roboto Flex is the base font, Noto Sans the
+ * megamenu, Montserrat the footer text. Each `var()` carries a fallback: an
+ * undefined variable without one would invalidate the whole font-family list.
+ */
+@theme inline {
+  --font-sans: var(--next-font-roboto-flex, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-roboto: var(--next-font-roboto-flex, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-noto: var(--next-font-noto-sans, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-montserrat:
+    var(--next-font-montserrat, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Legacy `.container-padded` (preset utility): 1600px site column with 1rem gutters. */
+@utility container-padded {
+  width: 100%;
+  max-width: var(--container-site);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-neutral-white);
+    color: var(--color-neutral-black-base);
+  }
+}

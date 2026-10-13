@@ -72,3 +72,27 @@ describe('hasMediaDirective', () => {
     expect(hasMediaDirective('<p>media</p>')).toBe(false);
   });
 });
+
+describe('directives with `}` inside quoted arguments', () => {
+  it('hasDirectives detects them', () => {
+    expect(hasDirectives('<p>{{widget template="a}b"}}</p>')).toBe(true);
+  });
+
+  it('hasDirectives ignores literal double-brace text', () => {
+    expect(hasDirectives('<p>{{text}} y {{ precio }}</p>')).toBe(false);
+  });
+
+  it('resolveDirectives strips the whole directive and resolves media next to it', () => {
+    const result = resolveDirectives(
+      '<p>a{{widget template="a}b}}c" type="x"}}b<img src="{{media url="w/a.png"}}"></p>',
+      { mediaBaseUrl: MEDIA },
+    );
+    expect(result.html).toBe(`<p>ab<img src="${MEDIA}w/a.png"></p>`);
+    expect(result.stripped).toEqual(['widget']);
+  });
+
+  it('resolveDirectives keeps literal double-brace text', () => {
+    const html = '<p>{{text}}</p>';
+    expect(resolveDirectives(html, { mediaBaseUrl: MEDIA })).toEqual({ html, stripped: [] });
+  });
+});
