@@ -43,7 +43,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 - [x] T3 Infrastructure: GraphQL client with timeouts, Magento route resolver, product repo, storeConfig engine settings, copy-mutation adapter, CHAPI gateway, mock adapters. Check: unit tests with MSW.
 - [x] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
 - [x] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
-- [ ] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
+- [x] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
 - [x] T7 Layout: header/footer, theme tokens, self-hosted fonts, next/image remote config.
 - [x] T8 Cart: PWA storage compat, add-to-cart, mini-cart (client). Check: unit tests + Playwright e2e scaffold (PDP → cart → PWA checkout).
 - [x] T9 Dockerfile (standalone), ECS notes, routing rules doc, phase report.
