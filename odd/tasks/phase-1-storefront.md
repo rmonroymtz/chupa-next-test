@@ -40,7 +40,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 
 - [x] T1 Scaffold: Next 16 + React 19 + TS strict + pnpm, ESLint, Vitest, env config (zod), logger + EMF metrics, Tailwind v4. Check: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
 - [x] T2 Domain (TDD): product URL parse/normalize/extract (real cases, acme, `?var`, `%7C`), indexability rule, bot detector. Check: unit tests RED→GREEN.
-- [ ] T3 Infrastructure: GraphQL client with timeouts, Magento route resolver, product repo, storeConfig engine settings, copy-mutation adapter, CHAPI gateway, mock adapters. Check: unit tests with MSW.
+- [x] T3 Infrastructure: GraphQL client with timeouts, Magento route resolver, product repo, storeConfig engine settings, copy-mutation adapter, CHAPI gateway, mock adapters. Check: unit tests with MSW.
 - [ ] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
 - [ ] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
 - [ ] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
@@ -61,5 +61,8 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - Link previews empty while Magento copy not yet created.
 - Status differs by UA for non-existing products (200 noindex vs 404); CDN cache key must account for it.
 
+- T3 (delegated, writer trigger: 5 adapters + ports): RED per suite; typecheck/lint/build ok; 166 tests; parent spot check 166. Commits d2fa3cb, 2e52c30. Live: products(url_key) misses `|` keys → product read via route(); prices already MXN; engines ebay=api, others=direct; CHAPI not-found shape UNVERIFIED (assumed empty data/404). RDD medium granted → approved, acknowledged (lineage review-e1aa36c6eff218ab); boundary → 2e52c30. Advisory: R3-001 false positive (regex has 'i' flag), R3-002 false positive (msw 3 uses onUnhandledFrame), R3-003 redirect with empty target can self-loop, R3-004 CHAPI optional fields too strict → folded into T4 as follow-ups.
+- PENDING .env.example lines: MAGENTO_STORE_CODE=default, MAGENTO_CURRENCY=MXN, PRODUCT_VENDORS=amazon,ebay,target,acme.
+
 ## Next step
-T3 infrastructure.
+T4 PDP flow (+ R3-003/R3-004 follow-ups).

@@ -20,6 +20,8 @@ describe('parseServerEnv', () => {
       MAGENTO_TIMEOUT_MS: 5000,
       CHAPI_TIMEOUT_MS: 15000,
       COPY_MUTATION_TIMEOUT_MS: 10000,
+      MAGENTO_STORE_CODE: 'default',
+      MAGENTO_CURRENCY: 'MXN',
       BOT_USER_AGENTS: DEFAULT_BOT_USER_AGENTS,
       PRODUCT_VENDORS: DEFAULT_PRODUCT_VENDORS,
       LOG_LEVEL: 'info',
@@ -44,6 +46,23 @@ describe('parseServerEnv', () => {
     expect(env.MAGENTO_TIMEOUT_MS).toBe(2500);
     expect(env.CHAPI_TIMEOUT_MS).toBe(20000);
     expect(env.COPY_MUTATION_TIMEOUT_MS).toBe(7000);
+  });
+
+  it('reads the Magento store code and display currency', () => {
+    const env = parseServerEnv({
+      ...required,
+      MAGENTO_STORE_CODE: ' es_mx ',
+      MAGENTO_CURRENCY: 'usd',
+    });
+
+    expect(env.MAGENTO_STORE_CODE).toBe('es_mx');
+    expect(env.MAGENTO_CURRENCY).toBe('USD');
+  });
+
+  it('rejects a currency that is not a three-letter ISO 4217 code', () => {
+    expect(() => parseServerEnv({ ...required, MAGENTO_CURRENCY: 'pesos' })).toThrow(
+      /MAGENTO_CURRENCY/,
+    );
   });
 
   it('rejects non-positive or non-integer timeouts', () => {

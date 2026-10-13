@@ -1,0 +1,55 @@
+{
+  "data": {
+    "route": {
+      "relative_url": "ebay-126981644035|428130345038-gildan-6-pack-black-solid-heavy-cotton-short-sleeve-blank-t-shirt-s-3xl.html",
+      "redirect_code": 0,
+      "type": "PRODUCT",
+      "__typename": "SimpleProduct",
+      "uid": "NzY2MzExOTA4",
+      "sku": "126981644035|428130345038",
+      "name": "Gildan (6-pack) Black Solid Heavy Cotton Short Sleeve Blank T-Shirt S-3XL",
+      "url_key": "ebay-126981644035|428130345038-gildan-6-pack-black-solid-heavy-cotton-short-sleeve-blank-t-shirt-s-3xl",
+      "url_suffix": ".html",
+      "description": {
+        "html": ""
+      },
+      "short_description": {
+        "html": "Choose your favourite colors and create a set that fits your style. The crew neck design provides a nonrestrictive fit, long sleeves allow for a wider range of motion, and tear away label gives added comfort."
+      },
+      "meta_title": null,
+      "meta_description": {
+        "html": "<ul class=\"a-unordered-list a-vertical a-spacing-small\"></ul>"
+      },
+      "media_gallery": [
+        {
+          "url": "https://chupaprecios.com.mx/media/catalog/product/cache/0244ee435bc2f0b662af17c29161c97d/1/2/126981644035_428130345038_4b1a932d.jpg",
+          "label": "Gildan (6-pack) Black Solid Heavy Cotton Short Sleeve Blank T-Shirt S-3XL",
+          "position": 0,
+          "disabled": false
+        }
+      ],
+      "price_range": {
+        "minimum_price": {
+          "final_price": {
+            "value": 1145.13,
+            "currency": "MXN"
+          },
+          "regular_price": {
+            "value": 1145.13,
+            "currency": "MXN"
+          },
+          "discount": {
+            "amount_off": 0,
+            "percent_off": 0
+          }
+        }
+      },
+      "stock_status": "IN_STOCK",
+      "categories": [],
+      "delivery_to": false,
+      "product_status": "",
+      "brand": null,
+      "related_products": []
+    }
+  }
+}
