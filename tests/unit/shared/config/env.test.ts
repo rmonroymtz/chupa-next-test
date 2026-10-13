@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BOT_USER_AGENTS, parseServerEnv } from '@/shared/config/env';
+import {
+  DEFAULT_BOT_USER_AGENTS,
+  DEFAULT_PRODUCT_VENDORS,
+  parseServerEnv,
+} from '@/shared/config/env';
 
 const required = {
   MAGENTO_GRAPHQL_URL: 'https://magento.example.com/graphql',
@@ -17,6 +21,7 @@ describe('parseServerEnv', () => {
       CHAPI_TIMEOUT_MS: 15000,
       COPY_MUTATION_TIMEOUT_MS: 10000,
       BOT_USER_AGENTS: DEFAULT_BOT_USER_AGENTS,
+      PRODUCT_VENDORS: DEFAULT_PRODUCT_VENDORS,
       LOG_LEVEL: 'info',
       METRICS_NAMESPACE: 'ChupaStorefront',
     });
@@ -81,6 +86,28 @@ describe('parseServerEnv', () => {
     const env = parseServerEnv({ ...required, BOT_USER_AGENTS: '  ' });
 
     expect(env.BOT_USER_AGENTS).toEqual(DEFAULT_BOT_USER_AGENTS);
+  });
+
+  it('defaults PRODUCT_VENDORS to the phase 1 vendors', () => {
+    expect(parseServerEnv(required).PRODUCT_VENDORS).toEqual(['amazon', 'ebay', 'target', 'acme']);
+    expect(parseServerEnv({ ...required, PRODUCT_VENDORS: ' ' }).PRODUCT_VENDORS).toEqual(
+      DEFAULT_PRODUCT_VENDORS,
+    );
+  });
+
+  it('parses PRODUCT_VENDORS as a lowercase comma-separated list', () => {
+    const env = parseServerEnv({ ...required, PRODUCT_VENDORS: ' Amazon, walmart ,,homedepot ' });
+
+    expect(env.PRODUCT_VENDORS).toEqual(['amazon', 'walmart', 'homedepot']);
+  });
+
+  it('rejects PRODUCT_VENDORS entries that would break URL parsing', () => {
+    expect(() => parseServerEnv({ ...required, PRODUCT_VENDORS: 'amazon,home-depot' })).toThrow(
+      /PRODUCT_VENDORS/,
+    );
+    expect(() => parseServerEnv({ ...required, PRODUCT_VENDORS: 'amazon,foo bar' })).toThrow(
+      /PRODUCT_VENDORS/,
+    );
   });
 
   it('rejects unknown log levels', () => {

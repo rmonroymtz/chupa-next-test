@@ -39,7 +39,7 @@ Out of scope: any caching, Magento/API changes, translation, rate limiting, cate
 Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 
 - [x] T1 Scaffold: Next 16 + React 19 + TS strict + pnpm, ESLint, Vitest, env config (zod), logger + EMF metrics, Tailwind v4. Check: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
-- [ ] T2 Domain (TDD): product URL parse/normalize/extract (real cases, acme, `?var`, `%7C`), indexability rule, bot detector. Check: unit tests RED→GREEN.
+- [x] T2 Domain (TDD): product URL parse/normalize/extract (real cases, acme, `?var`, `%7C`), indexability rule, bot detector. Check: unit tests RED→GREEN.
 - [ ] T3 Infrastructure: GraphQL client with timeouts, Magento route resolver, product repo, storeConfig engine settings, copy-mutation adapter, CHAPI gateway, mock adapters. Check: unit tests with MSW.
 - [ ] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
 - [ ] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
@@ -52,7 +52,8 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 All checks above green; 4-case integration tests pass; phase report delivered (built, decisions, pending, risks).
 
 ## Progress / evidence
-- T1 (delegated, writer trigger: 15+ config/source files): install/typecheck/lint/test (20 passed)/build all exit 0; parent spot check `pnpm test` 20 passed. Next 16.4.0, React 19.3.0, TS 6.0.3 (typescript-eslint caps <6.1), ESLint 9. Root layout `dynamic = 'force-dynamic'`. Commit: see git log `chore: scaffold`.
+- T1 (delegated, writer trigger: 15+ config/source files): install/typecheck/lint/test (20 passed)/build all exit 0; parent spot check `pnpm test` 20 passed. Next 16.4.0, React 19.3.0, TS 6.0.3 (typescript-eslint caps <6.1), ESLint 9. Root layout `dynamic = 'force-dynamic'`. Commit: 008dc76.
+- T2 (delegated, writer trigger: 3 new modules + tests): RED observed (3 suites import-fail, 3 env tests); GREEN typecheck/lint 0, 92 tests passed; parent spot check 92 passed. Bot detector: substring + guarded regex, empty UA = bot. `PRODUCT_VENDORS` env added. PENDING: `.env.example` line `PRODUCT_VENDORS=amazon,ebay,target,acme` (permission rule denies agent access to .env*). Commits: 05b68d3, fix f/up 6d45edb. RDD: medium, review granted → approved (lineage review-98f0c44d037a8180, acknowledged/burned). Two advisory findings (regex lowercasing inverted \\S/\\D; ?var applied to all vendors) fixed test-first in follow-up commit (94 tests). Reviewed boundary → 05b68d3.
 
 ## Known risks (out of scope)
 - No cache: every visit hits Magento.
@@ -61,4 +62,4 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - Status differs by UA for non-existing products (200 noindex vs 404); CDN cache key must account for it.
 
 ## Next step
-T2 domain (TDD).
+T3 infrastructure.
