@@ -10,7 +10,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/unit/**/*.test.{ts,tsx}', 'tests/integration/**/*.test.{ts,tsx}'],
+    // Unit tests only; the slow server-level suite runs with `pnpm test:integration`.
+    include: ['tests/unit/**/*.test.{ts,tsx}'],
     restoreMocks: true,
     unstubEnvs: true,
     coverage: {

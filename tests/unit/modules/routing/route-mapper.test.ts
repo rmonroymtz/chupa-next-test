@@ -64,4 +64,35 @@ describe('mapRoute', () => {
       kind: 'not_found',
     });
   });
+
+  describe('redirects without a usable target (R3-003)', () => {
+    it.each([
+      ['an empty relative_url', ''],
+      ['a null relative_url', null],
+      ['the requested url', 'a.html'],
+      ['the requested url with a leading slash', '/a.html'],
+    ])('ignores a redirect with %s and resolves the entity', (_label, relativeUrl) => {
+      expect(
+        mapRoute(
+          { type: 'PRODUCT', redirect_code: 301, relative_url: relativeUrl, uid: 'X' },
+          'a.html',
+        ),
+      ).toEqual({ kind: 'product', uid: 'X', relativeUrl: 'a.html' });
+    });
+
+    it('treats an encoded | target equal to the requested url as no redirect', () => {
+      expect(
+        mapRoute(
+          { type: 'PRODUCT', redirect_code: 302, relative_url: 'ebay-1%7C2-x.html', uid: 'X' },
+          'ebay-1|2-x.html',
+        ),
+      ).toEqual({ kind: 'product', uid: 'X', relativeUrl: 'ebay-1|2-x.html' });
+    });
+
+    it('maps a self-redirect without an entity to not_found', () => {
+      expect(mapRoute({ type: null, redirect_code: 301, relative_url: '' }, 'a.html')).toEqual({
+        kind: 'not_found',
+      });
+    });
+  });
 });

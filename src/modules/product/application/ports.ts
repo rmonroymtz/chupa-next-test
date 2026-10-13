@@ -4,10 +4,16 @@ import type {
   ScrapedVariants,
 } from '@/modules/product/domain/product';
 
-/** Result of looking a product up in Magento by its route url. */
+/**
+ * Result of looking a url up in Magento `route()` with the product fields.
+ * CMS pages and categories are reported (not treated as missing) so the
+ * catch-all page can dispatch them without a second round-trip.
+ */
 export type MagentoProductLookup =
   | { readonly kind: 'product'; readonly product: MagentoProduct }
   | { readonly kind: 'redirect'; readonly relativeUrl: string; readonly code: number }
+  | { readonly kind: 'cms'; readonly identifier: string; readonly relativeUrl: string }
+  | { readonly kind: 'category'; readonly uid: string; readonly relativeUrl: string }
   | { readonly kind: 'not_found' };
 
 export interface MagentoProductRepository {

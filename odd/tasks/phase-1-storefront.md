@@ -41,7 +41,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files) unless noted.
 - [x] T1 Scaffold: Next 16 + React 19 + TS strict + pnpm, ESLint, Vitest, env config (zod), logger + EMF metrics, Tailwind v4. Check: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
 - [x] T2 Domain (TDD): product URL parse/normalize/extract (real cases, acme, `?var`, `%7C`), indexability rule, bot detector. Check: unit tests RED→GREEN.
 - [x] T3 Infrastructure: GraphQL client with timeouts, Magento route resolver, product repo, storeConfig engine settings, copy-mutation adapter, CHAPI gateway, mock adapters. Check: unit tests with MSW.
-- [ ] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
+- [x] T4 PDP flow: catch-all route, 4 cases, Suspense streaming, unavailable state, `after()` mutation, noindex/404. Check: integration tests (4 cases).
 - [ ] T5 SEO: metadata builders, JSON-LD (Product/Offer/BreadcrumbList/Organization/WebSite), robots.txt. Check: unit tests (price parity).
 - [ ] T6 Page Builder parser + RSC components + CMS page + products content type, safe fallback. Check: parser unit tests.
 - [ ] T7 Layout: header/footer, theme tokens, self-hosted fonts, next/image remote config.
@@ -64,5 +64,8 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - T3 (delegated, writer trigger: 5 adapters + ports): RED per suite; typecheck/lint/build ok; 166 tests; parent spot check 166. Commits d2fa3cb, 2e52c30. Live: products(url_key) misses `|` keys → product read via route(); prices already MXN; engines ebay=api, others=direct; CHAPI not-found shape UNVERIFIED (assumed empty data/404). RDD medium granted → approved, acknowledged (lineage review-e1aa36c6eff218ab); boundary → 2e52c30. Advisory: R3-001 false positive (regex has 'i' flag), R3-002 false positive (msw 3 uses onUnhandledFrame), R3-003 redirect with empty target can self-loop, R3-004 CHAPI optional fields too strict → folded into T4 as follow-ups.
 - PENDING .env.example lines: MAGENTO_STORE_CODE=default, MAGENTO_CURRENCY=MXN, PRODUCT_VENDORS=amazon,ebay,target,acme.
 
+- T4 (delegated, writer trigger: route + service + ~12 UI files + harness): RED observed (22 follow-up tests, service/loader/ui suites); typecheck/lint/build ok; 236 unit + 13 integration (real standalone server vs mock Magento/CHAPI), passed twice; parent spot check integration 13 passed. Commits a503996 (R3-003/R3-004 follow-ups), fc93b1d (PDP + integration suite). Next 16.4 quirk: catch-all params decoded in generateMetadata, encoded in page → normalized. htmlLimitedBots /.*/ → blocking metadata for all UAs, Suspense still streams. RDD medium granted → approved (lineage review-1ac5176d3bf03290); boundary → fc93b1d. Advisory → T5: R3-001 image URLs with query rejected by optimizer, R3-002 wall-clock ordering assertion flaky, R3-003 CMS placeholder noindex not asserted.
+- PENDING .env.example: IMAGE_REMOTE_HOSTS (build-time).
+
 ## Next step
-T4 PDP flow (+ R3-003/R3-004 follow-ups).
+T5 SEO (+ T4 advisory follow-ups).

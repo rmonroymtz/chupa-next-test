@@ -110,6 +110,69 @@ describe('parseSearchProductResult', () => {
   });
 });
 
+describe('parseSearchProductResult with malformed optional fields', () => {
+  it.each([
+    ['an empty price object', { price: {} }, 'price', null],
+    ['a price without amount', { price: { currency: 'MXN' } }, 'price', null],
+    ['a non-integer stock', { stock: 2.5 }, 'stock', null],
+    ['a string stock', { stock: 'many' }, 'stock', null],
+    ['a non-string brand', { brand: 42 }, 'brand', null],
+    ['non-boolean flags', { has_variants: 'yes' }, 'hasVariants', false],
+    ['a non-array categories', { categories: 'Men' }, 'categories', []],
+    ['a non-string breadcrumbs', { breadcrumbs: ['Men'] }, 'breadcrumbs', []],
+    ['a non-string description', { description: { html: 'x' } }, 'descriptionHtml', ''],
+  ])('degrades %s instead of failing the product', (_label, data, field, expected) => {
+    const result = parseSearchProductResult(withData(data));
+
+    expect(result.status).toBe('found');
+    expect(result.status === 'found' && result.product[field as 'price']).toEqual(expected);
+  });
+
+  it('keeps the valid thumbnails and drops odd entries', () => {
+    const result = parseSearchProductResult(
+      withData({
+        main_image: 'https://i.ebayimg.com/a.jpg',
+        image: null,
+        thumbnails: [
+          { link: 'https://i.ebayimg.com/b.jpg' },
+          { url: 'x' },
+          'c.jpg',
+          null,
+          { link: 7 },
+        ],
+      }),
+    );
+
+    expect(result.status === 'found' && result.product.images).toEqual([
+      'https://i.ebayimg.com/a.jpg',
+      'https://i.ebayimg.com/b.jpg',
+    ]);
+  });
+
+  it('ignores a thumbnails value that is not an array', () => {
+    const result = parseSearchProductResult(
+      withData({ main_image: 'https://i.ebayimg.com/a.jpg', image: null, thumbnails: 'oops' }),
+    );
+
+    expect(result.status === 'found' && result.product.images).toEqual([
+      'https://i.ebayimg.com/a.jpg',
+    ]);
+  });
+
+  it.each([
+    ['a missing title', { title: undefined }],
+    ['a numeric title', { title: 5 }],
+    ['an empty asin', { asin: '' }],
+    ['a null current price', { price: { current_price: null, currency: 'MXN' } }],
+    ['a string USD price', { price: { usd_current_price: '9.99' } }],
+  ])('still rejects %s (core field)', (_label, data) => {
+    expect(parseSearchProductResult(withData(data))).toEqual({
+      status: 'error',
+      reason: 'invalid_response',
+    });
+  });
+});
+
 describe('parseVariantsResult', () => {
   it('maps variant dimensions and options', () => {
     expect(parseVariantsResult(variants)).toEqual({

@@ -3,7 +3,8 @@
  *
  * `products(filter: { url_key: { eq } })` returns no items for url keys that
  * contain `|` (verified live), while `route()` resolves them, so the product
- * is read from the route in a single round-trip.
+ * is read from the route in a single round-trip. CMS identifiers and category
+ * uids are selected too, so one call decides how the catch-all page renders.
  */
 export const PRODUCT_BY_ROUTE_QUERY = /* GraphQL */ `
   query ProductByRoute($url: String!) {
@@ -11,6 +12,12 @@ export const PRODUCT_BY_ROUTE_QUERY = /* GraphQL */ `
       relative_url
       redirect_code
       type
+      ... on CmsPage {
+        identifier
+      }
+      ... on CategoryInterface {
+        uid
+      }
       ... on ProductInterface {
         __typename
         uid
