@@ -26,6 +26,7 @@ describe('parseServerEnv', () => {
       PRODUCT_VENDORS: DEFAULT_PRODUCT_VENDORS,
       LOG_LEVEL: 'info',
       METRICS_NAMESPACE: 'ChupaStorefront',
+      ORGANIZATION_SAME_AS: [],
     });
   });
 
@@ -138,5 +139,29 @@ describe('parseServerEnv', () => {
 
     expect(env.LOG_LEVEL).toBe('info');
     expect(env.MAGENTO_TIMEOUT_MS).toBe(5000);
+  });
+
+  it('reads the optional organization logo and social profiles', () => {
+    const env = parseServerEnv({
+      ...required,
+      ORGANIZATION_LOGO_URL: 'https://chupaprecios.com.mx/media/logo/logo.png',
+      ORGANIZATION_SAME_AS:
+        ' https://www.facebook.com/chupaprecios , https://www.instagram.com/chupaprecios,',
+    });
+
+    expect(env.ORGANIZATION_LOGO_URL).toBe('https://chupaprecios.com.mx/media/logo/logo.png');
+    expect(env.ORGANIZATION_SAME_AS).toEqual([
+      'https://www.facebook.com/chupaprecios',
+      'https://www.instagram.com/chupaprecios',
+    ]);
+  });
+
+  it('rejects organization urls that are not http(s)', () => {
+    expect(() => parseServerEnv({ ...required, ORGANIZATION_LOGO_URL: 'logo.png' })).toThrow(
+      /ORGANIZATION_LOGO_URL/,
+    );
+    expect(() =>
+      parseServerEnv({ ...required, ORGANIZATION_SAME_AS: 'https://ok.example.com,javascript:x' }),
+    ).toThrow(/ORGANIZATION_SAME_AS/);
   });
 });

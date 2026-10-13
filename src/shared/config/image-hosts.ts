@@ -28,7 +28,25 @@ export function parseImageRemoteHosts(raw: string | undefined): ImageRemotePatte
   return (entries.length > 0 ? entries : DEFAULT_IMAGE_REMOTE_HOSTS).map(toPattern);
 }
 
-/** True when `next/image` can optimize the url under the given patterns. */
+/** Shape accepted by `images.remotePatterns` in `next.config.ts`. */
+export interface NextRemotePattern extends ImageRemotePattern {
+  readonly search: '';
+}
+
+/**
+ * Patterns for `images.remotePatterns`. `search: ''` only admits urls without
+ * a query string: vendor CDNs use the query to resize or sign images, so any
+ * query would let the optimizer fetch and store arbitrary variants.
+ */
+export function toNextRemotePatterns(patterns: readonly ImageRemotePattern[]): NextRemotePattern[] {
+  return patterns.map((pattern) => ({ ...pattern, search: '' }));
+}
+
+/**
+ * True when `next/image` can optimize the url under the given patterns, i.e.
+ * it matches `toNextRemotePatterns` (https, host, path and no query string).
+ * Anything else must render `unoptimized`, or the optimizer rejects it.
+ */
 export function isOptimizableImageUrl(
   url: string,
   patterns: readonly ImageRemotePattern[],
@@ -39,12 +57,18 @@ export function isOptimizableImageUrl(
   } catch {
     return false;
   }
-  if (parsed.protocol !== 'https:') return false;
+  if (parsed.protocol !== 'https:' || parsed.search !== '') return false;
   return patterns.some(
     (pattern) =>
       pattern.hostname === parsed.hostname.toLowerCase() &&
-      parsed.pathname.startsWith(pattern.pathname.replace(/\*\*$/, '')),
+      matchesPathGlob(parsed.pathname, pattern.pathname),
   );
+}
+
+/** `/media/**` matches `/media` and anything below it, like Next's glob. */
+function matchesPathGlob(pathname: string, glob: string): boolean {
+  const prefix = glob.replace(/\/?\*\*$/, '');
+  return prefix === '' || pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
 function toPattern(entry: string): ImageRemotePattern {

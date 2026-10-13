@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import { parseImageRemoteHosts } from './src/shared/config/image-hosts';
+import { parseImageRemoteHosts, toNextRemotePatterns } from './src/shared/config/image-hosts';
 
 // Build-time: `images.remotePatterns` is fixed when Next builds.
 const imageRemotePatterns = parseImageRemoteHosts(process.env.IMAGE_REMOTE_HOSTS);
@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     IMAGE_REMOTE_HOSTS: imageRemotePatterns.map((p) => `${p.hostname}${p.pathname}`).join(','),
   },
   images: {
-    remotePatterns: imageRemotePatterns.map((pattern) => ({ ...pattern, search: '' })),
+    remotePatterns: toNextRemotePatterns(imageRemotePatterns),
   },
 };
 
