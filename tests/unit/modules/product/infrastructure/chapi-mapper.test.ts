@@ -114,8 +114,12 @@ describe('parseSearchProductResult with malformed optional fields', () => {
   it.each([
     ['an empty price object', { price: {} }, 'price', null],
     ['a price without amount', { price: { currency: 'MXN' } }, 'price', null],
-    ['a non-integer stock', { stock: 2.5 }, 'stock', null],
-    ['a string stock', { stock: 'many' }, 'stock', null],
+    ['a non-numeric string stock', { stock: 'many' }, 'stock', null],
+    ['an empty string stock', { stock: '' }, 'stock', null],
+    ['a zero stock', { stock: 0 }, 'stock', null],
+    ['a negative numeric-string stock', { stock: '-3' }, 'stock', null],
+    ['an infinite stock', { stock: 'Infinity' }, 'stock', null],
+    ['a boolean stock', { stock: true }, 'stock', null],
     ['a non-string brand', { brand: 42 }, 'brand', null],
     ['non-boolean flags', { has_variants: 'yes' }, 'hasVariants', false],
     ['a non-array categories', { categories: 'Men' }, 'categories', []],
@@ -126,6 +130,18 @@ describe('parseSearchProductResult with malformed optional fields', () => {
 
     expect(result.status).toBe('found');
     expect(result.status === 'found' && result.product[field as 'price']).toEqual(expected);
+  });
+
+  it.each([
+    ['a numeric string', '7', 7],
+    ['a padded numeric string', ' 12 ', 12],
+    ['a fractional number (floored like legacy parseStock)', 2.5, 2],
+    ['a fractional numeric string', '3.9', 3],
+    ['an integer', 10, 10],
+  ])('reads %s stock as a quantity cap', (_label, stock, expected) => {
+    const result = parseSearchProductResult(withData({ stock }));
+
+    expect(result.status === 'found' && result.product.stock).toBe(expected);
   });
 
   it('keeps the valid thumbnails and drops odd entries', () => {

@@ -40,11 +40,13 @@ export function MiniCart() {
       return;
     }
     let cancelled = false;
+    const version = cartCountStore.version();
     getCartCountAction({ cartId, signinToken: browserCartStorage.readSigninToken() })
       .then((result) => {
         if (cancelled) return;
-        if (result.status === 'ok') cartCountStore.set(result.totalQuantity);
-        else if (result.status === 'invalid_cart') cartCountStore.set(0);
+        if (result.status === 'ok')
+          cartCountStore.setIfUnchangedSince(version, result.totalQuantity);
+        else if (result.status === 'invalid_cart') cartCountStore.setIfUnchangedSince(version, 0);
       })
       .catch(() => {
         // The count stays unknown; the trigger still opens the mini cart.
@@ -70,16 +72,17 @@ export function MiniCart() {
       return;
     }
     setContents({ kind: 'loading' });
+    const version = cartCountStore.version();
     try {
       const result = await getMiniCartAction({
         cartId,
         signinToken: browserCartStorage.readSigninToken(),
       });
       if (result.status === 'ok') {
-        cartCountStore.set(result.cart.totalQuantity);
+        cartCountStore.setIfUnchangedSince(version, result.cart.totalQuantity);
         setContents({ kind: 'ready', cart: result.cart });
       } else if (result.status === 'invalid_cart') {
-        cartCountStore.set(0);
+        cartCountStore.setIfUnchangedSince(version, 0);
         setContents({ kind: 'ready', cart: null });
       } else {
         setContents({ kind: 'error' });

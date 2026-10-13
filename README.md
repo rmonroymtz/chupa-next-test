@@ -112,7 +112,14 @@ While checkout stays on PWA Studio (same domain), the cart and session live in P
 - **Mini cart**: the trigger keeps the legacy accessible name and a `99+` badge, and announces count changes in a polite live region. A native modal `<dialog>` drawer lists items (variant options, quantity, unit price), the `subtotal_excluding_tax` and plain links to `/checkout` and `/cart`.
 - **Metrics**: `CartAddToCart` (`Outcome` = success, user_error, failure), `CartCreated` (`Reason` = missing, recovery), `CartRecovered`, `CartReadFailure` (`Operation`, `Outcome`), plus `MagentoLatency`/`MagentoError` per operation.
 - **Not replicated**: removing items from the mini cart (PWA cart page), the scraped variant selector and its "selected variant unavailable" check (the PDP does not render scraped variants yet), live count sync with other tabs.
-- **Deployment**: Server Actions post to the page url (a PDP or CMS path), so those paths must reach Next for `POST` too. Behind a proxy that rewrites `Host`, Next's Server Action origin check needs `X-Forwarded-Host` to match the browser origin (or `experimental.serverActions.allowedOrigins`).
+- **Deployment**: Server Actions post to the page url (a PDP or CMS path), so those paths must reach Next for `POST` too. Behind a proxy that rewrites `Host`, Next's Server Action origin check needs `X-Forwarded-Host` to match the browser origin; when the proxy cannot send it, build with `SERVER_ACTIONS_ALLOWED_ORIGINS` (comma-separated hosts, `*.` wildcards; it feeds `experimental.serverActions.allowedOrigins`).
+
+## Deployment
+
+- **Image**: `Dockerfile` (multi-stage, `node:24-bookworm-slim`, non-root, `node server.js` on port 3000). `docker build -t chupa-storefront .`; the build needs network for `next/font`. `IMAGE_REMOTE_HOSTS` and `SERVER_ACTIONS_ALLOWED_ORIGINS` are build arguments; every other variable is runtime.
+- **Liveness**: `GET /healthz` answers `200 ok` (`no-store`) without calling Magento or the scraper API, so a Magento outage never makes the orchestrator recycle every task.
+- **ECS Fargate**: task definition, environment variables, logs/metrics and shutdown in [`docs/deploy/ecs-fargate.md`](docs/deploy/ecs-fargate.md).
+- **Routing** (nginx / CloudFront, phase 1): [`docs/routing/phase-1.md`](docs/routing/phase-1.md). Phase summary: [`docs/phase-1-report.md`](docs/phase-1-report.md).
 
 ## Observability
 

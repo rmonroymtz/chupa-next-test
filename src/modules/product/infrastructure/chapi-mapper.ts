@@ -20,6 +20,19 @@ import type {
 const optionalString = z.string().nullish().catch(null);
 const optionalBoolean = z.boolean().nullish().catch(null);
 
+/**
+ * Scraper `stock` as a quantity cap, like legacy `parseStock`
+ * (product-full-details helpers): a number or numeric string that is finite
+ * and >= 1, floored; anything else (missing, empty, non-numeric, zero,
+ * negative, non-number types) is null, read as "no limit".
+ */
+function parseStock(raw: unknown): number | null {
+  if (typeof raw !== 'number' && typeof raw !== 'string') return null;
+  if (typeof raw === 'string' && raw.trim() === '') return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : null;
+}
+
 const productDataSchema = z.object({
   asin: z.string().min(1),
   title: z.string(),
@@ -32,7 +45,7 @@ const productDataSchema = z.object({
   main_image: optionalString,
   image: optionalString,
   thumbnails: z.array(z.unknown()).nullish().catch(null),
-  stock: z.number().int().nullish().catch(null),
+  stock: z.unknown().transform(parseStock),
   stock_status: optionalString,
   item_available: optionalBoolean,
   has_variants: optionalBoolean,

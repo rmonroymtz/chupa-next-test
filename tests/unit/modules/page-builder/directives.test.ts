@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  hasDirectives,
-  hasMediaDirective,
-  resolveDirectives,
-} from '@/modules/page-builder/parser/directives';
+import { hasDirectives, resolveDirectives } from '@/modules/page-builder/parser/directives';
 
 const MEDIA = 'https://chupaprecios.com.mx/media/';
 
@@ -63,16 +59,6 @@ describe('resolveDirectives', () => {
   });
 });
 
-describe('hasMediaDirective', () => {
-  it('is true only when a {{media}} directive is present', () => {
-    expect(hasMediaDirective('<img src="{{media url=wysiwyg/a.png}}">')).toBe(true);
-    expect(hasMediaDirective('<img src="{{ media url="a.png"}}">')).toBe(true);
-    expect(hasMediaDirective('{{widget type="x"}}')).toBe(false);
-    expect(hasMediaDirective('{{mediaurl}}')).toBe(false);
-    expect(hasMediaDirective('<p>media</p>')).toBe(false);
-  });
-});
-
 describe('directives with `}` inside quoted arguments', () => {
   it('hasDirectives detects them', () => {
     expect(hasDirectives('<p>{{widget template="a}b"}}</p>')).toBe(true);
@@ -89,6 +75,14 @@ describe('directives with `}` inside quoted arguments', () => {
     );
     expect(result.html).toBe(`<p>ab<img src="${MEDIA}w/a.png"></p>`);
     expect(result.stripped).toEqual(['widget']);
+  });
+
+  it('resolveDirectives strips a directive whose quoted argument nests another directive', () => {
+    const result = resolveDirectives(
+      '<p>a{{widget title="{{media url=w/a.png}}"}}b<img src="{{media url=w/b.png}}"></p>',
+      { mediaBaseUrl: MEDIA },
+    );
+    expect(result).toEqual({ html: `<p>ab<img src="${MEDIA}w/b.png"></p>`, stripped: ['widget'] });
   });
 
   it('resolveDirectives keeps literal double-brace text', () => {

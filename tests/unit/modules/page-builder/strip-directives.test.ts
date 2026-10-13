@@ -83,6 +83,35 @@ describe('stripAllDirectives quote handling', () => {
   });
 });
 
+describe('stripAllDirectives with directives nested in quoted values', () => {
+  it('removes a directive whose quoted argument holds a nested directive', () => {
+    expect(stripAllDirectives('a {{widget title="{{trans "Hi"}}" type="x"}} b')).toEqual({
+      html: 'a  b',
+      stripped: ['widget'],
+    });
+  });
+
+  it('keeps scanning later directives after a nested one', () => {
+    const html = 'a {{widget title="x {{media url=y.png}} z"}} b {{block id="c"}} d';
+    expect(stripAllDirectives(html)).toEqual({ html: 'a  b  d', stripped: ['widget', 'block'] });
+  });
+
+  it('handles nested literal double braces inside a quoted value', () => {
+    expect(stripAllDirectives("a {{widget title='{{text}}'}} b")).toEqual({
+      html: 'a  b',
+      stripped: ['widget'],
+    });
+  });
+
+  it('never swallows later content when the outer quoted value never closes', () => {
+    const html = 'a {{widget title="{{trans "Hi"}} b <p>rest</p>';
+    expect(stripAllDirectives(html)).toEqual({
+      html: 'a {{widget title=" b <p>rest</p>',
+      stripped: ['trans'],
+    });
+  });
+});
+
 describe('stripAllDirectives only recognizes Magento directives', () => {
   it('keeps literal double-brace text that is not a Magento directive', () => {
     const html = '<p>Usa {{text}} o {{nombre del producto}} aquí {{media url="a.png"}}</p>';
