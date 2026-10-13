@@ -71,5 +71,9 @@ All checks above green; 4-case integration tests pass; phase report delivered (b
 - Slice S3 (T4+T5) ready for PR (push/PR are user decisions).
 - PENDING .env.example: ORGANIZATION_LOGO_URL, ORGANIZATION_SAME_AS (optional).
 
+- T6 (delegated): RED observed for parser-area + CMS repos; 380 unit, 22 integration; parent spot check 380. Commits 1ebc8c1 (parser, parse5), 4de4e98 (slider/tabs client), 74ac9ce (render + CMS indexable). Live: CMS content arrives filtered (absolute media, no directives); missing cmsPage = GraphQL "doesn't exist" error → 404. Not replicable: parallax/video bg static, maps static link, dynamic_block (Adobe Commerce only), `|` url_keys in products content type (legacy parity).
+- RDD: full T6 range hit lens_context_budget_exceeded → reviewed per commit (3 candidates, each granted → approved, acknowledged). Boundary → 74ac9ce. Advisory warnings being fixed in T6-fix (template script survives sanitize, svg xlink:href, untested fallback, protocol-relative keys, tabs/slider index clamps + autoplay validation + tests, render isolation only sync, loader guards, duplicate card keys).
+- [x] T6-fix review follow-ups (delegated): 11 items RED→GREEN (3 test-only); 421 unit, 22 integration; parent spot check 421 + build exit 0. Commits 1c80918, 6c847fd, 48d92bb. RDD medium granted → approved (acknowledged); boundary → 48d92bb. Advisory → T7: RSC-path node isolation unproved in running server; directive-strip fallback regex misses `}` inside quoted args.
+
 ## Next step
-T6 Page Builder + CMS.
+T7 layout (+ T6-fix advisories).

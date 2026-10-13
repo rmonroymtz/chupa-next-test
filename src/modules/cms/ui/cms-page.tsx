@@ -1,20 +1,26 @@
+import type { CmsPage as CmsPageModel } from '@/modules/cms/domain/cms-page';
+import { PageBuilderContent } from '@/modules/page-builder/ui/page-builder-content';
+
 interface CmsPageProps {
-  readonly identifier: string;
+  readonly page: CmsPageModel;
 }
 
 /**
- * Dispatcher for Magento CMS pages resolved by the catch-all route. T6
- * replaces this placeholder with the Page Builder renderer; the page
- * metadata keeps CMS pages noindex until then.
+ * Magento CMS page. The visible heading is the admin's content heading; when
+ * it is empty (most pages carry their own title in the content) the page
+ * title is still exposed as a visually hidden h1 for assistive technology.
  */
-export function CmsPage({ identifier }: CmsPageProps) {
+export function CmsPage({ page }: CmsPageProps) {
   return (
-    <main
-      className="mx-auto max-w-3xl px-4 py-8"
-      data-testid="cms-placeholder"
-      data-identifier={identifier}
-    >
-      <p className="text-neutral-700">Contenido en preparación.</p>
+    <main data-cms-identifier={page.identifier}>
+      {page.contentHeading ? (
+        <h1 className="mx-auto max-w-[1280px] px-4 pt-6 text-2xl font-semibold">
+          {page.contentHeading}
+        </h1>
+      ) : (
+        <h1 className="sr-only">{page.title}</h1>
+      )}
+      <PageBuilderContent content={page.content} source={`cms:${page.identifier}`} />
     </main>
   );
 }

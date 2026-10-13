@@ -1,0 +1,593 @@
+/*
+ * Page Builder content types, ported from the legacy PWA Studio
+ * `@magento/pagebuilder` 9.2.1 CSS modules (plus the project overrides for
+ * Text and Slider) and the Venia button. Inline styles from the admin are
+ * applied as `style`; responsive admin rules come from a scoped <style>.
+ */
+
+.root {
+  --pb-max-width: 1280px;
+  --pb-brand: rgb(190 66 75);
+  --pb-brand-darkest: rgb(175 30 38);
+  --pb-accent: #f90;
+  --pb-gray: rgb(244 245 245);
+  --pb-gray-dark: rgb(212 212 212);
+  overflow-x: clip;
+}
+
+/* Background images: mobile variant up to 768px, desktop above (legacy breakpoint). */
+.bg {
+  background-image: var(--pb-bg-mobile, var(--pb-bg-desktop));
+}
+@media (min-width: 769px) {
+  .bg {
+    background-image: var(--pb-bg-desktop, var(--pb-bg-mobile));
+  }
+}
+
+/* Row */
+.contained {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  max-width: var(--pb-max-width);
+  width: 100%;
+}
+.fullWidth {
+  width: 100%;
+}
+.row {
+  box-sizing: border-box;
+}
+@media only screen and (max-width: 768px) {
+  .row,
+  .column {
+    background-attachment: scroll !important;
+  }
+}
+
+/* Column group / line / column */
+.column {
+  box-sizing: border-box;
+}
+@media only screen and (max-width: 768px) {
+  .columnGroup,
+  .columnLine {
+    flex-wrap: wrap;
+  }
+  .column {
+    flex-basis: 100%;
+  }
+}
+
+/* Text (project override) and rich content typography (Venia RichContent) */
+.text {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: break-word;
+}
+.text h4 {
+  width: auto;
+  font-size: 2rem;
+  border-bottom: 2px solid var(--pb-accent);
+  margin-bottom: 1.5rem;
+}
+.rich h1,
+.rich h2,
+.rich h3,
+.rich h4,
+.rich h5,
+.rich h6 {
+  margin-bottom: 0.5rem;
+  line-height: 1.25;
+}
+.rich h1,
+.rich h2,
+.rich h3 {
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+.rich h1 {
+  margin-top: 0.75rem;
+}
+.rich h4 {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+.rich h5,
+.rich h6 {
+  margin-top: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.rich h6 {
+  font-size: 0.875rem;
+}
+.rich p {
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.rich p:last-child {
+  margin-bottom: 0;
+}
+.rich img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+}
+.rich ol,
+.rich ul {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+.rich p + ol,
+.rich p + ul {
+  margin-top: 0;
+}
+.rich ol {
+  list-style: decimal;
+}
+.rich ul {
+  list-style: disc;
+}
+.rich ul li {
+  margin-bottom: 0.5rem;
+}
+.rich a {
+  text-decoration: underline;
+}
+.rich blockquote {
+  margin: 1rem 0;
+  font-size: 1.25rem;
+  font-style: italic;
+}
+.rich table {
+  width: 100%;
+  text-align: left;
+}
+
+/* Heading */
+.heading {
+  overflow-wrap: break-word;
+}
+
+/* Image */
+.figure {
+  margin: 0;
+}
+.img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  display: inline-block;
+}
+.caption {
+  font-size: 0.875rem;
+}
+
+/* Banner */
+.bannerLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.bannerWrapper {
+  background-clip: padding-box;
+  border-radius: inherit;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.overlay {
+  padding: 30px;
+  transition: background-color 500ms ease;
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  position: relative;
+  box-sizing: border-box;
+}
+.posterOverlay {
+  align-content: center;
+  justify-content: center;
+}
+.collageLeftOverlay {
+  margin-right: auto;
+  max-width: 540px;
+}
+.collageCenteredOverlay {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 540px;
+}
+.collageRightOverlay {
+  margin-left: auto;
+  max-width: 540px;
+}
+.bannerContent {
+  min-height: 50px;
+  width: 100%;
+}
+.banner:not(:hover):not(:focus-within) .overlayOnHover {
+  background-color: transparent !important;
+}
+.bannerButton {
+  margin: 20px 0 0 0;
+  max-width: 100%;
+  text-align: inherit;
+  transition: opacity 500ms ease;
+  word-break: break-word;
+  width: 100%;
+}
+.banner:not(:hover):not(:focus-within) .buttonOnHover {
+  opacity: 0;
+}
+
+/* Slider (project override: min-height inherits through the slides) */
+.slider {
+  display: block;
+  position: relative;
+}
+.slider .banner,
+.slider .bannerLink,
+.slider .bannerWrapper,
+.slider .posterOverlay {
+  min-height: inherit;
+}
+
+/* Stacked slides: the tallest slide sizes the slider, so switching never shifts layout. */
+.slides {
+  display: grid;
+  min-height: inherit;
+  overflow: hidden;
+}
+.slide {
+  grid-area: 1 / 1;
+  min-height: inherit;
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease,
+    visibility 500ms;
+}
+.slide[data-active='false'] {
+  visibility: hidden;
+}
+.slideFade[data-active='false'] {
+  opacity: 0;
+}
+.sliderArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50px;
+  background: rgba(252, 252, 252, 0.75);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sliderArrow:focus-visible,
+.sliderDot:focus-visible,
+.sliderPause:focus-visible {
+  outline: 2px solid var(--pb-brand);
+  outline-offset: 2px;
+}
+.sliderPrev {
+  left: 1.6rem;
+}
+.sliderNext {
+  right: 1.6rem;
+}
+.sliderDots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+.sliderDot {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--pb-gray-dark);
+  cursor: pointer;
+}
+.sliderDot[aria-current='true'] {
+  background: #d84752;
+}
+.sliderPause {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(252, 252, 252, 0.75);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Buttons (Venia Button) */
+.buttons {
+  max-width: 100%;
+}
+.buttons > * {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+}
+.buttonsInline > * {
+  margin-inline-end: 0.5rem;
+}
+.buttonsStacked {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+.buttonsSameWidth .button {
+  min-width: var(--pb-button-min-width, 10rem);
+  width: 100%;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 10rem;
+  min-height: 2.5rem;
+  padding: calc(0.5rem + 1px) 1rem calc(0.5rem - 1px);
+  border: 2px solid var(--pb-brand);
+  border-radius: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 256ms,
+    border-color 256ms,
+    color 256ms;
+}
+.buttonPrimary {
+  background: var(--pb-brand);
+  color: #fff;
+}
+.buttonPrimary:hover {
+  background: var(--pb-brand-darkest);
+  border-color: var(--pb-brand-darkest);
+}
+.buttonSecondary {
+  background: transparent;
+  color: var(--pb-brand);
+}
+.buttonSecondary:hover {
+  border-color: var(--pb-brand-darkest);
+  color: var(--pb-brand-darkest);
+}
+.buttonLink {
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-transform: none;
+  min-width: 0;
+}
+.button:focus-visible {
+  outline: 2px solid var(--pb-brand);
+  outline-offset: 2px;
+}
+
+/* Divider */
+.hr {
+  border: 0;
+  border-top: 1px solid #ccc;
+  display: inline-block;
+  margin: 20px 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Html */
+.html {
+  overflow-wrap: break-word;
+}
+.html img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Video */
+.videoInner {
+  display: inline-block;
+  width: 100%;
+}
+.videoWrapper {
+  overflow: hidden;
+  transform: translateZ(0);
+}
+.videoContainer {
+  overflow: hidden;
+  padding-top: 56.25%;
+  position: relative;
+}
+.video {
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  border: 0;
+}
+
+/* Map (static fallback: no Google Maps API key) */
+.map {
+  min-height: 300px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--pb-gray);
+}
+.mapLocation h3 {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+/* Tabs */
+.tabs {
+  --tabs-border-color: #ccc;
+}
+.tabList {
+  display: block;
+  font-size: 0;
+  margin: 0 0 -1px;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+}
+.tabListCenter {
+  text-align: center;
+}
+.tabListRight {
+  text-align: right;
+}
+.tab {
+  background: var(--pb-gray);
+  border: 1px solid var(--tabs-border-color);
+  border-bottom: 0;
+  display: inline-block;
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0.875rem 1.25rem;
+  vertical-align: bottom;
+  white-space: normal;
+}
+.tab[aria-selected='true'] {
+  background: #fff;
+  z-index: 3;
+}
+.tab:focus-visible {
+  outline: 2px solid var(--pb-brand);
+  outline-offset: -2px;
+}
+.tabPanels {
+  border: 1px solid var(--tabs-border-color);
+  min-height: inherit;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+.tabPanel {
+  min-height: inherit;
+}
+
+/* Products */
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+@media (min-width: 641px) {
+  .productGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.productCarousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 1rem) / 2);
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.5rem;
+}
+@media (min-width: 641px) {
+  .productCarousel {
+    grid-auto-columns: calc((100% - 3 * 1rem) / 4);
+  }
+}
+@media (min-width: 961px) {
+  .productCarousel {
+    grid-auto-columns: calc((100% - 4 * 1rem) / 5);
+  }
+}
+.productCarousel > li {
+  scroll-snap-align: start;
+}
+.productCarousel:focus-visible {
+  outline: 2px solid var(--pb-brand);
+  outline-offset: 2px;
+}
+.productCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+.productCard:hover .productName {
+  text-decoration: underline;
+}
+.productImage {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #fff;
+}
+.productName {
+  font-size: 0.875rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .bannerButton,
+  .button,
+  .slide {
+    transition: none;
+  }
+}

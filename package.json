@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "next": "16.4.0",
+    "parse5": "8.0.1",
     "pino": "10.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -29,6 +30,8 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
     "@types/node": "24.19.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

@@ -107,10 +107,10 @@ describe('buildProductPageMetadata — other decisions', () => {
     });
   });
 
-  it('CMS placeholder: noindex, follow', () => {
+  it('CMS pages: no product metadata (built from the CMS page, indexable)', () => {
     expect(
       buildProductPageMetadata({ kind: 'cms', identifier: 'about-us', relativeUrl: 'about-us' }),
-    ).toEqual({ robots: { index: false, follow: true } });
+    ).toEqual({});
   });
 
   it('redirects and 404s: nothing (handled before rendering)', () => {

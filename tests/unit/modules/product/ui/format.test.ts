@@ -15,6 +15,14 @@ describe('formatPrice', () => {
   it('falls back to the plain amount and code for an invalid currency', () => {
     expect(formatPrice(10, 'pesos')).toBe('10.00 pesos');
   });
+
+  it('never throws on malformed runtime values (rendering must not fail on a price)', () => {
+    const loose = formatPrice as (amount: unknown, currency: unknown) => string;
+    expect(() => loose('12.5', 'pesos')).not.toThrow();
+    expect(loose('12.5', 'pesos')).toBe('12.50 pesos');
+    expect(() => loose(null, null)).not.toThrow();
+    expect(() => loose(Symbol('x'), {})).not.toThrow();
+  });
 });
 
 describe('htmlToPlainText', () => {

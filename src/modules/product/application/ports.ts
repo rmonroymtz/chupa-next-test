@@ -1,5 +1,6 @@
 import type {
   MagentoProduct,
+  ProductCard,
   ScrapedProduct,
   ScrapedVariants,
 } from '@/modules/product/domain/product';
@@ -22,6 +23,16 @@ export interface MagentoProductRepository {
    * when Magento fails, so an outage is never reported as `not_found`.
    */
   findByRouteUrl(routeUrl: string): Promise<MagentoProductLookup>;
+}
+
+export interface ProductListRepository {
+  /**
+   * Products by Magento url key, in the requested order; keys Magento does
+   * not find are skipped. `products(filter: {url_key: {in}})` does not match
+   * url keys containing `|` (verified live), so those are skipped too, as in
+   * the legacy storefront. Rejects when Magento fails.
+   */
+  findByUrlKeys(urlKeys: readonly string[]): Promise<ProductCard[]>;
 }
 
 export type ScraperErrorReason = 'timeout' | 'http' | 'invalid_response';
