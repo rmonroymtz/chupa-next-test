@@ -1,6 +1,7 @@
 # Phase 2 storefront — categories and home
 
-Status: discovery done, **blocked on product decisions** (see "Open decisions"). No source code written yet.
+Status: discovery done; decisions 1, 2, 8, 9 taken (3, 5 moot); **blocked on decisions 4, 6, 7** (see "Open
+decisions"). No source code written yet.
 Branch: `feat/phase-2-categories-home` (from `main` after the phase 1 merge, PRs #1–#8).
 
 ## Objective
@@ -64,23 +65,33 @@ There is no written phase 2 requirement. The original spec summary (Engram #606)
 
 ## Open decisions (ask one at a time, in this order)
 
-1. **What a category page shows** — asked 2026-10-13, unanswered. Recommendation: the CHAPI search result for the
-   category keyword (today's behavior) on a clean, indexable URL. Alternative: products Magento assigns to the
-   category. Evidence: Engram #607 "Categories are NOT Magento categories".
-2. **Category URL scheme** — Magento `/{url_path}.html` (already `categoryHref`, resolvable by `route()`), a new clean
-   path, or keep `/search.html?query=`. Check: no category key may look like `{vendor}-*.html`
+1. **What a category page shows** — DECIDED 2026-10-13 (corrected the same day): native Magento categories are
+   served by Next with data read directly from Magento (category + its assigned products). **No CHAPI** on category
+   pages. These are the pages that must be indexed. The current PWA "categories" (`/search.html?query=…&store=…&page=…`)
+   are really searches, not categories; only those use CHAPI search.
+2. **Category URL scheme** — DECIDED 2026-10-13: Magento `/{url_path}.html` (already `categoryHref`, resolvable by
+   `route()`). Any non-product path goes to Magento. Check: no category key may look like `{vendor}-*.html`
    (`docs/routing/phase-1.md:47`).
-3. **Where the keyword and store per category come from** — `url_path` (today), a repo config file, or
-   `randomProducts(keywords)`; a Magento attribute is ruled out by "no Magento changes".
-4. **Home content source** — port the PWA sections, CMS page/blocks, or a mix; use `randomProducts` carousels or not.
-5. **CHAPI load on category pages** — no caching by spec; every visit would call CHAPI search. Decide on quota/latency
-   handling (or accept it).
+3. **Where the keyword and store per category come from** — moot for categories (Magento data, no keyword). Applies
+   only to `/search.html`, see decision 8.
+4. **Home content source** — asked 2026-10-13, unanswered. Options: (a) mix, recommended: banners from Magento
+   cmsBlocks `hero-slider-container`/`top-banner-slider` (editable without deploy), `randomProducts` carousels as in
+   the PWA, meta from `cmsPage(home)`; (b) port the PWA home as hard-coded content; (c) cmsBlocks only, no carousels.
+   Caveat: the PWA facts come from discovery and are not yet verified against the legacy PWA source-of-truth folder.
+5. **CHAPI load on category pages** — moot for categories (no CHAPI). Applies only to `/search.html` if it is in scope.
 6. **Indexability / status** — empty category or CHAPI error: 200 noindex or 404? Do bots call CHAPI search?
 7. **Pagination and filters** — robots disallows `?p=` and `?*`.
+8. **`/search.html` (CHAPI search) in phase 2 or phase 3?** — DECIDED 2026-10-13: phase 3. `/search.html` stays on
+   PWA Studio; phase 2 builds no CHAPI search adapter.
+9. **Menu links** — DECIDED 2026-10-13: switch every menu level (desktop and mobile) to `categoryHref` so the
+   indexable category pages get internal links. `searchHref` is no longer used by the menu.
 
 ## Draft tasks (finalize after the decisions)
 
 Route per task: delegated (writer trigger: 2+ non-trivial files).
+
+Pending revision after decisions 1, 2, 8, 9: T2 (CHAPI search) is out of phase 2; T1/T3/T4 become Magento category +
+products (no CHAPI, no keyword); T5 includes switching every menu level to `categoryHref`.
 
 - [ ] T1 Domain: category page model, category URL build/parse, keyword/query resolution, indexability rule. Check: unit RED→GREEN.
 - [ ] T2 CHAPI search adapter (+ `*_search_engine` in store config, fixture from the OpenAPI). Check: MSW unit tests (found, empty, timeout, invalid).
@@ -98,10 +109,17 @@ Same as phase 1: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 ## Progress
 
 - 2026-10-13: discovery (read-only explorer) done; decision 1 asked. Full environment reference: `docs/environment.md`.
+- 2026-10-13: decision 1 answered (CHAPI search result). Decision 2 asked.
+- 2026-10-13: user corrected decision 1 and answered 2: categories = Magento data on `/{url_path}.html`, indexable,
+  no CHAPI; CHAPI only for `/search.html`. Decision 8 asked. Draft tasks T1–T5 must be revised (T2 CHAPI adapter
+  depends on decision 8; T3 needs category products from Magento).
+- 2026-10-13: open item parked by the user: which local folder is the legacy PWA source of truth (candidates
+  `chupaprecios-pwa`, `chupaprecios-pwa-next`, `chpwa-v1`, `pwa-studio`). Legacy-PWA claims above are unverified
+  against it.
 
 ## Next step
 
-Answer decision 1, then 2–7; update the scope and tasks; then start T1.
+Answer decision 4 (asked 2026-10-13), then 6, 7; update the scope and tasks; then start T1.
 
 ## Resume on another machine
 
