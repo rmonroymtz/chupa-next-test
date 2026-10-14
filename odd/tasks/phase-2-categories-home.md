@@ -172,7 +172,9 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   (`https://staging.chupaprecios.com.mx/graphql`) has a tree (e.g. Cómputo 8 children, Herramientas 7, Audiovisual
   6) with assigned products (e.g. Herramientas 12, Herramienta manual 6). The out-of-range error on staging is the
   English text the repository matches (`currentPage value 99 specified is greater than the 1 page(s) available.`,
-  `extensions.category: graphql-input`).
+  `extensions.category: graphql-input`). Review fix: Magento refusing page 1 as out of range now rejects (5xx)
+  instead of redirecting to itself in a loop. For T4 (review advisories): integration test of the composition
+  (`gridPerPage` reaching the products query, per-request `cache()` shared by metadata and page).
   Original scope: category (name, description, breadcrumbs, meta, `url_path`) and products by
   `category_uid` with `currentPage` from `?page=N` and `pageSize` from `storeConfig.grid_per_page`; indexability rule
   (missing → 404, empty → 200 noindex, failure → 5xx). Check: unit RED→GREEN + MSW tests.

@@ -170,6 +170,14 @@ describe('resolveCategoryPage', () => {
     );
   });
 
+  it('rejects instead of redirecting to itself when Magento refuses the first page', async () => {
+    const { resolve } = setup({
+      productsRepository: { findPage: async () => ({ kind: 'out_of_range' }) },
+    });
+    await expect(resolve('')).rejects.toThrow(/first page/);
+    await expect(resolve('page=1')).rejects.toThrow(/first page/);
+  });
+
   it('redirects any page after the first of an empty category', async () => {
     const { resolve } = setup({ products: [] });
     await expect(resolve('page=2')).resolves.toEqual(redirectTo(CLEAN_URL));

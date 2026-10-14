@@ -73,6 +73,10 @@ export async function resolveCategoryPage(
   if (productsOutcome.status === 'rejected') throw productsOutcome.reason;
 
   const result = productsOutcome.value;
+  // The redirect target is the first page: refusing it would loop, so it is a failure (5xx).
+  if (result.kind === 'out_of_range' && pageParam.page === 1) {
+    throw new Error(`Magento refused the first page of category ${uid}`);
+  }
   // An empty category has zero pages but still renders its first page.
   if (result.kind === 'out_of_range' || pageParam.page > Math.max(result.page.totalPages, 1)) {
     return redirectToFirstPage(category, search);
