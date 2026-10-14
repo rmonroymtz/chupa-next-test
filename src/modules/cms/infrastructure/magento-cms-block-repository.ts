@@ -33,8 +33,12 @@ export function createMagentoCmsBlockRepository(client: MagentoClient): CmsBlock
           message: 'Magento returned no cmsBlocks items',
         });
       }
-      // One identifier asked; Magento may also omit it from the items.
-      return items.map(mapCmsBlock).find((block) => block !== null) ?? null;
+      // Only the exact identifier asked for counts: Magento also matches block ids
+      // (and may match case-insensitively), and may omit the block from the items.
+      return (
+        items.map(mapCmsBlock).find((block) => block !== null && block.identifier === identifier) ??
+        null
+      );
     },
   };
 }

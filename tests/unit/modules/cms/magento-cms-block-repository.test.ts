@@ -68,6 +68,18 @@ describe('MagentoCmsBlockRepository', () => {
     await expect(repository().findByIdentifier('gone')).resolves.toBeNull();
   });
 
+  it.each([
+    ['a numeric block id', '12'],
+    ['a case variant', 'Top-Banner-Slider'],
+  ])(
+    'returns null when asked for %s and Magento answers the block under another identifier',
+    async (_, identifier) => {
+      // Magento also matches block ids and may match case-insensitively; only an exact identifier counts.
+      answer({ items: [slider] });
+      await expect(repository().findByIdentifier(identifier)).resolves.toBeNull();
+    },
+  );
+
   it('keeps a block with blank content as an empty string (it exists; there is nothing to render)', async () => {
     answer({ items: [{ identifier: 'vacio', title: null, content: null }] });
     await expect(repository().findByIdentifier('vacio')).resolves.toEqual({
