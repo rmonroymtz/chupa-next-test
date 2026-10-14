@@ -18,6 +18,7 @@ export interface StoreConfigDto {
   title_suffix?: Nullable<string>;
   title_separator?: Nullable<string>;
   default_description?: Nullable<string>;
+  cms_home_page?: Nullable<string>;
   engine_settings?: Nullable<Record<string, Nullable<string>>>;
   service_fallback?: Nullable<Record<string, Nullable<string>>>;
 }
@@ -38,6 +39,7 @@ export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
     titleSuffix: dto.title_suffix ?? null,
     titleSeparator: dto.title_separator ?? null,
     defaultDescription: dto.default_description ?? null,
+    cmsHomePage: dto.cms_home_page?.trim() || null,
     engineRouting: {
       engineSettings: Object.fromEntries(
         Object.entries(dto.engine_settings ?? {})

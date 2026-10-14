@@ -25,6 +25,8 @@ export interface StoreConfig {
   readonly titleSuffix: string | null;
   readonly titleSeparator: string | null;
   readonly defaultDescription: string | null;
+  /** Identifier of the CMS page Magento serves as the home (`cms_home_page`); null when unset. */
+  readonly cmsHomePage: string | null;
   readonly engineRouting: EngineRouting;
 }
 

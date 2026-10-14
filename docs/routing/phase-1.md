@@ -62,7 +62,9 @@ Magento GraphQL has no "list CMS pages" query (`cmsPage` needs an identifier), s
 
 Leave out:
 
-- `home` (`/`). **Home stays on PWA in phase 1.** Next's `/` is a placeholder and must not be routed.
+- `home` (`/`). **Home stays on PWA in phase 1.** Since phase 2 (T1) Next resolves `/` through Magento `route()`
+  (the configured `cms_home_page`, canonical `/`, its own url `/{cms_home_page}` → 308 `/`), but the edge must not
+  route `/` or `/{cms_home_page}` to Next until the phase 2 routing change (T8).
 - `no-route` (Magento's 404 page) and any page that only makes sense inside PWA.
 
 Keep the list in one file (nginx `include`) so adding a page is a one-line change. A new CMS page stays on PWA until it is added.

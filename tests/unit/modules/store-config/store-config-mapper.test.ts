@@ -19,6 +19,8 @@ describe('mapStoreConfig', () => {
       titleSuffix: null,
       titleSeparator: '-',
       defaultDescription: null,
+      // The recording predates the cms_home_page field.
+      cmsHomePage: null,
       engineRouting: {
         engineSettings: {
           amazon: 'direct',
@@ -60,5 +62,13 @@ describe('mapStoreConfig', () => {
     });
 
     expect(config.baseMediaUrl).toBe('https://cdn.test/media/');
+  });
+
+  it('maps the configured home CMS page identifier, blank as null', () => {
+    expect(mapStoreConfig({ cms_home_page: ' venia-new-home ' }).cmsHomePage).toBe(
+      'venia-new-home',
+    );
+    expect(mapStoreConfig({ cms_home_page: '  ' }).cmsHomePage).toBeNull();
+    expect(mapStoreConfig({ cms_home_page: null }).cmsHomePage).toBeNull();
   });
 });

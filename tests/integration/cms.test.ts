@@ -61,6 +61,27 @@ const BROKEN_NODE_CONTENT =
   '<div data-content-type="text" data-element="main"><p>Después del nodo roto</p></div>' +
   '</div></div>';
 
+const HOME = 'venia-new-home';
+
+/**
+ * Hand-made stand-in for the home CMS page: it only drives routing and
+ * metadata. The real `venia-new-home` Page Builder content is not recorded yet.
+ */
+const HOME_PAGE = {
+  identifier: HOME,
+  url_key: HOME,
+  relative_url: HOME,
+  title: 'Inicio',
+  content_heading: null,
+  content:
+    '<div data-content-type="row" data-appearance="contained" data-element="main"><div data-element="inner">' +
+    '<div data-content-type="text" data-element="main"><p>Contenido de la portada</p></div></div></div>',
+  meta_title: 'Acceso a más de 300 millones de productos',
+  meta_description: 'Compra en tiendas de Estados Unidos.',
+  meta_keywords: null,
+  page_layout: 'cms-full-width',
+};
+
 let backends: MockBackends;
 let next: RunningNext;
 
@@ -72,6 +93,9 @@ beforeAll(async () => {
       'pagina-borrada': cmsRoute('pagina-borrada'),
       'cms-caido': cmsRoute('cms-caido'),
       'nodo-roto': cmsRoute('nodo-roto'),
+      // Verified live: Magento resolves the root to its configured home page.
+      '/': cmsRoute(HOME),
+      [HOME]: cmsRoute(HOME),
     },
     cmsPages: {
       'aviso-privacidad': aviso.data.route,
@@ -88,6 +112,7 @@ beforeAll(async () => {
         page_layout: 'cms-full-width',
       },
       'cms-caido': 'outage',
+      [HOME]: HOME_PAGE,
       'nodo-roto': {
         identifier: 'nodo-roto',
         url_key: 'nodo-roto',
@@ -129,7 +154,8 @@ beforeAll(async () => {
         },
       },
     },
-    storeConfig: storeConfig.data.storeConfig,
+    // The recording predates cms_home_page.
+    storeConfig: { ...storeConfig.data.storeConfig, cms_home_page: HOME },
     chapi: {},
     chapiDefaultDelayMs: 0,
   });
@@ -153,13 +179,21 @@ async function get(path: string, userAgent = BROWSER_UA) {
     headers: { 'User-Agent': userAgent },
     redirect: 'manual',
   });
-  return { status: response.status, html: await response.text() };
+  return {
+    status: response.status,
+    location: response.headers.get('location'),
+    html: await response.text(),
+  };
 }
 
 const robots = (html: string) => /<meta name="robots" content="([^"]*)"/.exec(html)?.[1] ?? null;
 const canonical = (html: string) => /<link rel="canonical" href="([^"]*)"/.exec(html)?.[1] ?? null;
 const withoutScripts = (html: string) => html.replace(/<script\b[\s\S]*?<\/script>/g, '');
 const title = (html: string) => /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
+const jsonLdTypes = (html: string) =>
+  [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
+    (match) => (JSON.parse(match[1] ?? '{}') as { '@type'?: string })['@type'],
+  );
 
 describe('CMS pages', () => {
   it.each([
@@ -235,5 +269,42 @@ describe('CMS pages', () => {
   it('Magento failure reading the CMS page: 5xx, never 404', async () => {
     const page = await get('/cms-caido');
     expect(page.status).toBeGreaterThanOrEqual(500);
+  });
+});
+
+describe('home', () => {
+  it('/ is resolved by Magento: home CMS page, canonical /, site JSON-LD once', async () => {
+    const page = await get('/');
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('index, follow');
+    // Next renders the root url without its trailing slash (same url).
+    expect(canonical(page.html)).toBe(PUBLIC_BASE_URL);
+    expect(page.html).toMatch(
+      new RegExp(`<meta property="og:url" content="${PUBLIC_BASE_URL}/?"/>`),
+    );
+    expect(title(page.html)).toBe('Acceso a más de 300 millones de productos | Chupaprecios');
+    expect(page.html).toContain('<h1 class="sr-only">Inicio</h1>');
+    expect(page.html).toContain('Contenido de la portada');
+    expect(jsonLdTypes(page.html).sort()).toEqual(['Organization', 'WebSite']);
+    expect(
+      backends.callsTo('magento', 'ProductByRoute').map((call) => call.body.variables),
+    ).toEqual([{ url: '/' }]);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(1);
+  });
+
+  it("the home page's own url answers a permanent redirect to /", async () => {
+    const page = await get(`/${HOME}`);
+
+    expect(page.status).toBe(308);
+    expect(page.location).toBe('/');
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('other CMS pages keep their own canonical', async () => {
+    const page = await get('/aviso-privacidad');
+
+    expect(page.status).toBe(200);
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/aviso-privacidad`);
   });
 });
