@@ -137,7 +137,11 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   typecheck/lint/build green. Note: the home `products` carousel comes from Magento with no products (empty div),
   so it renders nothing on `/`. Root failure paths covered in `1fe1286` (outage → 5xx, `route: null` → 404,
   CATEGORY → 404 until T4, CMS read failure → 5xx; integration 45). Observed, not investigated: during a Magento
-  outage on `/`, one request sends `ProductByRoute` twice (once on success). Original scope: `src/app/[...path]` → `src/app/[[...path]]`, delete `src/app/page.tsx`, `/` resolved
+  outage on `/`, one request sends `ProductByRoute` twice (once on success). Visual check 2026-10-14 on the local
+  dev server: header, 6-slide slider (desktop and mobile images), footer, no console errors; `/` 200, home CMS url
+  308 with query, CMS page 200, unknown url 404. DECIDED 2026-10-14: for now the home shows only the Magento Page
+  Builder content; the extra PWA home sections are customizations, out of scope until a later task (T2 registry +
+  `<CmsBlock>` make them possible). Original scope: `src/app/[...path]` → `src/app/[[...path]]`, delete `src/app/page.tsx`, `/` resolved
   by `route("/")`; `cms_home_page` in the store config query; home canonical `/` from the requested URL;
   `/{cms_home_page}` → 301 `/`; Organization/WebSite JSON-LD on `/`. Save the full `venia-new-home` response as a
   fixture and check Page Builder coverage (list unsupported content types). Check: unit + integration tests.
