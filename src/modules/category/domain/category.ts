@@ -40,7 +40,15 @@ export interface CategoryProductPage {
   readonly totalCount: number;
 }
 
+/** Magento's default `category_url_suffix`, for callers that do not read the store config. */
+export const DEFAULT_CATEGORY_URL_SUFFIX = '.html';
+
 /** Category page url from Magento's `url_path` and the store's category suffix. */
 export function toCategoryUrl(urlPath: string, urlSuffix: string): string {
   return `/${urlPath.replace(/^\/+|\/+$/g, '')}${urlSuffix}`;
+}
+
+/** Only a category with products is indexed; an empty one is served `noindex`. */
+export function isIndexableListing(listing: CategoryProductPage): boolean {
+  return listing.totalCount > 0;
 }

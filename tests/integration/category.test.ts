@@ -114,6 +114,10 @@ const canonical = (html: string) => /<link rel="canonical" href="([^"]*)"/.exec(
 const title = (html: string) => /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
 const productLinks = (html: string) =>
   [...html.matchAll(/<a href="\/(amazon-B0LAPTOP\d+-laptop-\d+\.html)"/g)].map((match) => match[1]);
+const jsonLdBlocks = (html: string) =>
+  [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(
+    ([, json]) => JSON.parse(json ?? '') as { '@type': string; [key: string]: unknown },
+  );
 const pagination = (html: string) =>
   /<nav aria-label="Paginación"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? null;
 
@@ -134,6 +138,36 @@ describe('category pages', () => {
       '<meta name="description" content="Compra laptops importadas con envío a todo México."/>',
     );
     expect(pagination(page.html)).toContain(`href="${LAPTOPS_URL}?page=2"`);
+    // Visible trail and its structured data, with absolute urls on the public origin.
+    expect(page.html).toContain('aria-label="Ruta de navegación"');
+    expect(page.html).toContain('href="/electronica/computacion.html"');
+    const blocks = jsonLdBlocks(page.html);
+    const breadcrumbList = blocks.find((block) => block['@type'] === 'BreadcrumbList');
+    const collection = blocks.find((block) => block['@type'] === 'CollectionPage');
+    expect(breadcrumbList).toMatchObject({
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { position: 1, name: 'Inicio', item: `${PUBLIC_BASE_URL}/` },
+        { position: 2, name: 'Electrónica', item: `${PUBLIC_BASE_URL}/electronica.html` },
+        {
+          position: 3,
+          name: 'Computación',
+          item: `${PUBLIC_BASE_URL}/electronica/computacion.html`,
+        },
+        { position: 4, name: 'Laptops', item: `${PUBLIC_BASE_URL}${LAPTOPS_URL}` },
+      ],
+    });
+    expect(collection).toMatchObject({
+      '@type': 'CollectionPage',
+      url: `${PUBLIC_BASE_URL}${LAPTOPS_URL}`,
+    });
+    const listed = (collection?.mainEntity as { itemListElement: { url: string }[] })
+      .itemListElement;
+    expect(listed.map((item) => item.url)).toEqual(
+      LAPTOP_PRODUCTS.slice(0, GRID_PER_PAGE).map(
+        (item) => `${PUBLIC_BASE_URL}/${item.url_key}.html`,
+      ),
+    );
     // One read per operation and request, shared by metadata and page, with the store's page size.
     expect(backends.callsTo('magento', 'CategoryByUid')).toHaveLength(1);
     const productCalls = backends.callsTo('magento', 'CategoryProducts');
@@ -165,6 +199,10 @@ describe('category pages', () => {
     expect(robots(page.html)).toBe('noindex, follow');
     expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/tabletas.html`);
     expect(pagination(page.html)).toBeNull();
+    // Not indexed, so no structured data (like products that are not in Magento).
+    const types = jsonLdBlocks(page.html).map((block) => block['@type']);
+    expect(types).not.toContain('CollectionPage');
+    expect(types).not.toContain('BreadcrumbList');
   });
 
   it('category Magento routes but cannot find: 404', async () => {

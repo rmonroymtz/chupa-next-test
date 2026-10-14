@@ -2,8 +2,10 @@ import type { MenuItem } from '@/modules/layout/domain/category-menu';
 import { LEGACY_ROUTES } from '@/modules/layout/domain/legacy-routes';
 import { ChevronDownIcon, MenuIcon } from './icons';
 
-// Category and search pages are served by PWA Studio: plain anchors only
-// (full navigation, no Next prefetch). See `legacy-routes.ts`.
+// Plain anchors only (full navigation, no Next prefetch), like every other
+// internal link: the header is shared by Next and PWA Studio pages, and
+// `next/link` would prefetch the (Magento-backed) category pages in view.
+// See `legacy-routes.ts`.
 
 const NAV_HEIGHT = 'h-12';
 
@@ -16,8 +18,8 @@ export function DesktopCategoryNavPlaceholder() {
 }
 
 /**
- * Legacy desktop megamenu: top-level categories link to the search page; the
- * submenu (category pages) opens on hover or keyboard focus, CSS only.
+ * Legacy desktop megamenu: every level links to its category page; the
+ * submenu opens on hover or keyboard focus, CSS only.
  */
 export function DesktopCategoryNav({ items }: { readonly items: readonly MenuItem[] }) {
   if (items.length === 0) return <DesktopCategoryNavPlaceholder />;
@@ -31,7 +33,7 @@ export function DesktopCategoryNav({ items }: { readonly items: readonly MenuIte
         {items.map((item) => (
           <li key={item.id} className="group flex shrink-0">
             <a
-              href={item.searchHref}
+              href={item.categoryHref}
               className="inline-flex items-center gap-1 px-3 font-noto text-[0.9rem] whitespace-nowrap uppercase decoration-brand-yellow decoration-2 group-focus-within:underline group-hover:underline"
             >
               {item.label}
@@ -76,7 +78,7 @@ export function MobileCategoryMenuPlaceholder() {
 /**
  * Legacy mobile navigation drawer as a native `<details>` disclosure (no JS).
  * The panel overlays the page below the header, so opening it shifts nothing.
- * Every level links to the search page, as the legacy category tree does.
+ * Every level links to its category page.
  */
 export function MobileCategoryMenu({ items }: { readonly items: readonly MenuItem[] }) {
   return (
@@ -102,13 +104,13 @@ export function MobileCategoryMenu({ items }: { readonly items: readonly MenuIte
                   </summary>
                   <ul className="pb-2">
                     <li>
-                      <a href={item.searchHref} className="block px-8 py-2 font-semibold">
+                      <a href={item.categoryHref} className="block px-8 py-2 font-semibold">
                         Ver todo
                       </a>
                     </li>
                     {item.children.map((child) => (
                       <li key={child.id}>
-                        <a href={child.searchHref} className="block px-8 py-2">
+                        <a href={child.categoryHref} className="block px-8 py-2">
                           {child.label}
                         </a>
                       </li>
@@ -116,7 +118,7 @@ export function MobileCategoryMenu({ items }: { readonly items: readonly MenuIte
                   </ul>
                 </details>
               ) : (
-                <a href={item.searchHref} className="block px-4 py-3">
+                <a href={item.categoryHref} className="block px-4 py-3">
                   {item.label}
                 </a>
               )}

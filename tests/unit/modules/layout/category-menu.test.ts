@@ -38,7 +38,7 @@ describe('buildCategoryMenu', () => {
     expect(menu.map((item) => item.label)).toEqual(['A', 'B1', 'B2', 'C']);
   });
 
-  it('links every level to the legacy search and to the category url with the store suffix', () => {
+  it('links every level to its category page with the store suffix, never to the search page', () => {
     const [item] = buildCategoryMenu({
       categoryUrlSuffix: '.html',
       roots: [
@@ -51,13 +51,11 @@ describe('buildCategoryMenu', () => {
     expect(item).toMatchObject({
       id: 'electrónica',
       label: 'Electrónica',
-      searchHref: '/search.html?query=electronica&store=amazon&page=1',
       categoryHref: '/electronica.html',
     });
-    expect(item?.children[0]).toMatchObject({
-      searchHref: '/search.html?query=electronica%2Faudio&store=amazon&page=1',
-      categoryHref: '/electronica/audio.html',
-    });
+    expect(item?.children[0]).toMatchObject({ categoryHref: '/electronica/audio.html' });
+    expect(item).not.toHaveProperty('searchHref');
+    expect(item?.children[0]).not.toHaveProperty('searchHref');
   });
 
   it('skips categories without a name or url path', () => {

@@ -89,8 +89,7 @@ async function get(path: string, userAgent = BROWSER_UA) {
   return { status: response.status, html: html.replace(/<script\b[\s\S]*?<\/script>/g, '') };
 }
 
-const SEARCH_LINK = (urlPath: string) =>
-  `href="/search.html?query=${encodeURIComponent(urlPath)}&amp;store=amazon&amp;page=1"`;
+const CATEGORY_LINK = (urlPath: string) => `href="/${urlPath}.html"`;
 
 function expectLayout(html: string) {
   expect(html).toContain('href="#main-content"');
@@ -114,13 +113,15 @@ describe('site layout', () => {
     expect(page.status).toBe(200);
     expect(page.html).toContain('<meta name="robots" content="index, follow"/>');
     expectLayout(page.html);
-    // Ordered by position, include_in_menu respected, legacy search urls.
-    const electronica = page.html.indexOf(SEARCH_LINK('electronica'));
-    const juguetes = page.html.indexOf(SEARCH_LINK('juguetes'));
+    // Ordered by position, include_in_menu respected, category page urls at every level.
+    const electronica = page.html.indexOf(CATEGORY_LINK('electronica'));
+    const juguetes = page.html.indexOf(CATEGORY_LINK('juguetes'));
     expect(electronica).toBeGreaterThan(-1);
     expect(juguetes).toBeGreaterThan(electronica);
     expect(page.html).not.toContain('Interna');
-    expect(page.html).toContain('href="/electronica/audio.html"');
+    expect(page.html).toContain(CATEGORY_LINK('electronica/audio'));
+    // The search form is the only way to the PWA Studio search page.
+    expect(page.html).not.toContain('href="/search.html');
     // One menu query per request, shared by the desktop and mobile navigation.
     expect(backends.callsTo('magento', 'HeaderMenu')).toHaveLength(1);
   });
@@ -131,7 +132,7 @@ describe('site layout', () => {
     expect(page.status).toBe(200);
     expectLayout(page.html);
     expect(page.html).toContain('data-page-builder=""');
-    expect(page.html).toContain(SEARCH_LINK('electronica'));
+    expect(page.html).toContain(CATEGORY_LINK('electronica'));
   });
 
   it.each([
@@ -169,7 +170,7 @@ describe('site layout', () => {
     for (const page of [product, cms]) {
       expect(page.status).toBe(200);
       expectLayout(page.html);
-      expect(page.html).not.toContain(SEARCH_LINK('electronica'));
+      expect(page.html).not.toContain(CATEGORY_LINK('electronica'));
       // Desktop bar keeps its reserved height; the mobile drawer keeps sign-in.
       expect(page.html).not.toContain('aria-label="Categorías"');
       expect(page.html).toContain('aria-label="Menú principal"');
@@ -262,7 +263,7 @@ describe('site layout', () => {
     expect(firstHeader!.seq).toBeLessThan(menuCall!.abortedSeq!);
     const rendered = html.replace(/<script\b[\s\S]*?<\/script>/g, '');
     expectLayout(rendered);
-    expect(rendered).not.toContain(SEARCH_LINK('electronica'));
+    expect(rendered).not.toContain(CATEGORY_LINK('electronica'));
   });
 });
 

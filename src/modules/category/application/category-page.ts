@@ -2,7 +2,11 @@ import type {
   CategoryProductsRepository,
   CategoryRepository,
 } from '@/modules/category/application/ports';
-import type { Category, CategoryProductPage } from '@/modules/category/domain/category';
+import {
+  isIndexableListing,
+  type Category,
+  type CategoryProductPage,
+} from '@/modules/category/domain/category';
 import { parsePageParam, withoutPageParam } from '@/modules/category/domain/category-page-param';
 import { toLocation } from '@/modules/routing/domain/request-path';
 
@@ -85,7 +89,7 @@ export async function resolveCategoryPage(
     kind: 'page',
     category,
     listing: result.page,
-    indexable: result.page.totalCount > 0,
+    indexable: isIndexableListing(result.page),
     canonicalPath: category.url.replace(/^\/+/, ''),
   };
 }
