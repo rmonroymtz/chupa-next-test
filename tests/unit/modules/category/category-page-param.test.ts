@@ -10,6 +10,11 @@ describe('parsePageParam', () => {
   it('accepts positive integers, page 1 included', () => {
     expect(parsePageParam('page=1')).toEqual({ kind: 'valid', page: 1, explicit: true });
     expect(parsePageParam('page=2')).toEqual({ kind: 'valid', page: 2, explicit: true });
+    expect(parsePageParam('page=2147483647')).toEqual({
+      kind: 'valid',
+      page: 2147483647,
+      explicit: true,
+    });
     expect(parsePageParam('utm_source=x&page=12')).toEqual({
       kind: 'valid',
       page: 12,
@@ -27,6 +32,7 @@ describe('parsePageParam', () => {
     ['padded', 'page=%202'],
     ['exponent', 'page=1e2'],
     ['beyond a safe integer', 'page=99999999999999999999'],
+    ['beyond a GraphQL Int (2^31)', 'page=2147483648'],
     ['repeated', 'page=2&page=3'],
   ])('rejects a %s page', (_case, search) => {
     expect(parsePageParam(search)).toEqual({ kind: 'invalid' });
