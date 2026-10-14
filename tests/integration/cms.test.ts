@@ -285,6 +285,20 @@ describe('CMS pages', () => {
     const page = await get('/cms-caido');
     expect(page.status).toBeGreaterThanOrEqual(500);
   });
+
+  it('Magento failure reading the store config for a CMS page: 5xx, never 404 or 200', async () => {
+    // Every CMS page reads storeConfig to know whether it is the configured home.
+    const homeConfig = { ...storeConfig.data.storeConfig, cms_home_page: HOME };
+    backends.setStoreConfig('outage');
+    try {
+      const page = await get('/aviso-privacidad');
+
+      expect(page.status).toBeGreaterThanOrEqual(500);
+      expect(backends.callsTo('magento', 'StoreConfig').length).toBeGreaterThanOrEqual(1);
+    } finally {
+      backends.setStoreConfig(homeConfig);
+    }
+  });
 });
 
 describe('home', () => {
