@@ -178,8 +178,14 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   Original scope: category (name, description, breadcrumbs, meta, `url_path`) and products by
   `category_uid` with `currentPage` from `?page=N` and `pageSize` from `storeConfig.grid_per_page`; indexability rule
   (missing → 404, empty → 200 noindex, failure → 5xx). Check: unit RED→GREEN + MSW tests.
-- [ ] T4 Category page: `category` branch in the catch-all (replaces today's 404), product grid, server-side
+- [x] T4 Category page (commit `ece844a`; test 696, integration 55, typecheck/lint/build green; native review approved with no findings; checked on the dev server against staging: `/herramientas.html` 12 products, 307 redirects, 404 for unknown). Open for T5: menu links still use `searchHref` on desktop top level and all mobile levels (79 `/search.html` links per page); menu overflows on desktop with the staging tree; titles may duplicate `| Chupaprecios` when Magento `meta_title` already has it. Original scope: `category` branch in the catch-all (replaces today's 404), product grid, server-side
   pagination, empty state. Check: integration tests (exists / missing / empty / Magento failure / page out of range).
+  Deviations (branch `feat/phase-2-04-category-page`): category head metadata (title, description, canonical,
+  `index`/`noindex, follow`) moved here from T5, which keeps JSON-LD, breadcrumbs UI and menu links. Invalid or
+  out-of-range `?page` answers 307 (`redirect()`). The Page Builder product card list was extracted to
+  `page-builder/ui/product-cards.tsx` and reused by the category grid. Products named `-` are not filtered.
+  Proving metadata and page share one resolution is done in `tests/integration/category.test.ts` (React `cache()`
+  is a no-op outside a server request); the unit composition test proves `grid_per_page` 16 reaches `pageSize`.
 - [ ] T5 Category SEO and links: metadata, canonical = clean URL without page, `CollectionPage`/`ItemList` +
   BreadcrumbList JSON-LD; every menu level to `categoryHref`; PDP breadcrumb JSON-LD `categoryUrl()` to category URLs
   (`product/ui/product-structured-data.ts:129`). Check: unit tests.

@@ -366,8 +366,8 @@ describe('home', () => {
     expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
   });
 
-  it('Magento resolves / to a category: 404 for now', async () => {
-    // Category pages are not served yet (deliberate 404); T4 changes this.
+  it('Magento resolves / to a category it then cannot find: 404', async () => {
+    // Category pages are covered by category.test.ts; this mock has no categories.
     const page = await withRootRoute(
       { type: 'CATEGORY', redirect_code: 0, relative_url: 'ofertas', uid: 'MTA=' },
       () => get('/'),

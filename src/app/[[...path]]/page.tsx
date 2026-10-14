@@ -6,6 +6,12 @@ import { Suspense } from 'react';
 import { purchasableFromMagento } from '@/modules/cart/domain/add-to-cart';
 import { AddToCart } from '@/modules/cart/ui/add-to-cart.client';
 import {
+  getCategoryCanonicalUrl,
+  getCategoryPage,
+} from '@/modules/category/infrastructure/category-page.composition';
+import { CategoryPage } from '@/modules/category/ui/category-page';
+import { buildCategoryPageMetadata } from '@/modules/category/ui/category-page-metadata';
+import {
   getCmsCanonicalUrl,
   getCmsPageView,
 } from '@/modules/cms/infrastructure/cms-page.composition';
@@ -56,6 +62,16 @@ export async function generateMetadata(props: CatchAllProps): Promise<Metadata> 
       ? buildCmsPageMetadata(view.page, getCmsCanonicalUrl(view.canonicalPath))
       : {};
   }
+  if (decision.kind === 'category') {
+    // Same cached resolution as the page; 404s and page redirects get no metadata.
+    const view = await getCategoryPage(decision.uid, search);
+    return view.kind === 'page'
+      ? buildCategoryPageMetadata(view.category, {
+          canonicalUrl: getCategoryCanonicalUrl(view.canonicalPath),
+          indexable: view.indexable,
+        })
+      : {};
+  }
   return buildProductPageMetadata(decision);
 }
 
@@ -80,6 +96,15 @@ export default async function CatchAllPage(props: CatchAllProps) {
       // A registered Next page replaces the Magento content; otherwise Magento renders.
       const Override = view.override;
       return Override ? <Override page={view.page} /> : <CmsPage page={view.page} />;
+    }
+    case 'category': {
+      // Decided before anything streams: a missing category is a real 404 and
+      // an invalid or out-of-range `?page` a temporary redirect to the clean
+      // url (a page beyond the last one may exist later).
+      const view = await getCategoryPage(decision.uid, search);
+      if (view.kind === 'not_found') return notFound();
+      if (view.kind === 'redirect') return redirect(view.location);
+      return <CategoryPage category={view.category} listing={view.listing} search={search} />;
     }
     case 'magento_product': {
       const { copyRequest, product, canonicalUrl } = decision;
