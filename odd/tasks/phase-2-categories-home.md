@@ -128,7 +128,12 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first: RE
 deterministic test exists. Forecast: well over 400 authored lines in total, so one stacked PR per task (see
 "Delivery strategy").
 
-- [ ] T1 Home through Magento: `src/app/[...path]` → `src/app/[[...path]]`, delete `src/app/page.tsx`, `/` resolved
+- [x] T1 Home through Magento (delegated writer; commit `0e4580f` on `feat/phase-2-01-home-magento`, plus `0c958b6`
+  ignoring `.atl/`; typecheck, lint, test 595, test:integration 40, build all green; native review medium, granted,
+  approved and acknowledged; Organization/WebSite JSON-LD kept site-wide in `layout.tsx`; redirect is 308 via
+  `permanentRedirect`). Advisory findings, not yet handled: `cms_home_page` may be stored as `identifier|page_id`
+  (redirect would not match); redirect drops the query string; the real `venia-new-home` fixture is not used by any
+  test. Original scope: `src/app/[...path]` → `src/app/[[...path]]`, delete `src/app/page.tsx`, `/` resolved
   by `route("/")`; `cms_home_page` in the store config query; home canonical `/` from the requested URL;
   `/{cms_home_page}` → 301 `/`; Organization/WebSite JSON-LD on `/`. Save the full `venia-new-home` response as a
   fixture and check Page Builder coverage (list unsupported content types). Check: unit + integration tests.
@@ -168,7 +173,7 @@ Same as phase 1: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 
 ## Next step
 
-Start T1 (home through Magento). Needs `.env.local` with `MAGENTO_GRAPHQL_URL` on this machine for the fixture.
+Decide on the T1 advisory findings, then T2 (CMS override registry + `<CmsBlock>`).
 
 ## Resume on another machine
 
