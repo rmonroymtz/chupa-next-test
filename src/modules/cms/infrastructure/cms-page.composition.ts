@@ -28,9 +28,9 @@ export const getCmsPage = cache((identifier: string): Promise<CmsPage | null> =>
  * config; nothing is shared across requests.
  */
 export const getCmsPageRoute = cache(
-  (pathname: string, identifier: string): Promise<CmsPageRoute> =>
+  (pathname: string, search: string, identifier: string): Promise<CmsPageRoute> =>
     resolveCmsPageRoute(
-      { pathname, identifier },
+      { pathname, search, identifier },
       { getHomeIdentifier: async () => (await getStoreConfig()).cmsHomePage },
     ),
 );

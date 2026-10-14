@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toPathname, toSearch } from '@/modules/routing/domain/request-path';
+import { toLocation, toPathname, toSearch } from '@/modules/routing/domain/request-path';
 
 describe('toPathname', () => {
   it('maps the site root (no catch-all segments) to /', () => {
@@ -21,5 +21,12 @@ describe('toPathname', () => {
 describe('toSearch', () => {
   it('serializes repeated and single values and skips undefined ones', () => {
     expect(toSearch({ page: '2', tag: ['a', 'b'], empty: undefined })).toBe('page=2&tag=a&tag=b');
+  });
+});
+
+describe('toLocation', () => {
+  it('appends the request query string, if any, to a path', () => {
+    expect(toLocation('/', 'utm_source=x&tag=a')).toBe('/?utm_source=x&tag=a');
+    expect(toLocation('/', '')).toBe('/');
   });
 });

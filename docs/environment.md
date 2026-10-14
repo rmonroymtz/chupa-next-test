@@ -2,8 +2,7 @@
 
 Full reference for the storefront environment, generated from the zod schema in `src/shared/config/env.ts`, the
 build-time config in `next.config.ts`, `playwright.config.ts`, the e2e specs and the `Dockerfile` (2026-10-13).
-Copy the block into `.env.local` for local work. The committed `.env.example` still lacks some of these variables
-(see "Missing from `.env.example`").
+Copy the block into `.env.local` for local work. The block is identical to the committed `.env.example`.
 
 ```dotenv
 # =============================================================================
@@ -98,11 +97,10 @@ METRICS_NAMESPACE=ChupaStorefront
 # E2E_LOCAL_BASE_URL is set automatically by e2e/support/local-stack.ts; do not set it by hand.
 ```
 
-## Missing from `.env.example`
+## `.env.example`
 
-`MAGENTO_STORE_CODE`, `MAGENTO_CURRENCY`, `MAGENTO_MENU_TIMEOUT_MS`, `PRODUCT_VENDORS`, `ORGANIZATION_LOGO_URL`,
-`ORGANIZATION_SAME_AS`, `IMAGE_REMOTE_HOSTS`, `SERVER_ACTIONS_ALLOWED_ORIGINS`, and the E2E variables. Nothing in the
-committed `.env.example` is stale.
+The committed `.env.example` documents every variable above, including the E2E ones, with the same defaults and
+comments. Keep both in sync when a variable changes.
 
 ## Values that must not be committed
 

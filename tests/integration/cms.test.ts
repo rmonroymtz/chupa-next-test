@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import aviso from '../fixtures/page-builder/cms-page.aviso-privacidad.json';
 import blocks from '../fixtures/page-builder/cms-blocks.sliders.json';
 import storeConfig from '../fixtures/magento/store-config.json';
+import veniaNewHome from '../fixtures/page-builder/venia-new-home.json';
 import { formatPrice } from '@/modules/product/ui/format-price';
 import { startMockBackends, type MockBackends } from './support/mock-backends';
 import { startNext, type RunningNext } from './support/next-server';
@@ -64,20 +65,14 @@ const BROKEN_NODE_CONTENT =
 const HOME = 'venia-new-home';
 
 /**
- * Hand-made stand-in for the home CMS page: it only drives routing and
- * metadata. The real `venia-new-home` Page Builder content is not recorded yet.
+ * Recorded `venia-new-home` (a row with a 6-slide slider and a row with a
+ * products carousel). The recording selects no url or layout fields, so they
+ * are completed as Magento returns them for the home page.
  */
 const HOME_PAGE = {
-  identifier: HOME,
+  ...veniaNewHome.data.cmsPage,
   url_key: HOME,
   relative_url: HOME,
-  title: 'Inicio',
-  content_heading: null,
-  content:
-    '<div data-content-type="row" data-appearance="contained" data-element="main"><div data-element="inner">' +
-    '<div data-content-type="text" data-element="main"><p>Contenido de la portada</p></div></div></div>',
-  meta_title: 'Acceso a más de 300 millones de productos',
-  meta_description: 'Compra en tiendas de Estados Unidos.',
   meta_keywords: null,
   page_layout: 'cms-full-width',
 };
@@ -284,8 +279,11 @@ describe('home', () => {
       new RegExp(`<meta property="og:url" content="${PUBLIC_BASE_URL}/?"/>`),
     );
     expect(title(page.html)).toBe('Acceso a más de 300 millones de productos | Chupaprecios');
-    expect(page.html).toContain('<h1 class="sr-only">Inicio</h1>');
-    expect(page.html).toContain('Contenido de la portada');
+    // No content heading: the page title is the visually hidden h1.
+    expect(page.html).toContain(`<h1 class="sr-only">${veniaNewHome.data.cmsPage.title}</h1>`);
+    const markup = withoutScripts(page.html);
+    expect(markup).toContain('aria-roledescription="carrusel"');
+    expect(markup.match(/aria-roledescription="diapositiva"/g)).toHaveLength(6);
     expect(jsonLdTypes(page.html).sort()).toEqual(['Organization', 'WebSite']);
     expect(
       backends.callsTo('magento', 'ProductByRoute').map((call) => call.body.variables),
@@ -299,6 +297,13 @@ describe('home', () => {
     expect(page.status).toBe(308);
     expect(page.location).toBe('/');
     expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('the redirect from the home page own url keeps the query string', async () => {
+    const page = await get(`/${HOME}?utm_source=x&tag=a`);
+
+    expect(page.status).toBe(308);
+    expect(page.location).toBe('/?utm_source=x&tag=a');
   });
 
   it('other CMS pages keep their own canonical', async () => {

@@ -28,6 +28,11 @@ export function toSearch(query: Record<string, string | string[] | undefined>): 
   return params.toString();
 }
 
+/** A redirect location that keeps the request query string (from `toSearch`). */
+export function toLocation(pathname: string, search: string): string {
+  return search ? `${pathname}?${search}` : pathname;
+}
+
 function safeDecode(segment: string): string {
   try {
     return decodeURIComponent(segment);

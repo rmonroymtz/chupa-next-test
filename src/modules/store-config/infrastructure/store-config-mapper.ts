@@ -39,7 +39,7 @@ export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
     titleSuffix: dto.title_suffix ?? null,
     titleSeparator: dto.title_separator ?? null,
     defaultDescription: dto.default_description ?? null,
-    cmsHomePage: dto.cms_home_page?.trim() || null,
+    cmsHomePage: toCmsHomeIdentifier(dto.cms_home_page),
     engineRouting: {
       engineSettings: Object.fromEntries(
         Object.entries(dto.engine_settings ?? {})
@@ -51,4 +51,13 @@ export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
       ),
     },
   };
+}
+
+/**
+ * Magento stores the home page as `identifier|page_id` when the identifier is
+ * not unique across stores (e.g. `venia-new-home|5`); only the identifier is
+ * matched against routed CMS pages. Blank means no home page configured.
+ */
+function toCmsHomeIdentifier(value: Nullable<string>): string | null {
+  return value?.split('|', 1)[0]?.trim() || null;
 }

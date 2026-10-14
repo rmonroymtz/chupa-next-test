@@ -43,7 +43,9 @@ describe('resolveCmsPageRoute', () => {
   it('serves the page Magento resolves for / as the home, without reading the store config', async () => {
     const home = homeSource(HOME);
 
-    expect(await resolveCmsPageRoute({ pathname: '/', identifier: HOME }, home)).toEqual({
+    expect(
+      await resolveCmsPageRoute({ pathname: '/', search: '', identifier: HOME }, home),
+    ).toEqual({
       kind: 'home',
     });
     expect(home.calls).toBe(0);
@@ -52,16 +54,27 @@ describe('resolveCmsPageRoute', () => {
   it('redirects the configured home page own url to /', async () => {
     const home = homeSource(HOME);
 
-    expect(await resolveCmsPageRoute({ pathname: `/${HOME}`, identifier: HOME }, home)).toEqual({
+    expect(
+      await resolveCmsPageRoute({ pathname: `/${HOME}`, search: '', identifier: HOME }, home),
+    ).toEqual({
       kind: 'redirect_home',
       location: '/',
     });
   });
 
+  it('keeps the request query string on the redirect to /', async () => {
+    expect(
+      await resolveCmsPageRoute(
+        { pathname: `/${HOME}`, search: 'utm_source=x', identifier: HOME },
+        homeSource(HOME),
+      ),
+    ).toEqual({ kind: 'redirect_home', location: '/?utm_source=x' });
+  });
+
   it('serves any other CMS page normally', async () => {
     expect(
       await resolveCmsPageRoute(
-        { pathname: '/aviso-privacidad', identifier: 'aviso-privacidad' },
+        { pathname: '/aviso-privacidad', search: '', identifier: 'aviso-privacidad' },
         homeSource(HOME),
       ),
     ).toEqual({ kind: 'page' });
@@ -69,13 +82,19 @@ describe('resolveCmsPageRoute', () => {
 
   it('serves the page normally when Magento has no home page configured', async () => {
     expect(
-      await resolveCmsPageRoute({ pathname: `/${HOME}`, identifier: HOME }, homeSource(null)),
+      await resolveCmsPageRoute(
+        { pathname: `/${HOME}`, search: '', identifier: HOME },
+        homeSource(null),
+      ),
     ).toEqual({ kind: 'page' });
   });
 
   it('rejects when the store config cannot be read (5xx, never 404)', async () => {
     await expect(
-      resolveCmsPageRoute({ pathname: `/${HOME}`, identifier: HOME }, homeSource('outage')),
+      resolveCmsPageRoute(
+        { pathname: `/${HOME}`, search: '', identifier: HOME },
+        homeSource('outage'),
+      ),
     ).rejects.toBeInstanceOf(MagentoRequestError);
   });
 });

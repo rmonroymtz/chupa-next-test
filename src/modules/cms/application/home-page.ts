@@ -1,16 +1,17 @@
 import type { HomePageSource } from '@/modules/cms/application/ports';
 import type { CmsPage } from '@/modules/cms/domain/cms-page';
-import { HOME_PATHNAME } from '@/modules/routing/domain/request-path';
+import { HOME_PATHNAME, toLocation } from '@/modules/routing/domain/request-path';
 
 /**
  * How a CMS page resolved by Magento `route()` is served:
  * - `home`: requested at `/` (Magento resolves the root to its home page);
- * - `redirect_home`: the home page's own url, permanently redirected to `/`;
+ * - `redirect_home`: the home page's own url, permanently redirected to `/`
+ *   with the request query string kept (e.g. `/?utm_source=x`);
  * - `page`: any other CMS page.
  */
 export type CmsPageRoute =
   | { readonly kind: 'home' }
-  | { readonly kind: 'redirect_home'; readonly location: typeof HOME_PATHNAME }
+  | { readonly kind: 'redirect_home'; readonly location: string }
   | { readonly kind: 'page' };
 
 /** A CMS page route that renders the page (anything but the redirect). */
@@ -19,6 +20,8 @@ export type ServedCmsPageRoute = Exclude<CmsPageRoute, { readonly kind: 'redirec
 export interface CmsPageRequest {
   /** Request pathname as built by `toPathname`. */
   readonly pathname: string;
+  /** Request query string as built by `toSearch` (no leading `?`). */
+  readonly search: string;
   /** CMS identifier Magento resolved the pathname to. */
   readonly identifier: string;
 }
@@ -29,13 +32,13 @@ export interface CmsPageRequest {
  * outage is never served as a duplicate of the home or as a 404.
  */
 export async function resolveCmsPageRoute(
-  { pathname, identifier }: CmsPageRequest,
+  { pathname, search, identifier }: CmsPageRequest,
   home: HomePageSource,
 ): Promise<CmsPageRoute> {
   if (pathname === HOME_PATHNAME) return { kind: 'home' };
   const homeIdentifier = await home.getHomeIdentifier();
   return homeIdentifier !== null && identifier === homeIdentifier
-    ? { kind: 'redirect_home', location: HOME_PATHNAME }
+    ? { kind: 'redirect_home', location: toLocation(HOME_PATHNAME, search) }
     : { kind: 'page' };
 }
 

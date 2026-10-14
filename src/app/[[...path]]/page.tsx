@@ -42,19 +42,16 @@ interface CatchAllProps {
 async function decide({ params, searchParams }: CatchAllProps) {
   const [{ path }, query, requestHeaders] = await Promise.all([params, searchParams, headers()]);
   const pathname = toPathname(path);
-  const decision = await resolveProductPage(
-    pathname,
-    toSearch(query),
-    requestHeaders.get('user-agent'),
-  );
-  return { pathname, decision };
+  const search = toSearch(query);
+  const decision = await resolveProductPage(pathname, search, requestHeaders.get('user-agent'));
+  return { pathname, search, decision };
 }
 
 export async function generateMetadata(props: CatchAllProps): Promise<Metadata> {
-  const { pathname, decision } = await decide(props);
+  const { pathname, search, decision } = await decide(props);
   if (decision.kind === 'cms') {
     // Same cached lookups as the page; a Magento failure rejects (5xx, never 404).
-    const route = await getCmsPageRoute(pathname, decision.identifier);
+    const route = await getCmsPageRoute(pathname, search, decision.identifier);
     if (route.kind === 'redirect_home') return {};
     const page = await getCmsPage(decision.identifier);
     return page ? buildCmsPageMetadata(page, getCmsCanonicalUrl(page, route)) : {};
@@ -64,7 +61,7 @@ export async function generateMetadata(props: CatchAllProps): Promise<Metadata> 
 
 export default async function CatchAllPage(props: CatchAllProps) {
   // Decided before anything streams, so 404, redirects and 5xx keep their status.
-  const { pathname, decision } = await decide(props);
+  const { pathname, search, decision } = await decide(props);
 
   switch (decision.kind) {
     case 'redirect':
@@ -74,8 +71,9 @@ export default async function CatchAllPage(props: CatchAllProps) {
     case 'not_found':
       return notFound();
     case 'cms': {
-      // The configured home page's own url answers a permanent redirect to `/`.
-      const route = await getCmsPageRoute(pathname, decision.identifier);
+      // The configured home page's own url answers a permanent redirect to `/`
+      // (query string kept).
+      const route = await getCmsPageRoute(pathname, search, decision.identifier);
       if (route.kind === 'redirect_home') return permanentRedirect(route.location);
       // Read before anything streams, so a missing page is a real 404.
       const page = await getCmsPage(decision.identifier);
