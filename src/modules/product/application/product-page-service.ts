@@ -26,6 +26,8 @@ export interface VendorProductRef {
 export type ProductPageDecision =
   | { readonly kind: 'redirect'; readonly location: string; readonly permanent: boolean }
   | { readonly kind: 'cms'; readonly identifier: string; readonly relativeUrl: string }
+  /** Magento category; the category page decides 404, page redirects and indexability. */
+  | { readonly kind: 'category'; readonly uid: string; readonly relativeUrl: string }
   | {
       readonly kind: 'not_found';
       /** Set when the url is a product url (`missing_bot`); null otherwise. */
@@ -112,8 +114,7 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
       case 'cms':
         return { kind: 'cms', identifier: lookup.identifier, relativeUrl: lookup.relativeUrl };
       case 'category':
-        // Phase 1 serves no category pages; PWA Studio keeps them.
-        return { kind: 'not_found', case: null };
+        return { kind: 'category', uid: lookup.uid, relativeUrl: lookup.relativeUrl };
       case 'product':
         return existing(lookup.product, isBot);
       case 'not_found':
@@ -174,7 +175,7 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
         dimensions: { Page: page(decision) },
       });
     }
-    const pdpCase = decision.kind === 'redirect' || decision.kind === 'cms' ? null : decision.case;
+    const pdpCase = 'case' in decision ? decision.case : null;
     if (pdpCase) {
       deps.metrics.emitMetric({ name: 'PdpOutcome', value: 1, dimensions: { Case: pdpCase } });
     }

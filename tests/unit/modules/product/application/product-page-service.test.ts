@@ -214,10 +214,14 @@ describe('product page service', () => {
       expect(repository.calls).toEqual(['/']);
     });
 
-    it('treats categories as not found in phase 1', async () => {
+    it('hands categories to the category page with the uid Magento resolved', async () => {
       const { resolve } = setup();
 
-      expect(await resolve('/men.html', false)).toEqual({ kind: 'not_found', case: null });
+      expect(await resolve('/men.html', false)).toEqual({
+        kind: 'category',
+        uid: 'MTI=',
+        relativeUrl: 'men.html',
+      });
     });
   });
 
@@ -234,10 +238,12 @@ describe('product page service', () => {
       await resolve(`/${EXISTING_URL}`, true);
       await resolve(MISSING_PATH, false);
       await resolve('/about-us', true);
+      await resolve('/men.html', true);
 
       expect(observability.metricsNamed('BotRequest').map((m) => m.dimensions)).toEqual([
         { Page: 'product' },
         { Page: 'cms' },
+        { Page: 'category' },
       ]);
       expect(observability.metricsNamed('PdpOutcome').map((m) => m.dimensions)).toEqual([
         { Case: 'exists_bot' },

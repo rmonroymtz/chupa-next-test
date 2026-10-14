@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePageParam } from '@/modules/category/domain/category-page-param';
+import { parsePageParam, withPageParam } from '@/modules/category/domain/category-page-param';
 
 describe('parsePageParam', () => {
   it('defaults to the first page when the request has no page', () => {
@@ -36,5 +36,18 @@ describe('parsePageParam', () => {
     ['repeated', 'page=2&page=3'],
   ])('rejects a %s page', (_case, search) => {
     expect(parsePageParam(search)).toEqual({ kind: 'invalid' });
+  });
+});
+
+describe('withPageParam', () => {
+  it('sets the page and keeps the other parameters in order', () => {
+    expect(withPageParam('', 2)).toBe('page=2');
+    expect(withPageParam('utm_source=x&tag=a', 3)).toBe('utm_source=x&tag=a&page=3');
+    expect(withPageParam('utm_source=x&page=5&tag=a', 4)).toBe('utm_source=x&page=4&tag=a');
+  });
+
+  it('drops the parameter for the first page, whose url is the clean category url', () => {
+    expect(withPageParam('page=3', 1)).toBe('');
+    expect(withPageParam('utm_source=x&page=3', 1)).toBe('utm_source=x');
   });
 });

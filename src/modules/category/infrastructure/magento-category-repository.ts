@@ -34,7 +34,9 @@ export function createMagentoCategoryRepository(client: MagentoClient): Category
       const [dto] = data.categoryList;
       // A missing or disabled category is an empty list.
       if (!dto) return null;
-      const category = mapCategory(dto, data.storeConfig?.category_url_suffix);
+      // Without the store config the category url would silently lose its suffix.
+      if (!data.storeConfig) throw invalidResponse('Magento returned a null storeConfig');
+      const category = mapCategory(dto, data.storeConfig.category_url_suffix);
       if (!category)
         throw invalidResponse('Magento returned a category without uid, name or url_path');
       return category;

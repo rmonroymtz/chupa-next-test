@@ -1,5 +1,4 @@
 import { getImageProps } from 'next/image';
-import Image from 'next/image';
 import { preload } from 'react-dom';
 import { Fragment, Suspense, type CSSProperties, type ReactNode } from 'react';
 import type { PageBuilderView } from '@/modules/page-builder/application/page-builder-loader';
@@ -18,18 +17,17 @@ import type {
   VideoNode,
 } from '@/modules/page-builder/domain/content-node';
 import { toEmbedUrl } from '@/modules/page-builder/domain/video-source';
-import { MagentoProductPrice } from '@/modules/product/ui/magento-product-price';
 import { isOptimizableImageUrl, parseImageRemoteHosts } from '@/shared/config/image-hosts';
 import { backgroundPreloadUrl, backgroundStyle } from './background';
 import { NodeErrorBoundary } from './node-error-boundary.client';
 import styles from './page-builder.module.css';
+import { ProductCards } from './product-cards';
 import { Slider } from './slider.client';
 import { Tabs } from './tabs.client';
 
 const REMOTE_PATTERNS = parseImageRemoteHosts(process.env.IMAGE_REMOTE_HOSTS);
 // Content is at most --pb-max-width (1280px) wide.
 const IMAGE_SIZES = '(min-width: 1280px) 1280px, 100vw';
-const PRODUCT_IMAGE_SIZES = '(min-width: 961px) 20vw, (min-width: 641px) 25vw, 50vw';
 const STYLE_ID = /^[A-Za-z0-9_-]+$/;
 
 export interface RenderLogger {
@@ -544,31 +542,7 @@ function renderProducts(node: ProductsNode, context: RenderContext): ReactNode {
   const cards = context.view.productsFor(node);
   // Legacy hides the content type when Magento finds none of its products.
   if (cards.length === 0) return null;
-  const list = (
-    <ul className={node.appearance === 'carousel' ? styles.productCarousel : styles.productGrid}>
-      {cards.map((card) => (
-        <li key={card.uid}>
-          {/* Plain anchor: next/link would prefetch product pages (and their side effects). */}
-          <a href={`/${card.relativeUrl}`} className={styles.productCard}>
-            <div className={styles.productImage}>
-              {card.image ? (
-                <Image
-                  src={card.image.url}
-                  alt={card.image.label ?? card.name}
-                  fill
-                  sizes={PRODUCT_IMAGE_SIZES}
-                  style={{ objectFit: 'contain' }}
-                  unoptimized={!isOptimizableImageUrl(card.image.url, REMOTE_PATTERNS)}
-                />
-              ) : null}
-            </div>
-            <span className={styles.productName}>{card.name}</span>
-            <MagentoProductPrice product={card} size="sm" />
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
+  const list = <ProductCards cards={cards} appearance={node.appearance} />;
   return (
     <div {...boxProps(node.box, context)}>
       {node.appearance === 'carousel' ? (

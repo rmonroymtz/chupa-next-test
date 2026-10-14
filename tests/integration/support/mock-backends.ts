@@ -36,6 +36,20 @@ export interface MockBackendsConfig {
    * identifiers answer Magento's "doesn't exist" GraphQL error.
    */
   readonly cmsPages?: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
+  /**
+   * `CategoryByUid` categories by uid; `'outage'` answers HTTP 503. Unknown
+   * uids answer an empty `categoryList` (Magento's missing or disabled
+   * category). The store's category suffix is `.html`.
+   */
+  readonly categories?: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
+  /**
+   * `CategoryProducts` items by category uid, paginated like Magento with the
+   * requested `pageSize`; `'outage'` answers HTTP 503. Unknown uids have no
+   * products.
+   */
+  readonly categoryProducts?: Readonly<
+    Record<string, readonly Record<string, unknown>[] | 'outage'>
+  >;
   /** `products(filter: {url_key: {in}})` items by url key. */
   readonly productsByUrlKey?: Readonly<Record<string, Record<string, unknown>>>;
   /**
@@ -119,6 +133,30 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
                     data: { cmsPage: null },
                   },
                 };
+      } else if (operation === 'CategoryByUid') {
+        const category = config.categories?.[String(variables.uid)];
+        response =
+          category === 'outage'
+            ? { status: 503, body: { message: 'Service Unavailable' } }
+            : {
+                status: 200,
+                body: {
+                  data: {
+                    storeConfig: { store_code: 'default', category_url_suffix: '.html' },
+                    categoryList: category ? [category] : [],
+                  },
+                },
+              };
+      } else if (operation === 'CategoryProducts') {
+        const items = config.categoryProducts?.[String(variables.uid)] ?? [];
+        response =
+          items === 'outage'
+            ? { status: 503, body: { message: 'Service Unavailable' } }
+            : answerCategoryProducts(
+                items,
+                Number(variables.currentPage),
+                Number(variables.pageSize),
+              );
       } else if (operation === 'ProductsByUrlKeys') {
         const keys = Array.isArray(variables.urlKeys) ? variables.urlKeys.map(String) : [];
         const items = keys.flatMap((key) => config.productsByUrlKey?.[key] ?? []);
@@ -255,6 +293,46 @@ function close(server: Server): Promise<void> {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * One page of a category's products as Magento answers it: zero pages for an
+ * empty category, and Magento's GraphQL input error for a page beyond the
+ * last one of a non-empty category.
+ */
+function answerCategoryProducts(
+  items: readonly Record<string, unknown>[],
+  currentPage: number,
+  pageSize: number,
+): { status: number; body: unknown } {
+  const totalPages = Math.ceil(items.length / pageSize);
+  if (items.length > 0 && currentPage > totalPages) {
+    return {
+      status: 200,
+      body: {
+        errors: [
+          {
+            message: `currentPage value ${currentPage} specified is greater than the ${totalPages} page(s) available.`,
+            extensions: { category: 'graphql-input' },
+          },
+        ],
+        data: { products: null },
+      },
+    };
+  }
+  const start = (currentPage - 1) * pageSize;
+  return {
+    status: 200,
+    body: {
+      data: {
+        products: {
+          total_count: items.length,
+          page_info: { current_page: currentPage, page_size: pageSize, total_pages: totalPages },
+          items: items.slice(start, start + pageSize),
+        },
+      },
+    },
+  };
 }
 
 const CART_OPERATIONS = new Set([

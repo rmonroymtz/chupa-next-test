@@ -112,6 +112,13 @@ describe('MagentoCategoryRepository', () => {
     });
   });
 
+  it('rejects a null storeConfig next to a category instead of dropping the url suffix', async () => {
+    respondWith({ data: { storeConfig: null, categoryList: [laptopsCategory] } });
+    await expect(repository().findByUid('MTI=')).rejects.toMatchObject({
+      kind: 'invalid_response',
+    });
+  });
+
   it('rejects a category without a url path or name as an invalid response', async () => {
     respondWith({
       data: { storeConfig: laptops.data.storeConfig, categoryList: [{ uid: 'MTI=', name: 'X' }] },

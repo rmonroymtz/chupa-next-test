@@ -180,6 +180,12 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   (missing → 404, empty → 200 noindex, failure → 5xx). Check: unit RED→GREEN + MSW tests.
 - [ ] T4 Category page: `category` branch in the catch-all (replaces today's 404), product grid, server-side
   pagination, empty state. Check: integration tests (exists / missing / empty / Magento failure / page out of range).
+  Deviations (branch `feat/phase-2-04-category-page`): category head metadata (title, description, canonical,
+  `index`/`noindex, follow`) moved here from T5, which keeps JSON-LD, breadcrumbs UI and menu links. Invalid or
+  out-of-range `?page` answers 307 (`redirect()`). The Page Builder product card list was extracted to
+  `page-builder/ui/product-cards.tsx` and reused by the category grid. Products named `-` are not filtered.
+  Proving metadata and page share one resolution is done in `tests/integration/category.test.ts` (React `cache()`
+  is a no-op outside a server request); the unit composition test proves `grid_per_page` 16 reaches `pageSize`.
 - [ ] T5 Category SEO and links: metadata, canonical = clean URL without page, `CollectionPage`/`ItemList` +
   BreadcrumbList JSON-LD; every menu level to `categoryHref`; PDP breadcrumb JSON-LD `categoryUrl()` to category URLs
   (`product/ui/product-structured-data.ts:129`). Check: unit tests.

@@ -37,3 +37,15 @@ export function withoutPageParam(search: string): string {
   params.delete(PAGE_PARAM);
   return params.toString();
 }
+
+/**
+ * The query string of a pagination link: the page set in place (or appended),
+ * other parameters kept in order. The first page drops the parameter, so it
+ * links to the clean category url.
+ */
+export function withPageParam(search: string, page: number): string {
+  const params = new URLSearchParams(search);
+  if (page <= 1) params.delete(PAGE_PARAM);
+  else params.set(PAGE_PARAM, String(page));
+  return params.toString();
+}
