@@ -108,7 +108,8 @@ There is no written phase 2 requirement. The original spec summary (Engram #606)
    pages, so no bot policy is needed for them.
 7. **Pagination and filters** — robots disallows `?p=` and `?*`. DECIDED 2026-10-14: like Venia, `?page=N`
    resolved on the server, page size from `storeConfig.grid_per_page`, canonical = clean category URL without page;
-   **no filters in phase 2**.
+   **no filters in phase 2**. DECIDED 2026-10-14: an invalid page (`?page=abc`, `< 1`, or beyond the last page)
+   redirects to the clean category URL (page 1).
    Venia reference (`~/Proyectos/pwa-studio`, upstream Magento repo at `190c1cbd`, not necessarily the Chupaprecios
    fork): query param `?page=N`, client-side, forced into the URL with `replace` when missing
    (`peregrine/lib/hooks/usePagination.js`); page size from `storeConfig.grid_per_page`; total from
@@ -150,11 +151,22 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   `src/modules/cms/ui/cms-page-overrides.ts` (`CMS_PAGE_OVERRIDES`, empty `Map`; component gets `{ page: CmsPage }`).
   `<CmsBlock identifier>` in `src/modules/cms/ui/cms-block.tsx`: missing/disabled/blank → nothing, Magento failure →
   reject. Notes for override authors: keep `<CmsBlock>` outside `<Suspense>` or a failure may ship as a 200; each
-  block is one `cmsBlocks` call (batch later if a page uses several). Original scope: registry CMS identifier → Next page component, used by the catch-all
+  block is one `cmsBlocks` call (batch later if a page uses several). Merged as PR #10. Follow-ups for the first
+  real override (review advisories): prove `<CmsBlock>` failure → 5xx at HTTP level (current test renders
+  in-process, not through Next's RSC renderer); assert the exact home canonical in
+  `tests/unit/app/catch-all-cms-override.test.tsx`. Original scope: registry CMS identifier → Next page component, used by the catch-all
   `cms` branch (none registered → Magento content; Magento keeps metadata/404/redirects); cmsBlocks repository and
   `<CmsBlock identifier>` rendered with the Page Builder renderer. No home override component yet. Check: unit +
   integration tests (registered / not registered; block found / missing / Magento failure).
-- [ ] T3 Category domain + repository: category (name, description, breadcrumbs, meta, `url_path`) and products by
+- [x] T3 Category domain + repository (delegated writer; branch `feat/phase-2-03-category-data`; typecheck, lint,
+  test 675, test:integration 47, build green). T4 calls `getCategoryPage(uid, search)`
+  (`src/modules/category/infrastructure/category-page.composition.ts`, per-request `cache()`) →
+  `not_found` | `redirect` | `page` (category, listing of `ProductCard`, `indexable`, `canonicalPath`); rejects on
+  Magento failure. `grid_per_page` added to store config (default 12). Product card mapping shared as
+  `mapProductCard` in `product/infrastructure/magento-product-mapper.ts`. Choices to confirm: empty category with
+  `?page=2` redirects; `?page=02` is invalid. Pending: verify `categoryList(filters: {category_uid})`,
+  `breadcrumbs.category_uid` and `grid_per_page` against the live Magento. T4 decides 307 vs 308 for invalid page.
+  Original scope: category (name, description, breadcrumbs, meta, `url_path`) and products by
   `category_uid` with `currentPage` from `?page=N` and `pageSize` from `storeConfig.grid_per_page`; indexability rule
   (missing → 404, empty → 200 noindex, failure → 5xx). Check: unit RED→GREEN + MSW tests.
 - [ ] T4 Category page: `category` branch in the catch-all (replaces today's 404), product grid, server-side

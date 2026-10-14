@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_GRID_PER_PAGE } from '@/modules/store-config/domain/store-config';
 import { mapStoreConfig } from '@/modules/store-config/infrastructure/store-config-mapper';
 import fixture from '../../../fixtures/magento/store-config.json';
 
@@ -21,6 +22,8 @@ describe('mapStoreConfig', () => {
       defaultDescription: null,
       // The recording predates the cms_home_page field.
       cmsHomePage: null,
+      // The recording predates the grid_per_page field.
+      gridPerPage: 12,
       engineRouting: {
         engineSettings: {
           amazon: 'direct',
@@ -81,5 +84,18 @@ describe('mapStoreConfig', () => {
       'venia-new-home',
     );
     expect(mapStoreConfig({ cms_home_page: ' |5' }).cmsHomePage).toBeNull();
+  });
+
+  it('maps the category grid page size', () => {
+    expect(mapStoreConfig({ grid_per_page: 24 }).gridPerPage).toBe(24);
+  });
+
+  it('falls back to a page size of 12 when Magento returns no usable grid_per_page', () => {
+    expect(DEFAULT_GRID_PER_PAGE).toBe(12);
+    expect(mapStoreConfig({ grid_per_page: null }).gridPerPage).toBe(12);
+    expect(mapStoreConfig({}).gridPerPage).toBe(12);
+    expect(mapStoreConfig({ grid_per_page: 0 }).gridPerPage).toBe(12);
+    expect(mapStoreConfig({ grid_per_page: -3 }).gridPerPage).toBe(12);
+    expect(mapStoreConfig({ grid_per_page: 2.5 }).gridPerPage).toBe(12);
   });
 });
