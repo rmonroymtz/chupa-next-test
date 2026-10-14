@@ -135,7 +135,9 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   the redirect keeps the query string; the real `venia-new-home` fixture is parsed/rendered in unit and integration
   tests (no parser warnings); `docs/environment.md` synced with `.env.example`. Checks: test 600, integration 41,
   typecheck/lint/build green. Note: the home `products` carousel comes from Magento with no products (empty div),
-  so it renders nothing on `/`. Original scope: `src/app/[...path]` → `src/app/[[...path]]`, delete `src/app/page.tsx`, `/` resolved
+  so it renders nothing on `/`. Root failure paths covered in `1fe1286` (outage → 5xx, `route: null` → 404,
+  CATEGORY → 404 until T4, CMS read failure → 5xx; integration 45). Observed, not investigated: during a Magento
+  outage on `/`, one request sends `ProductByRoute` twice (once on success). Original scope: `src/app/[...path]` → `src/app/[[...path]]`, delete `src/app/page.tsx`, `/` resolved
   by `route("/")`; `cms_home_page` in the store config query; home canonical `/` from the requested URL;
   `/{cms_home_page}` → 301 `/`; Organization/WebSite JSON-LD on `/`. Save the full `venia-new-home` response as a
   fixture and check Page Builder coverage (list unsupported content types). Check: unit + integration tests.
