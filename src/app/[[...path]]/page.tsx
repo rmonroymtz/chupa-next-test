@@ -7,8 +7,7 @@ import { purchasableFromMagento } from '@/modules/cart/domain/add-to-cart';
 import { AddToCart } from '@/modules/cart/ui/add-to-cart.client';
 import {
   getCmsCanonicalUrl,
-  getCmsPage,
-  getCmsPageRoute,
+  getCmsPageView,
 } from '@/modules/cms/infrastructure/cms-page.composition';
 import { CmsPage } from '@/modules/cms/ui/cms-page';
 import { buildCmsPageMetadata } from '@/modules/cms/ui/cms-page-metadata';
@@ -50,11 +49,12 @@ async function decide({ params, searchParams }: CatchAllProps) {
 export async function generateMetadata(props: CatchAllProps): Promise<Metadata> {
   const { pathname, search, decision } = await decide(props);
   if (decision.kind === 'cms') {
-    // Same cached lookups as the page; a Magento failure rejects (5xx, never 404).
-    const route = await getCmsPageRoute(pathname, search, decision.identifier);
-    if (route.kind === 'redirect_home') return {};
-    const page = await getCmsPage(decision.identifier);
-    return page ? buildCmsPageMetadata(page, getCmsCanonicalUrl(page, route)) : {};
+    // Same cached decision as the page; a Magento failure rejects (5xx, never 404).
+    // Magento keeps the metadata even when a Next component renders the page.
+    const view = await getCmsPageView(pathname, search, decision.identifier);
+    return view.kind === 'page'
+      ? buildCmsPageMetadata(view.page, getCmsCanonicalUrl(view.canonicalPath))
+      : {};
   }
   return buildProductPageMetadata(decision);
 }
@@ -71,14 +71,15 @@ export default async function CatchAllPage(props: CatchAllProps) {
     case 'not_found':
       return notFound();
     case 'cms': {
-      // The configured home page's own url answers a permanent redirect to `/`
-      // (query string kept).
-      const route = await getCmsPageRoute(pathname, search, decision.identifier);
-      if (route.kind === 'redirect_home') return permanentRedirect(route.location);
-      // Read before anything streams, so a missing page is a real 404.
-      const page = await getCmsPage(decision.identifier);
-      if (!page) return notFound();
-      return <CmsPage page={page} />;
+      // Decided before anything streams: the configured home page's own url
+      // answers a permanent redirect to `/` (query string kept) and a missing
+      // page is a real 404, whether or not a Next component overrides it.
+      const view = await getCmsPageView(pathname, search, decision.identifier);
+      if (view.kind === 'redirect_home') return permanentRedirect(view.location);
+      if (view.kind === 'not_found') return notFound();
+      // A registered Next page replaces the Magento content; otherwise Magento renders.
+      const Override = view.override;
+      return Override ? <Override page={view.page} /> : <CmsPage page={view.page} />;
     }
     case 'magento_product': {
       const { copyRequest, product, canonicalUrl } = decision;

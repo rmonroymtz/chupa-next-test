@@ -145,7 +145,12 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   by `route("/")`; `cms_home_page` in the store config query; home canonical `/` from the requested URL;
   `/{cms_home_page}` → 301 `/`; Organization/WebSite JSON-LD on `/`. Save the full `venia-new-home` response as a
   fixture and check Page Builder coverage (list unsupported content types). Check: unit + integration tests.
-- [ ] T2 CMS override registry + `<CmsBlock>`: registry CMS identifier → Next page component, used by the catch-all
+- [x] T2 CMS override registry + `<CmsBlock>` (delegated writer; branch `feat/phase-2-02-cms-overrides` from `main`
+  after PR #9 (T1) merged; typecheck, lint, test 620, test:integration 47, build green). Register an override in
+  `src/modules/cms/ui/cms-page-overrides.ts` (`CMS_PAGE_OVERRIDES`, empty `Map`; component gets `{ page: CmsPage }`).
+  `<CmsBlock identifier>` in `src/modules/cms/ui/cms-block.tsx`: missing/disabled/blank → nothing, Magento failure →
+  reject. Notes for override authors: keep `<CmsBlock>` outside `<Suspense>` or a failure may ship as a 200; each
+  block is one `cmsBlocks` call (batch later if a page uses several). Original scope: registry CMS identifier → Next page component, used by the catch-all
   `cms` branch (none registered → Magento content; Magento keeps metadata/404/redirects); cmsBlocks repository and
   `<CmsBlock identifier>` rendered with the Page Builder renderer. No home override component yet. Check: unit +
   integration tests (registered / not registered; block found / missing / Magento failure).

@@ -276,6 +276,18 @@ describe('CMS pages', () => {
     expect(backends.callsTo('magento', 'ProductsByUrlKeys')).toHaveLength(1);
   });
 
+  it('a CMS page with no registered Next override renders its Magento content', async () => {
+    // The override registry ships empty: every CMS page is Magento content.
+    const page = await get('/promociones');
+
+    expect(page.status).toBe(200);
+    expect(page.html).toContain('data-cms-identifier="promociones"');
+    expect(page.html).toContain('Ofertas de temporada</h2>');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/promociones`);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(1);
+    expect(backends.callsTo('magento', 'CmsBlocks')).toHaveLength(0);
+  });
+
   it('identifier routed by Magento but the page is gone: 404', async () => {
     const page = await get('/pagina-borrada');
     expect(page.status).toBe(404);

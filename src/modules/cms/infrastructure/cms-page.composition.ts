@@ -1,13 +1,13 @@
 import 'server-only';
 import { cache } from 'react';
 import {
-  cmsCanonicalPath,
-  resolveCmsPageRoute,
-  type CmsPageRoute,
-  type ServedCmsPageRoute,
-} from '@/modules/cms/application/home-page';
+  createCmsPageOverrides,
+  resolveCmsPageView,
+  type CmsPageView,
+} from '@/modules/cms/application/cms-page-view';
 import type { CmsPage } from '@/modules/cms/domain/cms-page';
 import { createMagentoCmsPageRepository } from '@/modules/cms/infrastructure/magento-cms-page-repository';
+import { CMS_PAGE_OVERRIDES, type CmsPageOverride } from '@/modules/cms/ui/cms-page-overrides';
 import { buildCanonicalUrl } from '@/modules/product/domain/product-url';
 import { getStoreConfig } from '@/modules/store-config/infrastructure/magento-store-config-repository';
 import { getServerEnv } from '@/shared/config/env';
@@ -15,30 +15,34 @@ import { getMagentoClient } from '@/shared/graphql/client';
 
 /**
  * CMS page for the current request. React `cache()` deduplicates the Magento
- * call between `generateMetadata` and the page within one request only.
- * Rejects when Magento fails (rendered as 5xx, never 404).
+ * call within one request only. Rejects when Magento fails (5xx, never 404).
  */
-export const getCmsPage = cache((identifier: string): Promise<CmsPage | null> =>
+const getCmsPage = cache((identifier: string): Promise<CmsPage | null> =>
   createMagentoCmsPageRepository(getMagentoClient()).findByIdentifier(identifier),
 );
 
+const overrides = createCmsPageOverrides(CMS_PAGE_OVERRIDES);
+
 /**
- * How the requested CMS page is served (home, redirect to the home, or a
- * regular page). The home identifier comes from the per-request cached store
- * config; nothing is shared across requests.
+ * How the requested CMS page is served (redirect to the home, 404, or the
+ * page rendered by its registered Next component or its Magento content).
+ * Cached per request, so `generateMetadata` and the page share one decision;
+ * the home identifier comes from the per-request cached store config and
+ * nothing is shared across requests.
  */
-export const getCmsPageRoute = cache(
-  (pathname: string, search: string, identifier: string): Promise<CmsPageRoute> =>
-    resolveCmsPageRoute(
+export const getCmsPageView = cache(
+  (pathname: string, search: string, identifier: string): Promise<CmsPageView<CmsPageOverride>> =>
+    resolveCmsPageView(
       { pathname, search, identifier },
-      { getHomeIdentifier: async () => (await getStoreConfig()).cmsHomePage },
+      {
+        pages: { findByIdentifier: getCmsPage },
+        home: { getHomeIdentifier: async () => (await getStoreConfig()).cmsHomePage },
+        overrides,
+      },
     ),
 );
 
-/**
- * Canonical url (literal path, no query): the site root for the home,
- * Magento's relative url for any other page.
- */
-export function getCmsCanonicalUrl(page: CmsPage, route: ServedCmsPageRoute): string {
-  return buildCanonicalUrl(getServerEnv().PUBLIC_BASE_URL, cmsCanonicalPath(page, route));
+/** Canonical url (literal path, no query) from a served page's canonical path. */
+export function getCmsCanonicalUrl(canonicalPath: string): string {
+  return buildCanonicalUrl(getServerEnv().PUBLIC_BASE_URL, canonicalPath);
 }
