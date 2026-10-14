@@ -48,6 +48,23 @@ describe('MagentoStoreConfigRepository', () => {
     expect(config.cmsHomePage).toBe('venia-new-home');
   });
 
+  it('selects the category grid page size', async () => {
+    let query = '';
+    server.use(
+      http.post(URL, async ({ request }) => {
+        query = String(((await request.json()) as { query?: unknown }).query);
+        return HttpResponse.json({
+          data: { storeConfig: { ...fixture.data.storeConfig, grid_per_page: 24 } },
+        });
+      }),
+    );
+
+    const config = await repository().get();
+
+    expect(query).toMatch(/\bgrid_per_page\b/);
+    expect(config.gridPerPage).toBe(24);
+  });
+
   it('rejects when Magento returns a null storeConfig', async () => {
     server.use(http.post(URL, () => HttpResponse.json({ data: { storeConfig: null } })));
 

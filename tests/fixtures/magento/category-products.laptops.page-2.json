@@ -1,0 +1,49 @@
+{
+  "data": {
+    "products": {
+      "total_count": 26,
+      "page_info": {
+        "current_page": 2,
+        "page_size": 12,
+        "total_pages": 3
+      },
+      "items": [
+        {
+          "uid": "MTAx",
+          "sku": "ebay-1234567890",
+          "name": "Laptop Lenovo IdeaPad 3 15.6\"",
+          "url_key": "ebay-1234567890-laptop-lenovo-ideapad-3",
+          "url_suffix": ".html",
+          "stock_status": "IN_STOCK",
+          "small_image": {
+            "url": "https://chupaprecios.com.mx/media/catalog/product/l/e/lenovo.jpg",
+            "label": "Laptop Lenovo IdeaPad 3"
+          },
+          "price_range": {
+            "minimum_price": {
+              "final_price": { "value": 8999, "currency": "MXN" },
+              "regular_price": { "value": 9999, "currency": "MXN" },
+              "discount": { "amount_off": 1000, "percent_off": 10 }
+            }
+          }
+        },
+        {
+          "uid": "MTAy",
+          "sku": "amazon-B0ABCDEF12",
+          "name": "Laptop HP 14\"",
+          "url_key": "amazon-B0ABCDEF12-laptop-hp-14",
+          "url_suffix": ".html",
+          "stock_status": "OUT_OF_STOCK",
+          "small_image": null,
+          "price_range": {
+            "minimum_price": {
+              "final_price": { "value": 6500, "currency": "MXN" },
+              "regular_price": { "value": 6500, "currency": "MXN" },
+              "discount": { "amount_off": 0, "percent_off": 0 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

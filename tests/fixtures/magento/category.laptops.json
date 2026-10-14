@@ -1,0 +1,33 @@
+{
+  "data": {
+    "storeConfig": {
+      "store_code": "default",
+      "category_url_suffix": ".html"
+    },
+    "categoryList": [
+      {
+        "uid": "MTI=",
+        "name": "Laptops",
+        "description": "<p>Las mejores <strong>laptops</strong> al mejor precio.</p>",
+        "url_key": "laptops",
+        "url_path": "electronica/computacion/laptops",
+        "meta_title": "Laptops | Chupaprecios",
+        "meta_description": "Compra laptops importadas con envío a todo México.",
+        "breadcrumbs": [
+          {
+            "category_uid": "NQ==",
+            "category_name": "Computación",
+            "category_url_path": "electronica/computacion",
+            "category_level": 3
+          },
+          {
+            "category_uid": "Mw==",
+            "category_name": "Electrónica",
+            "category_url_path": "electronica",
+            "category_level": 2
+          }
+        ]
+      }
+    ]
+  }
+}

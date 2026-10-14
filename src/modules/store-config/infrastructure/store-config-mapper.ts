@@ -1,5 +1,8 @@
 import { DEFAULT_PRODUCT_URL_SUFFIX } from '@/modules/product/domain/product-url';
-import type { StoreConfig } from '@/modules/store-config/domain/store-config';
+import {
+  DEFAULT_GRID_PER_PAGE,
+  type StoreConfig,
+} from '@/modules/store-config/domain/store-config';
 
 type Nullable<T> = T | null | undefined;
 
@@ -19,6 +22,7 @@ export interface StoreConfigDto {
   title_separator?: Nullable<string>;
   default_description?: Nullable<string>;
   cms_home_page?: Nullable<string>;
+  grid_per_page?: Nullable<number>;
   engine_settings?: Nullable<Record<string, Nullable<string>>>;
   service_fallback?: Nullable<Record<string, Nullable<string>>>;
 }
@@ -40,6 +44,7 @@ export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
     titleSeparator: dto.title_separator ?? null,
     defaultDescription: dto.default_description ?? null,
     cmsHomePage: toCmsHomeIdentifier(dto.cms_home_page),
+    gridPerPage: toGridPerPage(dto.grid_per_page),
     engineRouting: {
       engineSettings: Object.fromEntries(
         Object.entries(dto.engine_settings ?? {})
@@ -60,4 +65,11 @@ export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
  */
 function toCmsHomeIdentifier(value: Nullable<string>): string | null {
   return value?.split('|', 1)[0]?.trim() || null;
+}
+
+/** A positive integer page size, or the default when Magento has none. */
+function toGridPerPage(value: Nullable<number>): number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    ? value
+    : DEFAULT_GRID_PER_PAGE;
 }

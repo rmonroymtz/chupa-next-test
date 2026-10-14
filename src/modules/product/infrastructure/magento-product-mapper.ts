@@ -7,6 +7,7 @@ import type {
   Money,
   ProductCategory,
   ProductImage,
+  ProductCard,
   ProductVariant,
   RelatedProduct,
 } from '@/modules/product/domain/product';
@@ -200,6 +201,35 @@ export function mapAvailability(status: Nullable<string>): Availability {
   if (status === 'IN_STOCK') return 'in_stock';
   if (status === 'OUT_OF_STOCK') return 'out_of_stock';
   return 'unknown';
+}
+
+/** Product fields a card needs, as selected by the product list queries. */
+export interface ProductCardDto {
+  uid?: Nullable<string>;
+  sku?: Nullable<string>;
+  name?: Nullable<string>;
+  url_key?: Nullable<string>;
+  url_suffix?: Nullable<string>;
+  stock_status?: Nullable<string>;
+  small_image?: Nullable<{ url?: Nullable<string>; label?: Nullable<string> }>;
+  price_range?: Nullable<PriceRangeDto>;
+}
+
+/** Null when the product cannot be linked (no uid, sku, name or url key). */
+export function mapProductCard(item: ProductCardDto): ProductCard | null {
+  if (!item.uid || !item.sku || !item.name || !item.url_key) return null;
+  return {
+    uid: item.uid,
+    sku: item.sku,
+    name: item.name,
+    urlKey: item.url_key,
+    relativeUrl: `${item.url_key}${item.url_suffix ?? DEFAULT_PRODUCT_URL_SUFFIX}`,
+    image: item.small_image?.url
+      ? { url: item.small_image.url, label: item.small_image.label?.trim() || null }
+      : null,
+    price: mapPrice(item.price_range?.minimum_price),
+    availability: mapAvailability(item.stock_status),
+  };
 }
 
 function mapGallery(gallery: ProductRouteDto['media_gallery']): ProductImage[] {

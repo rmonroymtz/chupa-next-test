@@ -3,6 +3,13 @@
  * must not reach Magento or the scraper API.
  */
 import type {
+  CategoryProductsQuery,
+  CategoryProductsRepository,
+  CategoryProductsResult,
+  CategoryRepository,
+} from '@/modules/category/application/ports';
+import type { Category } from '@/modules/category/domain/category';
+import type {
   MagentoProductLookup,
   MagentoProductRepository,
   ProductCopyTrigger,
@@ -12,6 +19,7 @@ import type {
 } from '@/modules/product/application/ports';
 import type {
   MagentoProduct,
+  ProductCard,
   ScrapedProduct,
   ScrapedVariants,
 } from '@/modules/product/domain/product';
@@ -101,6 +109,7 @@ export const FAKE_STORE_CONFIG: StoreConfig = {
   titleSeparator: '-',
   defaultDescription: null,
   cmsHomePage: 'venia-new-home',
+  gridPerPage: 12,
   engineRouting: {
     engineSettings: { amazon: 'direct', ebay: 'api', acme: 'direct', target: 'direct' },
     serviceFallback: { amazon: 'amazon', ebay: 'ebay', acme: 'acme', target: 'target' },
@@ -118,5 +127,65 @@ export class FakeStoreConfigRepository implements StoreConfigRepository {
     this.calls += 1;
     if (this.failing) throw magentoOutage('StoreConfig');
     return this.config;
+  }
+}
+
+export const FAKE_CATEGORY: Category = {
+  uid: 'MTI=',
+  name: 'Laptops',
+  description: '<p>Las mejores <strong>laptops</strong> al mejor precio.</p>',
+  urlPath: 'electronica/computacion/laptops',
+  urlSuffix: '.html',
+  url: '/electronica/computacion/laptops.html',
+  metaTitle: 'Laptops | Chupaprecios',
+  metaDescription: 'Compra laptops importadas con envío a todo México.',
+  breadcrumbs: [
+    { uid: 'Mw==', name: 'Electrónica', url: '/electronica.html' },
+    { uid: 'NQ==', name: 'Computación', url: '/electronica/computacion.html' },
+  ],
+};
+
+export class FakeCategoryRepository implements CategoryRepository {
+  readonly calls: string[] = [];
+  constructor(
+    private readonly categories: Readonly<Record<string, Category>> = {},
+    private readonly failing: ReadonlySet<string> = new Set(),
+  ) {}
+
+  async findByUid(uid: string): Promise<Category | null> {
+    this.calls.push(uid);
+    if (this.failing.has(uid)) throw magentoOutage('CategoryByUid');
+    return this.categories[uid] ?? null;
+  }
+}
+
+/**
+ * Paginates the products listed per category uid like Magento: zero pages for
+ * an empty category, and `out_of_range` for a page beyond the last one.
+ */
+export class FakeCategoryProductsRepository implements CategoryProductsRepository {
+  readonly calls: CategoryProductsQuery[] = [];
+  constructor(
+    private readonly products: Readonly<Record<string, readonly ProductCard[]>> = {},
+    private readonly failing: ReadonlySet<string> = new Set(),
+  ) {}
+
+  async findPage(query: CategoryProductsQuery): Promise<CategoryProductsResult> {
+    this.calls.push({ ...query });
+    if (this.failing.has(query.categoryUid)) throw magentoOutage('CategoryProducts');
+    const all = this.products[query.categoryUid] ?? [];
+    const totalPages = Math.ceil(all.length / query.pageSize);
+    if (all.length > 0 && query.currentPage > totalPages) return { kind: 'out_of_range' };
+    const start = (query.currentPage - 1) * query.pageSize;
+    return {
+      kind: 'page',
+      page: {
+        items: all.slice(start, start + query.pageSize),
+        currentPage: query.currentPage,
+        pageSize: query.pageSize,
+        totalPages,
+        totalCount: all.length,
+      },
+    };
   }
 }

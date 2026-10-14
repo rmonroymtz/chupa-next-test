@@ -10,6 +10,9 @@ export interface EngineRouting {
   readonly serviceFallback: Readonly<Record<string, string | null | undefined>>;
 }
 
+/** Category page size when `storeConfig.grid_per_page` is unset (Magento's default grid size). */
+export const DEFAULT_GRID_PER_PAGE = 12;
+
 export interface StoreConfig {
   readonly storeCode: string | null;
   readonly storeName: string | null;
@@ -27,6 +30,11 @@ export interface StoreConfig {
   readonly defaultDescription: string | null;
   /** Identifier of the CMS page Magento serves as the home (`cms_home_page`); null when unset. */
   readonly cmsHomePage: string | null;
+  /**
+   * Products per category listing page (`grid_per_page`);
+   * {@link DEFAULT_GRID_PER_PAGE} when Magento returns no positive integer.
+   */
+  readonly gridPerPage: number;
   readonly engineRouting: EngineRouting;
 }
 
