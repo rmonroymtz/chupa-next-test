@@ -77,21 +77,41 @@ const HOME_PAGE = {
   page_layout: 'cms-full-width',
 };
 
+/**
+ * `route()` answers by url. The mock reads it on every request, so a test can
+ * swap the root's answer (see `withRootRoute`).
+ */
+const routes: Record<string, Record<string, unknown> | 'outage' | undefined> = {
+  'aviso-privacidad': cmsRoute('aviso-privacidad'),
+  promociones: cmsRoute('promociones'),
+  'pagina-borrada': cmsRoute('pagina-borrada'),
+  'cms-caido': cmsRoute('cms-caido'),
+  'nodo-roto': cmsRoute('nodo-roto'),
+  // Verified live: Magento resolves the root to its configured home page.
+  '/': cmsRoute(HOME),
+  [HOME]: cmsRoute(HOME),
+};
+
+/** Runs `run` with Magento answering `answer` for `route(url: "/")`, then restores the home route. */
+async function withRootRoute<T>(
+  answer: Record<string, unknown> | 'outage' | undefined,
+  run: () => Promise<T>,
+): Promise<T> {
+  const home = routes['/'];
+  routes['/'] = answer;
+  try {
+    return await run();
+  } finally {
+    routes['/'] = home;
+  }
+}
+
 let backends: MockBackends;
 let next: RunningNext;
 
 beforeAll(async () => {
   backends = await startMockBackends({
-    routes: {
-      'aviso-privacidad': cmsRoute('aviso-privacidad'),
-      promociones: cmsRoute('promociones'),
-      'pagina-borrada': cmsRoute('pagina-borrada'),
-      'cms-caido': cmsRoute('cms-caido'),
-      'nodo-roto': cmsRoute('nodo-roto'),
-      // Verified live: Magento resolves the root to its configured home page.
-      '/': cmsRoute(HOME),
-      [HOME]: cmsRoute(HOME),
-    },
+    routes: routes as Record<string, Record<string, unknown> | 'outage'>,
     cmsPages: {
       'aviso-privacidad': aviso.data.route,
       promociones: {
@@ -304,6 +324,38 @@ describe('home', () => {
 
     expect(page.status).toBe(308);
     expect(page.location).toBe('/?utm_source=x&tag=a');
+  });
+
+  it('Magento outage resolving /: 5xx, never 404', async () => {
+    const page = await withRootRoute('outage', () => get('/'));
+
+    expect(page.status).toBeGreaterThanOrEqual(500);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('Magento resolves no entity for /: 404', async () => {
+    const page = await withRootRoute(undefined, () => get('/'));
+
+    expect(page.status).toBe(404);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('Magento resolves / to a category: 404 for now', async () => {
+    // Category pages are not served yet (deliberate 404); T4 changes this.
+    const page = await withRootRoute(
+      { type: 'CATEGORY', redirect_code: 0, relative_url: 'ofertas', uid: 'MTA=' },
+      () => get('/'),
+    );
+
+    expect(page.status).toBe(404);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('Magento failure reading the CMS page routed for /: 5xx, never 404', async () => {
+    const page = await withRootRoute(cmsRoute('cms-caido'), () => get('/'));
+
+    expect(page.status).toBeGreaterThanOrEqual(500);
+    expect(backends.callsTo('magento', 'CmsPage').length).toBeGreaterThanOrEqual(1);
   });
 
   it('other CMS pages keep their own canonical', async () => {
