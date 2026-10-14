@@ -164,8 +164,15 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   `not_found` | `redirect` | `page` (category, listing of `ProductCard`, `indexable`, `canonicalPath`); rejects on
   Magento failure. `grid_per_page` added to store config (default 12). Product card mapping shared as
   `mapProductCard` in `product/infrastructure/magento-product-mapper.ts`. Choices to confirm: empty category with
-  `?page=2` redirects; `?page=02` is invalid. Pending: verify `categoryList(filters: {category_uid})`,
-  `breadcrumbs.category_uid` and `grid_per_page` against the live Magento. T4 decides 307 vs 308 for invalid page.
+  `?page=2` redirects; `?page=02` is invalid. T4 decides 307 vs 308 for invalid page.
+  Verified 2026-10-14 against Magento (read-only GraphQL, run by the parent with the user's authorization):
+  production and staging both expose `grid_per_page` (16), `category_url_suffix` (`.html`), `categoryList` by
+  `category_uid` and `breadcrumbs.category_uid` (null on level-2 categories, parents listed below). Production's 10
+  native categories have 0 products and no children today; staging
+  (`https://staging.chupaprecios.com.mx/graphql`) has a tree (e.g. Cómputo 8 children, Herramientas 7, Audiovisual
+  6) with assigned products (e.g. Herramientas 12, Herramienta manual 6). The out-of-range error on staging is the
+  English text the repository matches (`currentPage value 99 specified is greater than the 1 page(s) available.`,
+  `extensions.category: graphql-input`).
   Original scope: category (name, description, breadcrumbs, meta, `url_path`) and products by
   `category_uid` with `currentPage` from `?page=N` and `pageSize` from `storeConfig.grid_per_page`; indexability rule
   (missing → 404, empty → 200 noindex, failure → 5xx). Check: unit RED→GREEN + MSW tests.
