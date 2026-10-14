@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import aviso from '../fixtures/page-builder/cms-page.aviso-privacidad.json';
 import blocks from '../fixtures/page-builder/cms-blocks.sliders.json';
 import storeConfig from '../fixtures/magento/store-config.json';
+import veniaNewHome from '../fixtures/page-builder/venia-new-home.json';
 import { formatPrice } from '@/modules/product/ui/format-price';
 import { startMockBackends, type MockBackends } from './support/mock-backends';
 import { startNext, type RunningNext } from './support/next-server';
@@ -61,18 +62,56 @@ const BROKEN_NODE_CONTENT =
   '<div data-content-type="text" data-element="main"><p>Después del nodo roto</p></div>' +
   '</div></div>';
 
+const HOME = 'venia-new-home';
+
+/**
+ * Recorded `venia-new-home` (a row with a 6-slide slider and a row with a
+ * products carousel). The recording selects no url or layout fields, so they
+ * are completed as Magento returns them for the home page.
+ */
+const HOME_PAGE = {
+  ...veniaNewHome.data.cmsPage,
+  url_key: HOME,
+  relative_url: HOME,
+  meta_keywords: null,
+  page_layout: 'cms-full-width',
+};
+
+/**
+ * `route()` answers by url. The mock reads it on every request, so a test can
+ * swap the root's answer (see `withRootRoute`).
+ */
+const routes: Record<string, Record<string, unknown> | 'outage' | undefined> = {
+  'aviso-privacidad': cmsRoute('aviso-privacidad'),
+  promociones: cmsRoute('promociones'),
+  'pagina-borrada': cmsRoute('pagina-borrada'),
+  'cms-caido': cmsRoute('cms-caido'),
+  'nodo-roto': cmsRoute('nodo-roto'),
+  // Verified live: Magento resolves the root to its configured home page.
+  '/': cmsRoute(HOME),
+  [HOME]: cmsRoute(HOME),
+};
+
+/** Runs `run` with Magento answering `answer` for `route(url: "/")`, then restores the home route. */
+async function withRootRoute<T>(
+  answer: Record<string, unknown> | 'outage' | undefined,
+  run: () => Promise<T>,
+): Promise<T> {
+  const home = routes['/'];
+  routes['/'] = answer;
+  try {
+    return await run();
+  } finally {
+    routes['/'] = home;
+  }
+}
+
 let backends: MockBackends;
 let next: RunningNext;
 
 beforeAll(async () => {
   backends = await startMockBackends({
-    routes: {
-      'aviso-privacidad': cmsRoute('aviso-privacidad'),
-      promociones: cmsRoute('promociones'),
-      'pagina-borrada': cmsRoute('pagina-borrada'),
-      'cms-caido': cmsRoute('cms-caido'),
-      'nodo-roto': cmsRoute('nodo-roto'),
-    },
+    routes: routes as Record<string, Record<string, unknown> | 'outage'>,
     cmsPages: {
       'aviso-privacidad': aviso.data.route,
       promociones: {
@@ -88,6 +127,7 @@ beforeAll(async () => {
         page_layout: 'cms-full-width',
       },
       'cms-caido': 'outage',
+      [HOME]: HOME_PAGE,
       'nodo-roto': {
         identifier: 'nodo-roto',
         url_key: 'nodo-roto',
@@ -129,7 +169,8 @@ beforeAll(async () => {
         },
       },
     },
-    storeConfig: storeConfig.data.storeConfig,
+    // The recording predates cms_home_page.
+    storeConfig: { ...storeConfig.data.storeConfig, cms_home_page: HOME },
     chapi: {},
     chapiDefaultDelayMs: 0,
   });
@@ -153,13 +194,21 @@ async function get(path: string, userAgent = BROWSER_UA) {
     headers: { 'User-Agent': userAgent },
     redirect: 'manual',
   });
-  return { status: response.status, html: await response.text() };
+  return {
+    status: response.status,
+    location: response.headers.get('location'),
+    html: await response.text(),
+  };
 }
 
 const robots = (html: string) => /<meta name="robots" content="([^"]*)"/.exec(html)?.[1] ?? null;
 const canonical = (html: string) => /<link rel="canonical" href="([^"]*)"/.exec(html)?.[1] ?? null;
 const withoutScripts = (html: string) => html.replace(/<script\b[\s\S]*?<\/script>/g, '');
 const title = (html: string) => /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
+const jsonLdTypes = (html: string) =>
+  [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
+    (match) => (JSON.parse(match[1] ?? '{}') as { '@type'?: string })['@type'],
+  );
 
 describe('CMS pages', () => {
   it.each([
@@ -235,5 +284,98 @@ describe('CMS pages', () => {
   it('Magento failure reading the CMS page: 5xx, never 404', async () => {
     const page = await get('/cms-caido');
     expect(page.status).toBeGreaterThanOrEqual(500);
+  });
+
+  it('Magento failure reading the store config for a CMS page: 5xx, never 404 or 200', async () => {
+    // Every CMS page reads storeConfig to know whether it is the configured home.
+    const homeConfig = { ...storeConfig.data.storeConfig, cms_home_page: HOME };
+    backends.setStoreConfig('outage');
+    try {
+      const page = await get('/aviso-privacidad');
+
+      expect(page.status).toBeGreaterThanOrEqual(500);
+      expect(backends.callsTo('magento', 'StoreConfig').length).toBeGreaterThanOrEqual(1);
+    } finally {
+      backends.setStoreConfig(homeConfig);
+    }
+  });
+});
+
+describe('home', () => {
+  it('/ is resolved by Magento: home CMS page, canonical /, site JSON-LD once', async () => {
+    const page = await get('/');
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('index, follow');
+    // Next renders the root url without its trailing slash (same url).
+    expect(canonical(page.html)).toBe(PUBLIC_BASE_URL);
+    expect(page.html).toMatch(
+      new RegExp(`<meta property="og:url" content="${PUBLIC_BASE_URL}/?"/>`),
+    );
+    expect(title(page.html)).toBe('Acceso a más de 300 millones de productos | Chupaprecios');
+    // No content heading: the page title is the visually hidden h1.
+    expect(page.html).toContain(`<h1 class="sr-only">${veniaNewHome.data.cmsPage.title}</h1>`);
+    const markup = withoutScripts(page.html);
+    expect(markup).toContain('aria-roledescription="carrusel"');
+    expect(markup.match(/aria-roledescription="diapositiva"/g)).toHaveLength(6);
+    expect(jsonLdTypes(page.html).sort()).toEqual(['Organization', 'WebSite']);
+    expect(
+      backends.callsTo('magento', 'ProductByRoute').map((call) => call.body.variables),
+    ).toEqual([{ url: '/' }]);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(1);
+  });
+
+  it("the home page's own url answers a permanent redirect to /", async () => {
+    const page = await get(`/${HOME}`);
+
+    expect(page.status).toBe(308);
+    expect(page.location).toBe('/');
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('the redirect from the home page own url keeps the query string', async () => {
+    const page = await get(`/${HOME}?utm_source=x&tag=a`);
+
+    expect(page.status).toBe(308);
+    expect(page.location).toBe('/?utm_source=x&tag=a');
+  });
+
+  it('Magento outage resolving /: 5xx, never 404', async () => {
+    const page = await withRootRoute('outage', () => get('/'));
+
+    expect(page.status).toBeGreaterThanOrEqual(500);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('Magento resolves no entity for /: 404', async () => {
+    const page = await withRootRoute(undefined, () => get('/'));
+
+    expect(page.status).toBe(404);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('Magento resolves / to a category: 404 for now', async () => {
+    // Category pages are not served yet (deliberate 404); T4 changes this.
+    const page = await withRootRoute(
+      { type: 'CATEGORY', redirect_code: 0, relative_url: 'ofertas', uid: 'MTA=' },
+      () => get('/'),
+    );
+
+    expect(page.status).toBe(404);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(0);
+  });
+
+  it('Magento failure reading the CMS page routed for /: 5xx, never 404', async () => {
+    const page = await withRootRoute(cmsRoute('cms-caido'), () => get('/'));
+
+    expect(page.status).toBeGreaterThanOrEqual(500);
+    expect(backends.callsTo('magento', 'CmsPage').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('other CMS pages keep their own canonical', async () => {
+    const page = await get('/aviso-privacidad');
+
+    expect(page.status).toBe(200);
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/aviso-privacidad`);
   });
 });

@@ -26,7 +26,11 @@ export interface ChapiScenario {
 export interface MockBackendsConfig {
   /** `route()` payloads by url; `'outage'` answers HTTP 503. Unknown urls resolve null. */
   readonly routes: Readonly<Record<string, Record<string, unknown> | 'outage'>>;
-  readonly storeConfig: Record<string, unknown>;
+  /**
+   * `storeConfig` payload; `'outage'` answers HTTP 503. Changeable at runtime
+   * with `MockBackends.setStoreConfig`.
+   */
+  readonly storeConfig: Record<string, unknown> | 'outage';
   /**
    * `cmsPage` payloads by identifier; `'outage'` answers HTTP 503. Unknown
    * identifiers answer Magento's "doesn't exist" GraphQL error.
@@ -62,6 +66,8 @@ export interface MockBackends {
   setMenu(menu: MockBackendsConfig['menu']): void;
   /** Delays the following `HeaderMenu` answers by `ms`. */
   setMenuDelay(ms: number): void;
+  /** Replaces the `StoreConfig` answer for the following requests. */
+  setStoreConfig(storeConfig: MockBackendsConfig['storeConfig']): void;
   /** Cart ids the mock Magento knows, with their items (see the cart operations). */
   readonly carts: ReadonlyMap<string, MockCartItem[]>;
   reset(): void;
@@ -80,6 +86,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   let seq = 0;
   const nextSeq = () => ++seq;
   let menu = config.menu;
+  let storeConfig = config.storeConfig;
   let menuDelayMs = config.menuDelayMs ?? 0;
   const carts = new Map<string, MockCartItem[]>();
 
@@ -125,7 +132,10 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
       } else if (CART_OPERATIONS.has(operation)) {
         response = { status: 200, body: answerCart(operation, variables, carts) };
       } else if (operation === 'StoreConfig') {
-        response = { status: 200, body: { data: { storeConfig: config.storeConfig } } };
+        response =
+          storeConfig === 'outage'
+            ? { status: 503, body: { message: 'Service Unavailable' } }
+            : { status: 200, body: { data: { storeConfig } } };
       } else if (operation === 'generateMagentoSku') {
         response = {
           status: 200,
@@ -193,6 +203,9 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     },
     setMenuDelay: (ms) => {
       menuDelayMs = ms;
+    },
+    setStoreConfig: (next) => {
+      storeConfig = next;
     },
     carts,
     reset: () => {

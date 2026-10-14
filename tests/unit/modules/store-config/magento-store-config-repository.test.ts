@@ -31,6 +31,23 @@ describe('MagentoStoreConfigRepository', () => {
     expect(resolveEngineId('ebay', config.engineRouting)).toBe('api');
   });
 
+  it('selects the configured home CMS page', async () => {
+    let query = '';
+    server.use(
+      http.post(URL, async ({ request }) => {
+        query = String(((await request.json()) as { query?: unknown }).query);
+        return HttpResponse.json({
+          data: { storeConfig: { ...fixture.data.storeConfig, cms_home_page: 'venia-new-home' } },
+        });
+      }),
+    );
+
+    const config = await repository().get();
+
+    expect(query).toMatch(/\bcms_home_page\b/);
+    expect(config.cmsHomePage).toBe('venia-new-home');
+  });
+
   it('rejects when Magento returns a null storeConfig', async () => {
     server.use(http.post(URL, () => HttpResponse.json({ data: { storeConfig: null } })));
 

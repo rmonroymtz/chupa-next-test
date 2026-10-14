@@ -16,6 +16,7 @@ export const STORE_CONFIG_QUERY = /* GraphQL */ `
       title_suffix
       title_separator
       default_description
+      cms_home_page
       engine_settings {
         acme_engine
         amazon_engine

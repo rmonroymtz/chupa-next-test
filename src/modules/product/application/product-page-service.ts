@@ -7,6 +7,7 @@ import {
   parseProductUrl,
   toRouteUrl,
 } from '@/modules/product/domain/product-url';
+import { HOME_PATHNAME } from '@/modules/routing/domain/request-path';
 import type { MetricsEmitter } from '@/shared/observability/metrics';
 
 /** PDP case reported in the `PdpOutcome` metric. */
@@ -96,7 +97,8 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     searchParams,
     isBot,
   }: ProductPageRequest): Promise<ProductPageDecision> {
-    const routeUrl = toRouteUrl(pathname);
+    // Magento resolves the site root itself: `route(url: "/")` is the configured home page.
+    const routeUrl = pathname === HOME_PATHNAME ? HOME_PATHNAME : toRouteUrl(pathname);
     if (routeUrl === null) return { kind: 'not_found', case: null };
 
     const lookup = await deps.products.findByRouteUrl(routeUrl);

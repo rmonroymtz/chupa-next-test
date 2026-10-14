@@ -24,6 +24,7 @@ function setup(options: { failing?: string[] } = {}) {
       'old-shirt.html': { kind: 'redirect', relativeUrl: 'new-shirt.html', code: 301 },
       'sale.html': { kind: 'redirect', relativeUrl: '/promos.html', code: 302 },
       'about-us': { kind: 'cms', identifier: 'about-us', relativeUrl: 'about-us' },
+      '/': { kind: 'cms', identifier: 'venia-new-home', relativeUrl: 'venia-new-home' },
       'men.html': { kind: 'category', uid: 'MTI=', relativeUrl: 'men.html' },
     },
   );
@@ -200,6 +201,17 @@ describe('product page service', () => {
         identifier: 'about-us',
         relativeUrl: 'about-us',
       });
+    });
+
+    it('resolves the site root through Magento with route url /', async () => {
+      const { resolve, repository } = setup();
+
+      expect(await resolve('/', false)).toEqual({
+        kind: 'cms',
+        identifier: 'venia-new-home',
+        relativeUrl: 'venia-new-home',
+      });
+      expect(repository.calls).toEqual(['/']);
     });
 
     it('treats categories as not found in phase 1', async () => {

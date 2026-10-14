@@ -100,6 +100,7 @@ export const FAKE_STORE_CONFIG: StoreConfig = {
   titleSuffix: null,
   titleSeparator: '-',
   defaultDescription: null,
+  cmsHomePage: 'venia-new-home',
   engineRouting: {
     engineSettings: { amazon: 'direct', ebay: 'api', acme: 'direct', target: 'direct' },
     serviceFallback: { amazon: 'amazon', ebay: 'ebay', acme: 'acme', target: 'target' },
