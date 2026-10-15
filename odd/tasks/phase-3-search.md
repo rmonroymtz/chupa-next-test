@@ -178,6 +178,13 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   `parseProductUrl` as a different SKU (`~~`); documented by a test, URL format unchanged, decision pending.
   Unit 785.
 
+- 2026-10-15: decision (user): sort options are requested **after** the search, only when the search response has
+  no `data.sorts` (legacy behavior, already how T2 `getSearchSortOptions` works); the selector streams in its own
+  Suspense boundary so results never wait for it (~2 s later than results with today's staging CHAPI, which always
+  returns `data.sorts: []`). Follow-ups for T3 (T2 review suggestions): an unusable responding vendor string should fall
+  back to the requested store instead of making the page `invalid`; add a URL round-trip test for titles starting with
+  a symbol (slug starting with `-`).
+
 ## Next step
 
 Parent: review and commit T2, then T3 (search decision + route). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to
