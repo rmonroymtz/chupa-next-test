@@ -51,7 +51,7 @@ How each url resolves:
 | Missing → 404, empty → 200 `noindex`, failure → 5xx                                    | Same indexability rule as phase 1; an outage is never a 404.                                          |
 | `?page=N` on the server, size from `grid_per_page`, canonical without page, no filters | Like Venia; robots disallows query strings, so only the clean url is indexed.                         |
 | Invalid or out-of-range page → 307 to the clean url                                    | A page beyond the last may exist later, so the redirect is temporary.                                 |
-| Trailing site name stripped from Magento meta titles                                   | Avoids `…                                                                                             | Chupaprecios | Chupaprecios`. |
+| Trailing site name stripped from Magento meta titles                                   | Avoids a title ending in the site name twice (`X \| Chupaprecios \| Chupaprecios`).                   |
 | Desktop menu scrolls horizontally with arrows                                          | The staging tree overflows one line.                                                                  |
 | Edge: all remaining `.html` urls to Next, search urls first                            | The edge cannot tell categories from other `.html` urls; Next 404s what Magento does not know.        |
 
@@ -72,7 +72,7 @@ How each url resolves:
 - [ ] **Edge change** ([phase 2 routing](routing/phase-2.md)): `/search.html` to PWA, then `/`, `/venia-new-home` and `*.html` to Next; prerender exclusions; run its checklist.
 - [ ] **Non-category `.html` rewrites in Magento** reviewed (query in the routing doc), and no PWA static `.html` file requested directly.
 - [ ] **Production categories have no products today** (10 native categories, no children); staging has the tree. Until Magento production is populated, every category page there is `200 noindex` with an empty state.
-- [ ] **`.env.example` lines** for the new optional e2e variables (agents cannot edit `.env*`): `E2E_PHASE2_SMOKE`, `E2E_CATEGORY_PATH`, `E2E_HOME_CMS_PATH`, `E2E_UNKNOWN_HTML_PATH` (see `docs/environment.md`).
+- [x] **`.env.example` lines** for the new optional e2e variables: `E2E_PHASE2_SMOKE`, `E2E_CATEGORY_PATH`, `E2E_HOME_CMS_PATH`, `E2E_UNKNOWN_HTML_PATH` (see `docs/environment.md`).
 - [ ] Run `e2e/phase-2-smoke.spec.ts` against staging behind the edge (`E2E_PHASE2_SMOKE=1`).
 
 ## Known limitations and follow-ups

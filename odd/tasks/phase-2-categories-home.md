@@ -198,7 +198,7 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   `/amazon-x-search.html` → 200 (parsed as product), so the search rules must win. `docs/phase-2-report.md`;
   phase 1 routing, README, `docs/environment.md` and the ECS doc point to phase 2. New optional e2e variables
   `E2E_CATEGORY_PATH`, `E2E_HOME_CMS_PATH`, `E2E_UNKNOWN_HTML_PATH` documented in `docs/environment.md`;
-  **`.env.example` not updated** (agents cannot read or edit `.env*`). No new app env vars in phase 2.
+  `.env.example` updated by the user (commit `97607d5`). No new app env vars in phase 2.
   Review fixes: checklist `?page=2` on `/herramientas.html` expects 307 (staging's largest category has 14 products,
   one page of 16); the smoke is opt-in with `E2E_PHASE2_SMOKE=1` so `E2E_BASE_URL` alone still runs only
   `pwa-checkout`; menu assertions per nav after its links render; redirects must stay on the tested origin; a
@@ -232,7 +232,7 @@ Same as phase 1: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 
 ## Next step
 
-Phase 2 code and docs complete. Add the four e2e lines to `.env.example`, commit and open the T6 PR; then the edge
+Phase 2 code and docs complete. Merge the T6 PR; then the edge
 operator applies `docs/routing/phase-2.md` on staging and runs its checklist and `e2e/phase-2-smoke.spec.ts`;
 production once its categories have products. Then phase 3 (`/search.html` via CHAPI).
 
