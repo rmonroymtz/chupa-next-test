@@ -117,6 +117,8 @@ const serverEnvSchema = z.object({
   CHAPI_BASE_URL: baseUrl,
   MAGENTO_TIMEOUT_MS: timeoutMs(5000),
   CHAPI_TIMEOUT_MS: timeoutMs(15000),
+  /** CHAPI search requests; shorter than detail pages so a slow search fails fast. */
+  CHAPI_SEARCH_TIMEOUT_MS: timeoutMs(8000),
   COPY_MUTATION_TIMEOUT_MS: timeoutMs(10000),
   /**
    * Header category menu query. Short: the menu streams inside its own

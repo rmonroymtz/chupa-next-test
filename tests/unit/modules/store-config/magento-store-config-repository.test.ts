@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { resolveEngineId } from '@/modules/store-config/domain/store-config';
+import { resolveEngineId, resolveSearchEngineId } from '@/modules/store-config/domain/store-config';
 import { createMagentoStoreConfigRepository } from '@/modules/store-config/infrastructure/magento-store-config-repository';
 import { createMagentoClient } from '@/shared/graphql/client';
 import fixture from '../../../fixtures/magento/store-config.json';
@@ -63,6 +63,43 @@ describe('MagentoStoreConfigRepository', () => {
 
     expect(query).toMatch(/\bgrid_per_page\b/);
     expect(config.gridPerPage).toBe(24);
+  });
+
+  it('selects the search engines separately from the product engines', async () => {
+    let query = '';
+    server.use(
+      http.post(URL, async ({ request }) => {
+        query = String(((await request.json()) as { query?: unknown }).query);
+        return HttpResponse.json({
+          data: {
+            storeConfig: {
+              ...fixture.data.storeConfig,
+              engine_settings: {
+                ...fixture.data.storeConfig.engine_settings,
+                // Values recorded from staging (2026-10-15).
+                acme_search_engine: 'direct',
+                amazon_search_engine: 'direct',
+                ebay_search_engine: 'api',
+                homedepot_search_engine: 'bigbox',
+                target_search_engine: 'direct',
+                walmart_search_engine: 'direct',
+              },
+            },
+          },
+        });
+      }),
+    );
+
+    const config = await repository().get();
+
+    for (const store of ['acme', 'amazon', 'ebay', 'homedepot', 'target', 'walmart']) {
+      expect(query).toMatch(new RegExp(`\\b${store}_engine\\b`));
+      expect(query).toMatch(new RegExp(`\\b${store}_search_engine\\b`));
+    }
+    expect(resolveSearchEngineId('ebay', config.engineRouting)).toBe('api');
+    // homedepot falls back to amazon's search engine, as in the legacy storefront.
+    expect(resolveSearchEngineId('homedepot', config.engineRouting)).toBe('direct');
+    expect(resolveEngineId('ebay', config.engineRouting)).toBe('api');
   });
 
   it('rejects when Magento returns a null storeConfig', async () => {

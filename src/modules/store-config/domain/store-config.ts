@@ -6,6 +6,11 @@
 export interface EngineRouting {
   /** Detail-page engine per store (`storeConfig.engine_settings.<store>_engine`). */
   readonly engineSettings: Readonly<Record<string, string | null | undefined>>;
+  /**
+   * Search engine per store (`storeConfig.engine_settings.<store>_search_engine`).
+   * A separate map so search keys never collide with detail-page keys.
+   */
+  readonly searchEngineSettings: Readonly<Record<string, string | null | undefined>>;
   /** Store whose engine serves each store (`storeConfig.service_fallback.<store>`). */
   readonly serviceFallback: Readonly<Record<string, string | null | undefined>>;
 }
@@ -44,8 +49,26 @@ export interface StoreConfig {
  * the store has no fallback or the fallback store has no engine.
  */
 export function resolveEngineId(store: string, routing: EngineRouting): string | null {
+  return resolveFromFallback(store, routing, routing.engineSettings);
+}
+
+/**
+ * Scraper search `engine_id` for a store, replicating the legacy storefront:
+ * `engine_settings[service_fallback[store] + '_search_engine']`. Returns null
+ * when the store has no fallback (e.g. `chupachoice` or an unknown store) or
+ * the fallback store has no search engine; callers decide what to do then.
+ */
+export function resolveSearchEngineId(store: string, routing: EngineRouting): string | null {
+  return resolveFromFallback(store, routing, routing.searchEngineSettings);
+}
+
+function resolveFromFallback(
+  store: string,
+  routing: EngineRouting,
+  engines: EngineRouting['engineSettings'],
+): string | null {
   const fallback = routing.serviceFallback[store.toLowerCase()]?.trim().toLowerCase();
   if (!fallback) return null;
-  const engine = routing.engineSettings[fallback]?.trim();
+  const engine = engines[fallback]?.trim();
   return engine ? engine : null;
 }

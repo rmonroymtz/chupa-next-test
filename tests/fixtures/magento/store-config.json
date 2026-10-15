@@ -15,7 +15,13 @@
         "acme_engine": "direct",
         "target_engine": "direct",
         "walmart_engine": "direct",
-        "homedepot_engine": "direct"
+        "homedepot_engine": "direct",
+        "acme_search_engine": "direct",
+        "amazon_search_engine": "direct",
+        "ebay_search_engine": "api",
+        "homedepot_search_engine": "bigbox",
+        "target_search_engine": "direct",
+        "walmart_search_engine": "direct"
       },
       "service_fallback": {
         "amazon": "amazon",

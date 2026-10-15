@@ -19,6 +19,7 @@ describe('parseServerEnv', () => {
       ...required,
       MAGENTO_TIMEOUT_MS: 5000,
       CHAPI_TIMEOUT_MS: 15000,
+      CHAPI_SEARCH_TIMEOUT_MS: 8000,
       COPY_MUTATION_TIMEOUT_MS: 10000,
       MAGENTO_MENU_TIMEOUT_MS: 1500,
       MAGENTO_STORE_CODE: 'default',
@@ -42,12 +43,14 @@ describe('parseServerEnv', () => {
       ...required,
       MAGENTO_TIMEOUT_MS: '2500',
       CHAPI_TIMEOUT_MS: '20000',
+      CHAPI_SEARCH_TIMEOUT_MS: '6000',
       COPY_MUTATION_TIMEOUT_MS: '7000',
       MAGENTO_MENU_TIMEOUT_MS: '900',
     });
 
     expect(env.MAGENTO_TIMEOUT_MS).toBe(2500);
     expect(env.CHAPI_TIMEOUT_MS).toBe(20000);
+    expect(env.CHAPI_SEARCH_TIMEOUT_MS).toBe(6000);
     expect(env.COPY_MUTATION_TIMEOUT_MS).toBe(7000);
     expect(env.MAGENTO_MENU_TIMEOUT_MS).toBe(900);
   });
@@ -76,6 +79,17 @@ describe('parseServerEnv', () => {
     expect(() => parseServerEnv({ ...required, CHAPI_TIMEOUT_MS: 'abc' })).toThrow(
       /CHAPI_TIMEOUT_MS/,
     );
+    for (const value of ['0', '-1', '1.5', 'abc']) {
+      expect(() => parseServerEnv({ ...required, CHAPI_SEARCH_TIMEOUT_MS: value })).toThrow(
+        /CHAPI_SEARCH_TIMEOUT_MS/,
+      );
+    }
+  });
+
+  it('treats a blank search timeout as the 8000 ms default', () => {
+    expect(
+      parseServerEnv({ ...required, CHAPI_SEARCH_TIMEOUT_MS: ' ' }).CHAPI_SEARCH_TIMEOUT_MS,
+    ).toBe(8000);
   });
 
   it('reports every missing required variable', () => {

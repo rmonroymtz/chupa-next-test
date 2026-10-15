@@ -50,6 +50,9 @@ COPY_MUTATION_TIMEOUT_MS=10000
 CHAPI_BASE_URL=https://chapi.example.com
 # Optional. Per-request timeout for CHAPI, in ms. Default: 15000
 CHAPI_TIMEOUT_MS=15000
+# Optional. Per-request timeout for CHAPI search (search results page), in ms. On timeout the
+# page answers 200 with an error message and a retry link. Default: 8000
+CHAPI_SEARCH_TIMEOUT_MS=8000
 
 # === SEO (structured data) ===================================================
 # Optional. Absolute http(s) URL of the organization logo for Organization JSON-LD.
