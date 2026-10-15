@@ -1,0 +1,228 @@
+{
+  "vendor": "ebay",
+  "status": "ok",
+  "data": {
+    "products": [
+      {
+        "asin": "355928863885",
+        "title": "Ryobi one+ 18v cordless 3/8\" drill driver kit with battery and charger",
+        "brand": "",
+        "categories": [
+          "Cordless Drills",
+          "Tools & Workshop Equipment",
+          "Power Tools",
+          "Home & Garden"
+        ],
+        "release_date": "",
+        "price": {
+          "current_price": 1082.88,
+          "currency": "MXN",
+          "before_price": 1985.52
+        },
+        "reviews": {
+          "rating": 4.96
+        },
+        "image": {
+          "alt": "Ryobi ONE+ 18V Cordless 3/8\" Drill Driver Kit with Battery and Charger",
+          "src": "https://i.ebayimg.com/images/g/7O0AAeSwI9pq0BcQ/s-l225.jpg"
+        },
+        "stock_status": "unknown"
+      },
+      {
+        "asin": "188408993979",
+        "title": "1/2\" cordless hammer drill/driver brushless for dewalt 20v max battery 2-speed",
+        "brand": "",
+        "categories": [
+          "Cordless Drills",
+          "Tools & Workshop Equipment",
+          "Power Tools",
+          "Home & Garden"
+        ],
+        "release_date": "",
+        "price": {
+          "current_price": 1186.71,
+          "currency": "MXN",
+          "before_price": 1352.95
+        },
+        "reviews": {
+          "rating": 4.965
+        },
+        "image": {
+          "alt": "1/2\" Cordless Hammer Drill/Driver Brushless For DEWALT 20V MAX Battery 2-Speed",
+          "src": "https://i.ebayimg.com/images/g/or0AAeSw9yVp6RdL/s-l225.jpg"
+        },
+        "stock_status": "unknown"
+      },
+      {
+        "asin": "227567590787",
+        "title": "Dewalt dcd805b 20v max xr brushless 1/2\" hammer drill/driver tool only",
+        "brand": "",
+        "categories": [
+          "Cordless Drills",
+          "Tools & Workshop Equipment",
+          "Power Tools",
+          "Home & Garden"
+        ],
+        "release_date": "",
+        "price": {
+          "current_price": 1680.65,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 4.89
+        },
+        "image": {
+          "alt": "DEWALT DCD805B 20V MAX XR Brushless 1/2\" Hammer Drill/Driver Tool Only",
+          "src": "https://i.ebayimg.com/images/g/xBEAAeSwT0dqz9JN/s-l225.jpg"
+        },
+        "stock_status": "unknown"
+      },
+      {
+        "asin": "127856095053",
+        "title": "21v cordless drill electric screwdriver 3/8in keyless chuck work light kit",
+        "brand": "",
+        "categories": [
+          "Cordless Drills",
+          "Tools & Workshop Equipment",
+          "Power Tools",
+          "Home & Garden"
+        ],
+        "release_date": "",
+        "price": {
+          "current_price": 879.81,
+          "currency": "MXN",
+          "before_price": 2193.55
+        },
+        "reviews": {
+          "rating": 4.98
+        },
+        "image": {
+          "alt": "21V Cordless Drill Electric Screwdriver 3/8in Keyless Chuck Work Light Kit",
+          "src": "https://i.ebayimg.com/images/g/fTEAAeSwMiBqSYjp/s-l225.jpg"
+        },
+        "stock_status": "unknown"
+      }
+    ],
+    "pagination": {
+      "current": 1,
+      "next": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL%2CEXTENDED%2CASPECT_REFINEMENTS&offset=16",
+      "prev": "",
+      "links": [
+        {
+          "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL%2CEXTENDED%2CASPECT_REFINEMENTS&offset=16",
+          "title": "2"
+        }
+      ]
+    },
+    "refinements": [
+      {
+        "title": "Categorías",
+        "type": "text",
+        "links": [
+          {
+            "title": "eBay Motors",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL%2CEXTENDED%2CASPECT_REFINEMENTS&category_ids=6000",
+            "checked": false
+          },
+          {
+            "title": "Parts & Accessories",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL%2CEXTENDED%2CASPECT_REFINEMENTS&category_ids=6028",
+            "checked": false
+          },
+          {
+            "title": "Automotive Tools & Supplies",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL%2CEXTENDED%2CASPECT_REFINEMENTS&category_ids=34998",
+            "checked": false
+          },
+          {
+            "title": "Safety & Security Accessories",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL%2CEXTENDED%2CASPECT_REFINEMENTS&category_ids=262266",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Brand",
+        "type": "text",
+        "links": [
+          {
+            "title": "DEWALT",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBrand%3A%7BDEWALT%7D",
+            "checked": false
+          },
+          {
+            "title": "Milwaukee",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBrand%3A%7BMilwaukee%7D",
+            "checked": false
+          },
+          {
+            "title": "Makita",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBrand%3A%7BMakita%7D",
+            "checked": false
+          },
+          {
+            "title": "Unbranded",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBrand%3A%7BUnbranded%7D",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Battery Included",
+        "type": "text",
+        "links": [
+          {
+            "title": "Yes",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBattery%20Included%3A%7BYes%7D",
+            "checked": false
+          },
+          {
+            "title": "No",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBattery%20Included%3A%7BNo%7D",
+            "checked": false
+          },
+          {
+            "title": "Not Specified",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CBattery%20Included%3A%7B%21%7D",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Voltage",
+        "type": "text",
+        "links": [
+          {
+            "title": "18 V",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CVoltage%3A%7B18%20V%7D",
+            "checked": false
+          },
+          {
+            "title": "20 V",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CVoltage%3A%7B20%20V%7D",
+            "checked": false
+          },
+          {
+            "title": "12 V",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CVoltage%3A%7B12%20V%7D",
+            "checked": false
+          },
+          {
+            "title": "120 V",
+            "link": "q=drill&limit=16&auto_correct=KEYWORD&fieldgroups=FULL,EXTENDED,ASPECT_REFINEMENTS&aspect_filter=categoryId%3A184655%2CVoltage%3A%7B120%20V%7D",
+            "checked": false
+          }
+        ]
+      }
+    ],
+    "sorts": [],
+    "totalProducts": 1020781,
+    "vendor": "ebay",
+    "engine": "api"
+  },
+  "search_time": 2.600348949432373,
+  "cache_hit": false,
+  "debug_html": null,
+  "error": null
+}

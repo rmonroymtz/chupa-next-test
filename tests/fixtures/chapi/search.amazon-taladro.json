@@ -1,0 +1,207 @@
+{
+  "vendor": "amazon",
+  "status": "ok",
+  "data": {
+    "products": [
+      {
+        "asin": "B0CC1RHJY1",
+        "title": "Power Drill Cordless: DEKOPRO Cordless Drill 20V Electric Power Drills Set Tool Drills Cord-less Set with Battery and Charger",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 1082.88,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 4.4
+        },
+        "image": {
+          "alt": "Power Drill Cordless: DEKOPRO Cordless Drill 20V Electric Power Drills Set Tool Drills Cord-less Set with Battery and Charger",
+          "src": "https://m.media-amazon.com/images/I/810mhyjBI7L._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B00IJ0ALYS",
+        "title": "DEWALT Kit de combo de perforación inalámbrico de 20V MAX, 2-Herramienta (DCK240C2)",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 4434.6,
+          "currency": "MXN",
+          "before_price": 6853.86
+        },
+        "reviews": {
+          "rating": 4.7
+        },
+        "image": {
+          "alt": "DEWALT Kit de combo de perforación inalámbrico de 20V MAX, 2-Herramienta (DCK240C2) | Includes 2 Batteries, Charger and Bag (",
+          "src": "https://m.media-amazon.com/images/I/81XPDrUh9sL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B00ET5VMTU",
+        "title": "20 voltios Max Comp taladro/conductor",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 3056.8,
+          "currency": "MXN",
+          "before_price": 3611.49
+        },
+        "reviews": {
+          "rating": 4.8
+        },
+        "image": {
+          "alt": "20 voltios Max Comp taladro/conductor",
+          "src": "https://m.media-amazon.com/images/I/81dmm7FomNL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B08YJTYDD4",
+        "title": "COMOWARE Taladro inalámbrico, taladro eléctrico y juego de brocas con",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 1082.88,
+          "currency": "MXN",
+          "before_price": 1124.48
+        },
+        "reviews": {
+          "rating": 4.4
+        },
+        "image": {
+          "alt": "COMOWARE Taladro inalámbrico, taladro eléctrico y juego de brocas con | con luz LED, portabrocas sin llave de 3/8\", 2 velo...",
+          "src": "https://m.media-amazon.com/images/I/81ZQbw9N27L._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      }
+    ],
+    "pagination": {
+      "current": 1,
+      "next": "/-/es/s?k=drill&page=2&xpid=LJWeFly1wKl5E&qid=1792088418&ref=sr_pg_1",
+      "prev": "",
+      "links": [
+        {
+          "link": "/-/es/s?k=drill&page=2&xpid=LJWeFly1wKl5E&qid=1792088418&ref=sr_pg_2",
+          "title": "2"
+        },
+        {
+          "link": "/-/es/s?k=drill&page=3&xpid=LJWeFly1wKl5E&qid=1792088418&ref=sr_pg_3",
+          "title": "3"
+        }
+      ]
+    },
+    "refinements": [
+      {
+        "title": "Marcas",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "DEWALT",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991&dc&qid=1792088418&rnid=85457740011&ref=sr_nr_p_123_1&ds=v1%3AEjR0QkyOvzh9vUyvcWoHFSQ%2B26gaiQdmLPEBRQnosjg",
+            "checked": false
+          },
+          {
+            "title": "Milwaukee",
+            "link": "/-/es/s?k=drill&rh=p_123%3A359095&dc&qid=1792088418&rnid=85457740011&ref=sr_nr_p_123_2&ds=v1%3ADbWzeZ2%2Fa%2FEZGhAjrxuC6O%2BK9Vau7e0urjkP2ALY9KM",
+            "checked": false
+          },
+          {
+            "title": "Makita",
+            "link": "/-/es/s?k=drill&rh=p_123%3A220860&dc&qid=1792088418&rnid=85457740011&ref=sr_nr_p_123_3&ds=v1%3Al7FHElnSFgHkYXLuHEjq770dj9iXkrfNS3okj8WVwXQ",
+            "checked": false
+          },
+          {
+            "title": "Bosch",
+            "link": "/-/es/s?k=drill&rh=p_123%3A46644&dc&qid=1792088418&rnid=85457740011&ref=sr_nr_p_123_4&ds=v1%3AtNINrBXPfh96l7ShQq1Dcr8%2FrM%2FkJTHwoOYobDdS8AA",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Fuente Alimentación",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Alimentación eléctrica con cable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101016441455111%3A205746257011&dc&qid=1792088418&rnid=205746256011&ref=sr_nr_p_n_g-101016441455111_1&ds=v1%3AEAby5ZUXFn6Q0VNcYamKaaIYM3AKuW29MFHTqR3w5mk",
+            "checked": false
+          },
+          {
+            "title": "alimentación por batería",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101016441455111%3A205746258011&dc&qid=1792088418&rnid=205746256011&ref=sr_nr_p_n_g-101016441455111_2&ds=v1%3ALsnXFjXTCG9glINkGAiouclii%2FhG5QAXW1e0dsUlFtM",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Artículos Incluidos",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Manual del usuario",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443376011&dc&qid=1792088418&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_1&ds=v1%3AhcgDQUgOJP2UJq50nw4PzJG4b0fZHWfOc%2FEa%2BCHedTE",
+            "checked": false
+          },
+          {
+            "title": "Cargador de batería",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443377011&dc&qid=1792088418&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_2&ds=v1%3AyxbZfWY0TDsjT5SIrRq54346jmW%2BhLhNPpNIRQDdXMM",
+            "checked": false
+          },
+          {
+            "title": "Accesorio de taladro",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443369011&dc&qid=1792088418&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_3&ds=v1%3AEhwHXJ2vj6iTidcY4KkWMDW8VsxLe%2FK7ma8CBZdbJvc",
+            "checked": false
+          },
+          {
+            "title": "Adaptador",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443372011&dc&qid=1792088418&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_4&ds=v1%3AO5aXvpc3sX%2FlqG0PzyKDiyDv4zEvHrvAbmwYcKR7CA4",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Características",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Velocidad variable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987507011&dc&qid=1792088418&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_1&ds=v1%3A8G%2FixtgCwbQxxUnqlKB5HPAQYDlUpAy9jHtleSZ%2FPfU",
+            "checked": false
+          },
+          {
+            "title": "Compacto",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987509011&dc&qid=1792088418&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_2&ds=v1%3AfEq5Szv%2FuTYoo1h9fnOkocu0GhK7cVc28Eh81fiDvi0",
+            "checked": false
+          },
+          {
+            "title": "Ligero",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987508011&dc&qid=1792088418&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_3&ds=v1%3Aeg3Kg%2BT1qE4mZZmblELsRSng%2BIH8UPzG%2Bz%2FqAjxuw90",
+            "checked": false
+          },
+          {
+            "title": "Ángulo variable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987516011&dc&qid=1792088418&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_4&ds=v1%3ArvkreqkDDOhcZdGcWRkjyn%2B4bZHmKVXtaarmY0XmmYg",
+            "checked": false
+          }
+        ]
+      }
+    ],
+    "sorts": [],
+    "totalProducts": 16,
+    "vendor": "amazon",
+    "engine": "direct"
+  },
+  "search_time": 2.569162130355835,
+  "cache_hit": false,
+  "debug_html": null,
+  "error": null
+}

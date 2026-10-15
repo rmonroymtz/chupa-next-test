@@ -114,7 +114,7 @@ authored lines in total: one stacked PR per task.
 - [x] T1 Search config (staging fields verified; `searchEngineSettings` separate from `engineSettings`; `resolveSearchEngineId(store, routing)`; fixture has staging search engines; test 735, integration 56): `*_search_engine` in the store config query/mapper (without colliding with `*_engine`, e.g.
   `amazon_search_engine` must not become `amazon_search`), `resolveSearchEngineId(store)` using `service_fallback`,
   env `CHAPI_SEARCH_TIMEOUT_MS` (default 8000). Check: unit tests.
-- [ ] T2 CHAPI search adapter: port + gateway for `POST /api/v1/search/` and `/api/v1/search/sort_by` (timeout,
+- [x] T2 (`src/modules/search/**`; `searchStore`/`getSearchSortOptions`; 6 staging search fixtures + 1 sort_by; test 779, integration 56) CHAPI search adapter: port + gateway for `POST /api/v1/search/` and `/api/v1/search/sort_by` (timeout,
   metrics, never-reject result, gzip), mapper to `ProductCard` (link `/{vendor}-{sku}-{slug}.html`), pagination links,
   refinements, sorts, response `vendor`; fixtures recorded from staging. Check: MSW unit tests (found, empty, timeout,
   error, invalid, items without price).
@@ -157,6 +157,35 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   same three lines (user edit). RED: 14 failed / 29 passed in 4 store-config + env test files; GREEN: 43 passed.
   Checks: typecheck, lint, unit (735), integration (56), build all pass; dev server 200 on `/`.
 
+- 2026-10-15: T2 implemented (delegated writer, uncommitted, branch `feat/phase-3-02-chapi-search`). Staging recorded
+  read-only through the PWA `/api` proxy (gzip; Node `fetch` decompresses it). Observed vs discovery: envelope also has
+  `cache_hit`, `error`, `search_time`, `debug_html`, `data.engine`; `pagination.totalPages` is **absent** (only
+  `current`, `next`, `prev`, `links`); `links` omit the current page; `data.sorts` is `[]` on every staging response,
+  so `sort_by` is always needed; `sort_by` answers `data: [{title, link, selected}]` (an array); amazon
+  `totalProducts` is the page's item count (16), eBay's is the search total (1,020,781); empty search is
+  `status: "no_results"` with empty lists; eBay `stock_status` is `unknown`; `brand` is `""` on every item; checked
+  refinement options carry the link that removes them. Mapper skips items without sku, title or positive current price
+  (counted, `ChapiSearchSkippedItems` metric) and repeated skus. RED: 4 test files failed at import; GREEN: 44 search
+  tests. Checks: typecheck, lint, unit (779), integration (56), build pass.
+- 2026-10-15: T1 review advisory (shared storeConfig query) checked against **production** Magento: all six
+  `*_search_engine` fields exist there too (homedepot `direct` in production, `bigbox` on staging; both fall back to
+  amazon via `service_fallback`).
+
+- 2026-10-15: T2 review fixes: body-read failure after a 2xx → `error` (not `invalid`) for search and sort_by;
+  `duplicateItems` counted apart from `skippedItems` (only the latter alerts); card links only use a vendor in
+  `PRODUCT_VENDORS` (responding vendor → requested store → skip). **Known limitation confirmed (pre-existing, also in
+  legacy and phase 1 product URLs):** an acme SKU whose base64url contains `-` (e.g. `~~~` → `fn5-`) is read back by
+  `parseProductUrl` as a different SKU (`~~`); documented by a test, URL format unchanged, decision pending.
+  Unit 785.
+
+- 2026-10-15: decision (user): sort options are requested **after** the search, only when the search response has
+  no `data.sorts` (legacy behavior, already how T2 `getSearchSortOptions` works); the selector streams in its own
+  Suspense boundary so results never wait for it (~2 s later than results with today's staging CHAPI, which always
+  returns `data.sorts: []`). Unusable responding vendor strings now fall back to the requested store (fixed in T2 after review).
+  Follow-up for T3: add a URL round-trip test for titles starting with
+  a symbol (slug starting with `-`).
+
 ## Next step
 
-Start T2 (CHAPI search adapter). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to `.env.example`.
+Parent: review and commit T2, then T3 (search decision + route). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to
+`.env.example`.

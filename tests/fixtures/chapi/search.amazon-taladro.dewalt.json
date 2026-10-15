@@ -1,0 +1,207 @@
+{
+  "vendor": "amazon",
+  "status": "ok",
+  "data": {
+    "products": [
+      {
+        "asin": "B00ET5VMTU",
+        "title": "20 voltios Max Comp taladro/conductor",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 3056.8,
+          "currency": "MXN",
+          "before_price": 3611.49
+        },
+        "reviews": {
+          "rating": 4.8
+        },
+        "image": {
+          "alt": "20 voltios Max Comp taladro/conductor",
+          "src": "https://m.media-amazon.com/images/I/81dmm7FomNL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B00IJ0ALYS",
+        "title": "DEWALT Kit de combo de perforación inalámbrico de 20V MAX, 2-Herramienta (DCK240C2)",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 4434.6,
+          "currency": "MXN",
+          "before_price": 6853.86
+        },
+        "reviews": {
+          "rating": 4.7
+        },
+        "image": {
+          "alt": "DEWALT Kit de combo de perforación inalámbrico de 20V MAX, 2-Herramienta (DCK240C2) | Includes 2 Batteries, Charger and Bag (",
+          "src": "https://m.media-amazon.com/images/I/81XPDrUh9sL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0BQCWH5KF",
+        "title": "DEWALT Destornillador de impacto MAX XR de 20 V, par alto de 1/4 pulgadas, sin escobillas, 3 velocidades premium inalámbrico con luz LED, tiempo de funcionamiento extendido, solo herramienta (DCF845B)",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 3565.1,
+          "currency": "MXN",
+          "before_price": 5050.05
+        },
+        "reviews": {
+          "rating": 4.7
+        },
+        "image": {
+          "alt": "DEWALT Destornillador de impacto MAX XR de 20 V, par alto de 1/4 pulgadas, sin escobillas, 3 velocidades premium inalámbri...",
+          "src": "https://m.media-amazon.com/images/I/71-9UR1F2XL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B07VCC8R8C",
+        "title": "Taladro de martillo giratorio inalámbrico, 6.8 libras.",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 2193.55,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 4.7
+        },
+        "image": {
+          "alt": "Taladro de martillo giratorio inalámbrico, 6.8 libras.",
+          "src": "https://m.media-amazon.com/images/I/61ugwvFI6AL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      }
+    ],
+    "pagination": {
+      "current": 1,
+      "next": "/-/es/s?k=drill&rh=p_123%3A195991&dc&page=2&language=es&xpid=MG0jq05WgMEuN&qid=1792088459&rnid=85457740011&ref=sr_pg_1",
+      "prev": "",
+      "links": [
+        {
+          "link": "/-/es/s?k=drill&rh=p_123%3A195991&dc&page=2&language=es&xpid=MG0jq05WgMEuN&qid=1792088459&rnid=85457740011&ref=sr_pg_2",
+          "title": "2"
+        },
+        {
+          "link": "/-/es/s?k=drill&rh=p_123%3A195991&dc&page=3&language=es&xpid=MG0jq05WgMEuN&qid=1792088459&rnid=85457740011&ref=sr_pg_3",
+          "title": "3"
+        }
+      ]
+    },
+    "refinements": [
+      {
+        "title": "Marcas",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "DEWALT",
+            "link": "/-/es/s?k=drill&dc&language=es&qid=1792088459&rnid=85457740011&ref=sr_nr_p_123_1&ds=v1%3A5TGmcXYdBsDYOZKqD7DQULhfYZrqcDfrmFBMNVuv0Q0",
+            "checked": true
+          },
+          {
+            "title": "Milwaukee",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%257C359095&dc&language=es&qid=1792088459&rnid=85457740011&ref=sr_nr_p_123_2&ds=v1%3A%2FUEKRHcQdeAGb1A5Cgp5TwZ0ISUrdbRtBCEo9l%2BSWWI",
+            "checked": false
+          },
+          {
+            "title": "Makita",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%257C220860&dc&language=es&qid=1792088459&rnid=85457740011&ref=sr_nr_p_123_3&ds=v1%3AzgQA%2Bhx4EFZCUgyveTsnK%2BFqnBI6xLWaMdxKpgho7xA",
+            "checked": false
+          },
+          {
+            "title": "Bosch",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%257C46644&dc&language=es&qid=1792088459&rnid=85457740011&ref=sr_nr_p_123_4&ds=v1%3A%2BWdgAwOZ2nVsK2DVx%2BJVOXeAqn0WqynVpIpSxv6xmnM",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Fuente Alimentación",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Alimentación eléctrica con cable",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_n_g-101016441455111%3A205746257011&dc&language=es&qid=1792088459&rnid=205746256011&ref=sr_nr_p_n_g-101016441455111_1&ds=v1%3Aq35qbwhNu%2BibvBXUFGT4INesM%2FXvBpYRHHKJuHyPlsQ",
+            "checked": false
+          },
+          {
+            "title": "alimentación por batería",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_n_g-101016441455111%3A205746258011&dc&language=es&qid=1792088459&rnid=205746256011&ref=sr_nr_p_n_g-101016441455111_2&ds=v1%3ASGz8MQvb3%2F8ynRzNQFF%2FsbcRFb%2B5UyZZwPETiijTR3k",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Características",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Compacto",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_n_g-101014845023111%3A117987509011&dc&language=es&qid=1792088459&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_1&ds=v1%3AecoAhh75Bp4693JGbvgX9YhP8cX92zbbGD37K2rAEH4",
+            "checked": false
+          },
+          {
+            "title": "Velocidad variable",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_n_g-101014845023111%3A117987507011&dc&language=es&qid=1792088459&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_2&ds=v1%3ASNRyBChc0ono4bTlGFdlQxVyd2tLqI2KcczTbVG7koc",
+            "checked": false
+          },
+          {
+            "title": "Inalámbrico",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_n_g-101014845023111%3A117987523011&dc&language=es&qid=1792088459&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_3&ds=v1%3A7kJbMP%2FJlRjRpyLfI7Y0ODwvl%2BX%2FKObNTQKTvbYQwyo",
+            "checked": false
+          },
+          {
+            "title": "Ligero",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_n_g-101014845023111%3A117987508011&dc&language=es&qid=1792088459&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_4&ds=v1%3AQP0U%2BCU0MKZI43l8O%2F5TE7%2FaSjENZoYboMAdSvTNewM",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Vendedor",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Triplenet Pricing INC",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_6%3AAAZRLVTNON75Z&dc&language=es&qid=1792088459&rnid=339807011&ref=sr_nr_p_6_1&ds=v1%3Aq%2FedAfbowymoUsVt5WABhBZ2%2F2UkOePMUbRIFMiD5wc",
+            "checked": false
+          },
+          {
+            "title": "Homestead Supply & More ✅",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_6%3AAKDENCFW3A9SI&dc&language=es&qid=1792088459&rnid=339807011&ref=sr_nr_p_6_2&ds=v1%3A8X02L9Cnbad7h0zNwkECVCZE7bHpYnHCckJYzfu47VU",
+            "checked": false
+          },
+          {
+            "title": "The Factory Depot",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_6%3AA29PHU0KPCGV8S&dc&language=es&qid=1792088459&rnid=339807011&ref=sr_nr_p_6_3&ds=v1%3AcHpqmv92mz09DUqLS8I%2BVhuMiBcRHJfVvXbKLMXgSSc",
+            "checked": false
+          },
+          {
+            "title": "Voomi Supply",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991%2Cp_6%3AA1FEBFZ5BY5ZT8&dc&language=es&qid=1792088459&rnid=339807011&ref=sr_nr_p_6_4&ds=v1%3AR81EFPgc3k%2BWI5DMlacik0r7JM5K4ViJ12lC4%2BUVj6s",
+            "checked": false
+          }
+        ]
+      }
+    ],
+    "sorts": [],
+    "totalProducts": 16,
+    "vendor": "amazon",
+    "engine": "direct"
+  },
+  "search_time": 1.714590311050415,
+  "cache_hit": false,
+  "debug_html": null,
+  "error": null
+}

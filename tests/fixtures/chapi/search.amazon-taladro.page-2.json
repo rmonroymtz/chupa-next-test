@@ -1,0 +1,207 @@
+{
+  "vendor": "amazon",
+  "status": "ok",
+  "data": {
+    "products": [
+      {
+        "asin": "B0FKKKVN7M",
+        "title": "DEWALT Kit combinado de herramienta eléctrica inalámbrica de 20 V MAX XR y taladro de impacto y martillo, incluye 2 baterías POWERPACK de 4 ah y un cargador (DCK250QQ2)",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 8450.01,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 4.7
+        },
+        "image": {
+          "alt": "DEWALT Kit combinado de herramienta eléctrica inalámbrica de 20 V MAX XR y taladro de impacto y martillo, incluye 2 baterí...",
+          "src": "https://m.media-amazon.com/images/I/81vUvizvx4L._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0F94FMBYW",
+        "title": "DEWALT Taladro/destornillador inalámbrico de 1/2 pulgada sin escobillas MAX XR de 20 V (solo herramienta) (DCD801B)",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 3517.78,
+          "currency": "MXN",
+          "before_price": 5257.71
+        },
+        "reviews": {
+          "rating": 4.6
+        },
+        "image": {
+          "alt": "DEWALT Taladro/destornillador inalámbrico de 1/2 pulgada sin escobillas MAX XR de 20 V (solo herramienta) (DCD801B)",
+          "src": "https://m.media-amazon.com/images/I/61dB0pP3+tL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0BQ3WJ12K",
+        "title": "Milwaukee Electric - M12 Fuel. Kit Combo de 2 herramientas",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 6500.76,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 4.8
+        },
+        "image": {
+          "alt": "Milwaukee Electric - M12 Fuel. Kit Combo de 2 herramientas",
+          "src": "https://m.media-amazon.com/images/I/51Zqnb7iy0L._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0FRMBQ4L9",
+        "title": "GRENPRO 8V Pink Cordless Drill Set for Women 43-Piece Accessory Kit",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 755.18,
+          "currency": "MXN",
+          "before_price": 775.98
+        },
+        "reviews": {
+          "rating": 4.6
+        },
+        "image": {
+          "alt": "GRENPRO 8V Pink Cordless Drill Set for Women 43-Piece Accessory Kit | Portabrocas sin llave de 3/8 pulgadas, cable LED tip...",
+          "src": "https://m.media-amazon.com/images/I/71yYIE+PCRL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      }
+    ],
+    "pagination": {
+      "current": 2,
+      "next": "/-/es/s?k=drill&page=3&language=es&qid=1792088432&xpid=LJWeFly1wKl5E&ref=sr_pg_2",
+      "prev": "/-/es/s?k=drill&language=es&qid=1792088432&xpid=LJWeFly1wKl5E&ref=sr_pg_2",
+      "links": [
+        {
+          "link": "/-/es/s?k=drill&language=es&qid=1792088432&xpid=LJWeFly1wKl5E&ref=sr_pg_1",
+          "title": "1"
+        },
+        {
+          "link": "/-/es/s?k=drill&page=3&language=es&qid=1792088432&xpid=LJWeFly1wKl5E&ref=sr_pg_3",
+          "title": "3"
+        }
+      ]
+    },
+    "refinements": [
+      {
+        "title": "Marcas",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "DEWALT",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991&dc&language=es&qid=1792088432&rnid=85457740011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_123_1&ds=v1%3ALnplrj9WQa1aLtPadwtcEK3glE6IwlgwSOCEWdMvDh0",
+            "checked": false
+          },
+          {
+            "title": "Milwaukee",
+            "link": "/-/es/s?k=drill&rh=p_123%3A359095&dc&language=es&qid=1792088432&rnid=85457740011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_123_2&ds=v1%3AAof9O8H6R0zo8zXK31vw7IdNf19Gt25HVv2NFwTCf1M",
+            "checked": false
+          },
+          {
+            "title": "Makita",
+            "link": "/-/es/s?k=drill&rh=p_123%3A220860&dc&language=es&qid=1792088432&rnid=85457740011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_123_3&ds=v1%3ArcuPXm6h1bSufLgPpSewM0ehQqDtq7SpiwXDCZ7T6ps",
+            "checked": false
+          },
+          {
+            "title": "Bosch",
+            "link": "/-/es/s?k=drill&rh=p_123%3A46644&dc&language=es&qid=1792088432&rnid=85457740011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_123_4&ds=v1%3AmGSFVIfV3joIY9Qd8oHMetVZdgywr0pmt3tQ75CVKpg",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Fuente Alimentación",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Alimentación eléctrica con cable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101016441455111%3A205746257011&dc&language=es&qid=1792088432&rnid=205746256011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-101016441455111_1&ds=v1%3ALuxblv%2BwtErURHcKzTgYrFx2HxEHQxUjdiE4%2FuNz91k",
+            "checked": false
+          },
+          {
+            "title": "alimentación por batería",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101016441455111%3A205746258011&dc&language=es&qid=1792088432&rnid=205746256011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-101016441455111_2&ds=v1%3AifoVYuD6Q0PFtFwafuAkbpsdUysEuvoMsapnET9%2BjiQ",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Artículos Incluidos",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Manual del usuario",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443376011&dc&language=es&qid=1792088432&rnid=9060619011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-1001833455111_1&ds=v1%3AvbRGNm%2FXNnya6BruLmBB8ZVTb17AZBTJJTkWjZaaBJ8",
+            "checked": false
+          },
+          {
+            "title": "Cargador de batería",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443377011&dc&language=es&qid=1792088432&rnid=9060619011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-1001833455111_2&ds=v1%3AOhaEjHrPidVxjVnQMuDKr5Q8AZbF6sCHMzeMWW0cAJo",
+            "checked": false
+          },
+          {
+            "title": "Accesorio de taladro",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443369011&dc&language=es&qid=1792088432&rnid=9060619011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-1001833455111_3&ds=v1%3A9XEQ%2BTFGJbx2LjtWJlokVWvBBWZfGtXBQjSsnwdn1ys",
+            "checked": false
+          },
+          {
+            "title": "Adaptador",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443372011&dc&language=es&qid=1792088432&rnid=9060619011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-1001833455111_4&ds=v1%3AG0nXefmp5dKmSWdrbhk69pad%2BAJH9BvcEf4yksu00Hk",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Características",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Velocidad variable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987507011&dc&language=es&qid=1792088432&rnid=117987457011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-101014845023111_1&ds=v1%3A%2Fe3mB4vaXxzB8XQYrUog%2BZm2cW9AvUdEOGruuGn2uQw",
+            "checked": false
+          },
+          {
+            "title": "Compacto",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987509011&dc&language=es&qid=1792088432&rnid=117987457011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-101014845023111_2&ds=v1%3AtXVSBkgRA31XsX2hFJ%2B4FA%2FA6VcRg%2BJBmte2mB5HHgc",
+            "checked": false
+          },
+          {
+            "title": "Ligero",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987508011&dc&language=es&qid=1792088432&rnid=117987457011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-101014845023111_3&ds=v1%3AKbLArP6KC9QXuD%2BxAvCKeYvO%2F5qT5gTgBOTPDi2TWBk",
+            "checked": false
+          },
+          {
+            "title": "Ángulo variable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987516011&dc&language=es&qid=1792088432&rnid=117987457011&xpid=LJWeFly1wKl5E&ref=sr_nr_p_n_g-101014845023111_4&ds=v1%3AbrBz5hgByESlOeXgQcqnuipecH1CZwgO08Rj%2BqZuq%2BE",
+            "checked": false
+          }
+        ]
+      }
+    ],
+    "sorts": [],
+    "totalProducts": 16,
+    "vendor": "amazon",
+    "engine": "direct"
+  },
+  "search_time": 1.8611924648284912,
+  "cache_hit": false,
+  "debug_html": null,
+  "error": null
+}
