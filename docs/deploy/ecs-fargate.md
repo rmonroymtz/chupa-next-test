@@ -17,7 +17,7 @@ The storefront ships as one container image (`Dockerfile`, Next.js `output: 'sta
 3. Run it as an ECS service behind the load balancer, with the target group health check on `/healthz`.
 4. Verify: `curl -i https://<task-or-alb>/healthz` answers `200 ok`, and `curl https://<host>/robots.txt` shows `Sitemap: <PUBLIC_BASE_URL>/sitemap.xml`.
 
-Then route traffic as described in [`docs/routing/phase-1.md`](../routing/phase-1.md).
+Then route traffic as described in [`docs/routing/phase-1.md`](../routing/phase-1.md) and [`docs/routing/phase-2.md`](../routing/phase-2.md).
 
 ## Image
 

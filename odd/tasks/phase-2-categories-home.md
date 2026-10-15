@@ -101,7 +101,7 @@ There is no written phase 2 requirement. The original spec summary (Engram #606)
       and Page Builder `content` (row + what looks like a slider of banner slides, `min-height` 440/300px). The
       existing Page Builder parser/renderer may render it as the Magento fallback; unsupported content types still
       unchecked (needs the full content as a fixture under `tests/fixtures/page-builder`).
-    - CloudFront still sends `/` to PWA (`docs/routing/phase-1.md:65`); switching it belongs to T8.
+    - CloudFront still sends `/` to PWA (`docs/routing/phase-1.md:65`); switching it is documented in T6 (`docs/routing/phase-2.md`).
 5. **CHAPI load on category pages** — moot for categories (no CHAPI). Applies only to `/search.html` if it is in scope.
 6. **Indexability / status** — DECIDED 2026-10-14: category missing in Magento → 404 (`not_found`); category exists
    with no products → 200 + `noindex` with an empty state; Magento failure → 5xx (never 404). No CHAPI on category
@@ -189,7 +189,21 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
 - [x] T5 Category SEO and links (branch `feat/phase-2-05-category-seo-menu`, commits `52dba97` menu links + breadcrumbs + JSON-LD, `0c26cef` desktop menu horizontal scroll with arrows (user decision), `97d8011` trailing site name stripped from Magento meta titles on category/CMS/product (user decision); test 726, integration 56, typecheck/lint/build green; native reviews approved). Follow-ups: PDP breadcrumb JSON-LD assumes `.html` instead of reading `category_url_suffix` (production and staging use `.html`); a CMS page whose only title is the site name still renders it twice; first menu item is not aligned to the 1600px column on very wide screens. Original scope: metadata, canonical = clean URL without page, `CollectionPage`/`ItemList` +
   BreadcrumbList JSON-LD; every menu level to `categoryHref`; PDP breadcrumb JSON-LD `categoryUrl()` to category URLs
   (`product/ui/product-structured-data.ts:129`). Check: unit tests.
-- [ ] T6 Ops and docs: phase 2 routing doc (category URLs and `/` to Next, prerender exclusion), env vars, phase 2
+- [x] T6 Ops and docs (delegated writer; branch `feat/phase-2-06-routing-docs`; typecheck, lint, test 726,
+  test:integration 56, build green; `e2e/phase-2-smoke.spec.ts` 5 passed against the dev server on staging
+  Magento). `docs/routing/phase-2.md`: `/search.html` (exact) → PWA, then `/`, `/venia-new-home` and `*.html` → Next
+  (recommended option A: the edge cannot tell categories from other `.html` urls; Next 404s what Magento does not
+  know; only the two search urls must stay on PWA), prerender exclusions, no caching, rollback, curl checklist.
+  Observed on the dev server: `/search.html`, `/checkout`, `/cart`, `/sign-in`, `/my-account` → 404 in Next;
+  `/amazon-x-search.html` → 200 (parsed as product), so the search rules must win. `docs/phase-2-report.md`;
+  phase 1 routing, README, `docs/environment.md` and the ECS doc point to phase 2. New optional e2e variables
+  `E2E_CATEGORY_PATH`, `E2E_HOME_CMS_PATH`, `E2E_UNKNOWN_HTML_PATH` documented in `docs/environment.md`;
+  **`.env.example` not updated** (agents cannot read or edit `.env*`). No new app env vars in phase 2.
+  Review fixes: checklist `?page=2` on `/herramientas.html` expects 307 (staging's largest category has 14 products,
+  one page of 16); the smoke is opt-in with `E2E_PHASE2_SMOKE=1` so `E2E_BASE_URL` alone still runs only
+  `pwa-checkout`; menu assertions per nav after its links render; redirects must stay on the tested origin; a
+  category path with a query string is supported. Smoke 5 passed against the dev server.
+  Original scope: phase 2 routing doc (category URLs and `/` to Next, prerender exclusion), env vars, phase 2
   report, e2e smoke. Check: `pnpm typecheck lint test test:integration build`.
 
 ## Delivery strategy
@@ -211,9 +225,16 @@ Same as phase 1: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   tasks rewritten (T1–T6). Engram mirror pending (hook error "Claude host session registration could not be
   confirmed").
 
+- 2026-10-15: edge routing decided (user): option A in `docs/routing/phase-2.md` (all remaining `.html`, `/` and
+  `/venia-new-home` to Next). `/search.html` and `*-search.html` stay on PWA only as **temporary** rules until phase 3
+  serves search from Next (the user expects Next to own search; Next answers 404 for it today). Review fix: Magento
+  path rules (`/static/*`, `/media/*`, `/api/*`, callbacks) now match before `*.html`, with a checklist item.
+
 ## Next step
 
-Decide on the T1 advisory findings, then T2 (CMS override registry + `<CmsBlock>`).
+Phase 2 code and docs complete. Add the four e2e lines to `.env.example`, commit and open the T6 PR; then the edge
+operator applies `docs/routing/phase-2.md` on staging and runs its checklist and `e2e/phase-2-smoke.spec.ts`;
+production once its categories have products. Then phase 3 (`/search.html` via CHAPI).
 
 ## Resume on another machine
 
