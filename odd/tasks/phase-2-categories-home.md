@@ -186,7 +186,7 @@ deterministic test exists. Forecast: well over 400 authored lines in total, so o
   `page-builder/ui/product-cards.tsx` and reused by the category grid. Products named `-` are not filtered.
   Proving metadata and page share one resolution is done in `tests/integration/category.test.ts` (React `cache()`
   is a no-op outside a server request); the unit composition test proves `grid_per_page` 16 reaches `pageSize`.
-- [ ] T5 Category SEO and links: metadata, canonical = clean URL without page, `CollectionPage`/`ItemList` +
+- [x] T5 Category SEO and links (branch `feat/phase-2-05-category-seo-menu`, commits `52dba97` menu links + breadcrumbs + JSON-LD, `0c26cef` desktop menu horizontal scroll with arrows (user decision), `97d8011` trailing site name stripped from Magento meta titles on category/CMS/product (user decision); test 726, integration 56, typecheck/lint/build green; native reviews approved). Follow-ups: PDP breadcrumb JSON-LD assumes `.html` instead of reading `category_url_suffix` (production and staging use `.html`); a CMS page whose only title is the site name still renders it twice; first menu item is not aligned to the 1600px column on very wide screens. Original scope: metadata, canonical = clean URL without page, `CollectionPage`/`ItemList` +
   BreadcrumbList JSON-LD; every menu level to `categoryHref`; PDP breadcrumb JSON-LD `categoryUrl()` to category URLs
   (`product/ui/product-structured-data.ts:129`). Check: unit tests.
 - [ ] T6 Ops and docs: phase 2 routing doc (category URLs and `/` to Next, prerender exclusion), env vars, phase 2
