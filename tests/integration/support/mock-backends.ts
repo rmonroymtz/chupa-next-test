@@ -62,6 +62,11 @@ export interface MockBackendsConfig {
   readonly menuDelayMs?: number;
   /** CHAPI answers by `${store}:${sku}`; unknown keys answer an empty `data`. */
   readonly chapi: Readonly<Record<string, ChapiScenario>>;
+  /**
+   * CHAPI `/api/v1/search/` answers by `${store}:${query}` (the CHAPI store of
+   * the request body); unknown keys answer CHAPI's `no_results` envelope.
+   */
+  readonly chapiSearch?: Readonly<Record<string, ChapiScenario>>;
   readonly chapiDefaultDelayMs: number;
 }
 
@@ -194,6 +199,15 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   const chapi = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
       const call = record('chapi', req.url ?? '', body, res);
+      if (req.url === '/api/v1/search/') {
+        const search = config.chapiSearch?.[`${String(body.store)}:${String(body.query)}`];
+        await delay(search?.delayMs ?? config.chapiDefaultDelayMs);
+        return {
+          call,
+          status: search?.status ?? 200,
+          body: search?.body ?? emptySearch(String(body.store)),
+        };
+      }
       const scenario = config.chapi[`${String(body.store)}:${String(body.sku)}`];
       await delay(scenario?.delayMs ?? config.chapiDefaultDelayMs);
       return {
@@ -278,6 +292,22 @@ async function handle(
   res.end(JSON.stringify(result.body), () => {
     result.call.respondedSeq = nextSeq();
   });
+}
+
+/** CHAPI's answer to a search without results (staging shape). */
+function emptySearch(store: string): unknown {
+  return {
+    vendor: store,
+    status: 'no_results',
+    data: {
+      vendor: store,
+      products: [],
+      totalProducts: 0,
+      pagination: { current: 1, next: '', prev: '', links: [] },
+      refinements: [],
+      sorts: [],
+    },
+  };
 }
 
 function listen(server: Server): Promise<number> {

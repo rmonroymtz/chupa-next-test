@@ -125,6 +125,13 @@ describe('StoreSearch.sortOptions', () => {
     });
   });
 
+  it('never rejects and returns no sort options when the store config read fails', async () => {
+    const { gateway, search } = setup({}, () => Promise.reject(new Error('magento down')));
+
+    await expect(search.sortOptions(INPUT, result)).resolves.toEqual([]);
+    expect(gateway.sortOptions).not.toHaveBeenCalled();
+  });
+
   it('degrades to no sort options when sort_by fails or the store is unsupported', async () => {
     const failing = setup({ sortOptions: async () => ({ status: 'timeout' }) });
     await expect(failing.search.sortOptions(INPUT, result)).resolves.toEqual([]);

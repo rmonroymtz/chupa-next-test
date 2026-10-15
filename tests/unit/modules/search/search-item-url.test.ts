@@ -39,6 +39,40 @@ describe('buildSearchItemUrlKey', () => {
     }
   });
 
+  it('keeps the legacy slug for titles starting with a symbol and still round-trips', () => {
+    const urlKey = buildSearchItemUrlKey('amazon', 'B0CC1RHJY1', '#1 Best Seller Drill');
+
+    // Legacy-compatible: the slug keeps its leading '-' (a double '-' after the sku).
+    expect(urlKey).toBe('amazon-B0CC1RHJY1--1-best-seller-drill');
+    expect(parseProductUrl(`/${urlKey}.html`, { vendors })).toMatchObject({
+      vendor: 'amazon',
+      sku: 'B0CC1RHJY1',
+    });
+  });
+
+  it.each([
+    ['ñandú ¿qué?', 'ebay-355928863885--and-qu-'],
+    ['日本語', 'ebay-355928863885--'],
+    ['', 'ebay-355928863885-'],
+  ])('round-trips a title without ASCII alphanumerics (%j)', (title, expected) => {
+    const urlKey = buildSearchItemUrlKey('ebay', '355928863885', title);
+
+    expect(urlKey).toBe(expected);
+    expect(parseProductUrl(`/${urlKey}.html`, { vendors })).toMatchObject({
+      vendor: 'ebay',
+      sku: '355928863885',
+    });
+  });
+
+  it('round-trips a symbol-only title for an acme sku', () => {
+    const urlKey = buildSearchItemUrlKey('acme', 'SKU 01/ñ', '¡¡!!');
+
+    expect(parseProductUrl(`/${urlKey}.html`, { vendors })).toMatchObject({
+      vendor: 'acme',
+      sku: 'SKU 01/ñ',
+    });
+  });
+
   it('documents a known limitation shared with the legacy: an acme segment containing "-"', () => {
     // '~~~' is base64 'fn5+', base64url 'fn5-'. Product urls are split on '-'
     // (legacy and `parseProductUrl`), so the sku segment is cut to 'fn5' and

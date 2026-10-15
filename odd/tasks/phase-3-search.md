@@ -88,21 +88,18 @@ Next (reusable / missing):
    `data.asin` B00IJ0ALYS, `data.price.current_price` 4434.6 MXN, `vendor` amazon. Staging engine settings:
    `amazon_engine` and `amazon_search_engine` both `direct`.
 8. Non-CHAPI stores (homedepot, walmart, unknown values) — DECIDED 2026-10-15: 307 to the same search with
-   `store=chupachoice`; no Magento search fallback. Magento `searchTerm.redirect` — DECIDED 2026-10-15: honored
-   server-side, **sequentially**: query Magento `searchTerm` first; if it has a redirect, 307 to it and never call
-   CHAPI; otherwise call CHAPI (user rule: CHAPI only for search and product pages; accepts ~0.75 s extra per search).
-   Legacy reads
-   it with a custom query `searchTerm(Search: $search, store: $store) { redirect }`
-   (`chupaprecios-pwa/src/overrides/@magento/peregrine/lib/talons/SearchPage/searchPage.gql.js:39`,
-   `useSearchPage.js:65-71`, client-side `window.location.replace`). Staging answers it
-   (`taladro` → `redirect: null, popularity: 156`); one read was run 2026-10-15 — it may bump `popularity`.
+   `store=chupachoice`; no Magento search fallback. Magento `searchTerm.redirect` — **DROPPED (user, 2026-10-15)**,
+   because the legacy PWA stopped calling it in commit `1189d821` (CHUP-569, 2024-10-21); the earlier "honor it"
+   decision (Magento `searchTerm` first, 307 on a redirect, CHAPI otherwise) was based on reading dead code
+   (`useSearchPage.js:65-71` declares the lazy query `searchTerm(Search: $search, store: $store) { redirect }` but never
+   calls it). Searches go straight to CHAPI; no Magento call per search.
 9. Extras — DECIDED 2026-10-15: **in scope**: fallback-store notice (from the CHAPI response `vendor`, no extra call),
    GTM `SEARCH_REQUEST`/`SEARCH_RESPONSE` dataLayer events (follow the phase 1 cart dataLayer pattern in
    `src/modules/cart/domain/add-to-cart.ts:199-222`), recommendation sliders Crossell/Upsell/Recommender (Magento
    `randomProducts`, legacy `RandomSliders/**`). **Out of scope (later)**: header autocomplete.
 10. Timeout and errors — DECIDED 2026-10-15: new env `CHAPI_SEARCH_TIMEOUT_MS` (default 8000); CHAPI failure or
     timeout → 200 page (`noindex`) with "No pudimos cargar los resultados" and a "Reintentar" link, plus a metric;
-    Magento `searchTerm` failure → continue with the CHAPI search (no 5xx). Matches both upstream Venia and the
+    (the Magento `searchTerm` failure rule no longer applies: decision 8 dropped the call). Matches both upstream Venia and the
     Chupaprecios PWA, which never answer 5xx for search (upstream: Apollo RetryLink 5 attempts client-side only, no
     timeout, error shown as "No results found…"; Chupaprecios: SWR 3 retries, separate error and empty messages).
 
@@ -118,9 +115,9 @@ authored lines in total: one stacked PR per task.
   metrics, never-reject result, gzip), mapper to `ProductCard` (link `/{vendor}-{sku}-{slug}.html`), pagination links,
   refinements, sorts, response `vendor`; fixtures recorded from staging. Check: MSW unit tests (found, empty, timeout,
   error, invalid, items without price).
-- [ ] T3 Search decision + route: parse `query`, `store` (default `chupachoice`; non-CHAPI or unknown → 307 to
-  `chupachoice`), `page`, `storeParams`; bots → empty 200 without CHAPI; Magento `searchTerm` first → 307 when it has a
-  redirect (failure → continue); CHAPI search (ChupaChoice: 4 parallel calls amazon 12, ebay 6, target 6, acme 6);
+- [x] T3 (`src/app/search.html/page.tsx`; `resolveSearchPage`; test 822, integration 66; uncommitted) Search decision + route: parse `query`, `store` (default `chupachoice`; non-CHAPI or unknown → 307 to
+  `chupachoice`), `page`, `storeParams`; bots and empty query → 200 without CHAPI; no Magento `searchTerm` redirect
+  (dropped, decision 8); CHAPI search (ChupaChoice: 4 parallel calls amazon 12, ebay 6, target 6, acme 6);
   `/search.html` served by Next; metadata title with the query, `noindex, follow`. Check: unit + integration.
 - [ ] T4 Search UI: store tabs, results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
@@ -185,7 +182,30 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   Follow-up for T3: add a URL round-trip test for titles starting with
   a symbol (slug starting with `-`).
 
+- 2026-10-15: T3 implemented (delegated writer, uncommitted, branch `feat/phase-3-03-search-route`). Route: static
+  `src/app/search.html/page.tsx` (wins over the catch-all, no Magento `route()` call). Pure
+  `resolveSearchPage({ search, userAgent }, deps)` → `redirect` (`unknown_store`) or `page`
+  `{ query, store, page, storeParams, results }` with `results` `none` (`empty_query` | `bot`) | `single` (one
+  `StoreListing`) | `multi` (4 listings); `StoreListing = { store, pageSize, filters, result | null, failure | null,
+  servedByFallback }` (T4 renders it and calls `getSearchSortOptions` with the listing's store/filters/pageSize).
+  Single-store page size = `grid_per_page` (fallback 12). Metric `SearchPage`
+  (Outcome). Metadata: `Búsqueda: {q}`, `noindex, follow`, no canonical. T2 follow-ups: slug round-trip tests
+  (leading symbol, no ASCII alphanumerics, empty title) pass with the legacy slug unchanged (no fix needed: the
+  parser reads only the vendor and sku segments); `sortOptions` never rejects on store config failure (store-search +
+  composition tests). RED: 4 new unit files failed at import; follow-up and integration tests were green on first
+  run. Checks: typecheck, lint, unit (852), integration (69), build pass; dev server (staging): amazon 200, 16 cards,
+  `noindex, follow`; chupachoice 4 sections, 30 cards; walmart 307 to chupachoice.
+- 2026-10-15: the writer found the legacy PWA no longer calls `searchTerm` (CHUP-569); user decision: drop it. Removed
+  the searchTerm step, port, Magento repository, redirect-target validator (`searchRedirectLocation`), the
+  `search_term` redirect reason and `redirect_search_term` metric outcome, their tests and the integration mock/case.
+  Added one unit assertion per remaining `SearchPage` Outcome (`redirect_unknown_store`, `empty_query`, `bot`,
+  `results`, `failure`; a ChupaChoice view with one failed list counts as `failure`); integration asserts no Magento
+  call besides `StoreConfig`/`HeaderMenu`. RED: typecheck failed on the new deps shape (the old step swallowed the
+  missing dep at runtime, so unit tests were already green); GREEN after the removal. Checks: typecheck, lint, unit
+  (822), integration (66), build pass; dev server (staging): amazon 200, 12 cards (staging returned fewer usable
+  items than the earlier run's 16), `noindex, follow`; chupachoice 4 sections, 30 cards; walmart 307.
+
 ## Next step
 
-Parent: review and commit T2, then T3 (search decision + route). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to
+Parent: review and commit T3, then T4 (search UI). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to
 `.env.example`.

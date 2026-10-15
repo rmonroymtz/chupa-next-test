@@ -55,4 +55,14 @@ describe('search composition', () => {
 
     expect(sorts).toHaveLength(sortBy.data.length);
   });
+
+  it('getSearchSortOptions resolves to no options when the store config read fails', async () => {
+    const outcome = await searchStore('ebay', 'taladro', '', 16);
+    if (outcome.status !== 'ok') throw new Error(outcome.status);
+    server.use(http.post(MAGENTO, () => HttpResponse.json({}, { status: 503 })));
+
+    await expect(getSearchSortOptions('ebay', 'taladro', '', 16, outcome.result)).resolves.toEqual(
+      [],
+    );
+  });
 });
