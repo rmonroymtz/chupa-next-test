@@ -167,6 +167,39 @@ describe('SearchPage: single store states', () => {
     );
   });
 
+  it('fallback store: pagination, filter and sort links use the store that answered', async () => {
+    const fallback = result({
+      vendor: 'amazon',
+      pagination: {
+        current: 1,
+        totalPages: null,
+        next: '/amazon-next',
+        prev: null,
+        links: [{ title: '2', link: '/amazon-next' }],
+      },
+      refinements: [
+        {
+          title: 'Marcas',
+          type: 'checkbox',
+          options: [{ title: 'DEWALT', link: '/amazon-dewalt', checked: false }],
+        },
+      ],
+    });
+    const loader = vi.fn(() => Promise.resolve(SORTS));
+    const body = await renderAll(
+      single({ store: 'target', servedByFallback: true, result: fallback }, { store: 'target' }),
+      loader,
+    );
+
+    const stores = [...body.querySelectorAll('a[href^="/search.html"]')]
+      .map((a) => params(a.getAttribute('href')))
+      .filter((link) => link.storeParams !== undefined)
+      .map((link) => link.store);
+    expect(stores.length).toBeGreaterThan(0);
+    expect(new Set(stores)).toEqual(new Set(['amazon']));
+    expect(loader).toHaveBeenCalledWith(expect.objectContaining({ store: 'amazon' }));
+  });
+
   it('no notice when the requested store answered', () => {
     expect(render(single()).querySelector('[data-search-fallback]')).toBeNull();
   });

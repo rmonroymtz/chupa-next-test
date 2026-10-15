@@ -229,6 +229,12 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   `nav[aria-label="Tiendas"]` on single-store and ChupaChoice pages. "Store tabs" in decision 1 means the header
   search bar tabs. Unit 859, integration 71.
 
+- 2026-10-15: decision (user, T4 review warning): when CHAPI answers with another vendor (`servedByFallback`), the
+  pagination, filter and sort links and the `sort_by` call use **the store that answered** (when it is a search store),
+  not the requested one, so its opaque CHAPI links are never sent to a different store. Differs from the legacy PWA,
+  which kept the requested store. The header search bar then follows that store after a click. Follow-up: de-duplicate
+  repeated pagination/refinement titles (React keys). Unit 860, integration 71.
+
 ## Next step
 
 Parent: review and commit T3, then T4 (search UI). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to

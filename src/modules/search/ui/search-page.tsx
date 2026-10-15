@@ -87,7 +87,10 @@ function SingleStore({
     );
   }
 
-  const location: SearchLocation = { query: view.query, store: listing.store };
+  // CHAPI links belong to the store that answered: following them must ask that store, not the
+  // requested one (decided 2026-10-15; the legacy PWA kept the requested store).
+  const linkStore = answeringStore(listing, result);
+  const location: SearchLocation = { query: view.query, store: linkStore };
   const hasFilters = result.refinements.length > 0;
   return (
     <div
@@ -111,7 +114,7 @@ function SingleStore({
           </p>
           <Suspense fallback={<SearchSortPlaceholder />}>
             <SearchSort
-              options={safeSortOptions(loadSortOptions, { ...listing, result })}
+              options={safeSortOptions(loadSortOptions, { ...listing, store: linkStore, result })}
               location={location}
             />
           </Suspense>
@@ -230,4 +233,10 @@ function ErrorState({ retryUrl }: { readonly retryUrl: string }) {
 
 function storeLabel(store: string): string {
   return SEARCH_STORES.find((entry) => entry.id === store)?.label ?? store;
+}
+
+/** The store whose CHAPI links a listing carries: the vendor that answered when it is a search store. */
+function answeringStore(listing: StoreListing, result: SearchResult): string {
+  if (!listing.servedByFallback) return listing.store;
+  return SEARCH_STORES.some((entry) => entry.id === result.vendor) ? result.vendor : listing.store;
 }
