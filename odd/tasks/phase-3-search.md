@@ -1,7 +1,42 @@
 # Phase 3 storefront — search
 
-Status: discovery done and all product decisions taken 2026-10-15; tasks finalized. No source code written yet.
-Branch: `feat/phase-3-search` (from `main` at `88a8d23`, after phase 2 PRs #9–#14).
+Status (2026-10-15, end of day): T1–T4 merged to `main` (PRs #15–#19); T5 done and committed on
+`feat/phase-3-05-sku-search` (pushed, **no PR yet, native review pending**); T6–T7 not started; one product decision
+open. **Start with "Resume here" below.**
+
+## Resume here (handoff 2026-10-15)
+
+1. `git fetch origin && git switch feat/phase-3-05-sku-search && pnpm install`; `.env.local` needs `MAGENTO_GRAPHQL_URL`
+   (staging: `https://staging.chupaprecios.com.mx/graphql`, which has categories and products), `CHAPI_BASE_URL`,
+   `PUBLIC_BASE_URL`. Check: `pnpm typecheck && pnpm lint && pnpm test` (927) and `pnpm test:integration` (81).
+2. **T5 native review is pending.** The last `gentle-ai review start` consent for T5 (14 files, 1094 lines, up to
+   `7e801e0`) was interrupted by the user before answering. Run `gentle-ai review status --cwd . --contract
+   gentle-ai.review-integration/v2 --agent claude-code --next-transition` and follow the returned transition (relay the
+   consent to the user). Earlier T5 reviews were approved; their warnings are fixed in `90d7e4f` and `7e801e0`.
+3. Then open the T5 PR from `feat/phase-3-05-sku-search` (compare link; `gh` is not installed on this machine). Tell
+   the user to merge only after the last push (twice a PR was merged before the follow-up commits landed: #14 and #18).
+4. **Open decision (ask the user first):** product URLs built from CHAPI titles use the legacy slug (non-ASCII → `-`,
+   e.g. `perforaci-n`) while Magento url keys drop non-ASCII characters (`perforacin`). Search result cards and the
+   `-search.html` canonical therefore point to a `noindex` missing-product URL instead of the indexable Magento page
+   for products Magento already has. Options offered: (1, recommended) build the slug like Magento (drop non-ASCII),
+   verified against several real staging products, in its own branch after T5; (2) look the product up in Magento by
+   sku and redirect (`products(filter: {sku})` answers "Internal server error" on staging today); (3) leave it as a
+   follow-up.
+5. Then T6 (GTM search events, recommendation sliders from Magento `randomProducts`) and T7 (phase 3 routing doc:
+   delete the temporary phase 2 search rules 5 and 6, prerender, env vars, phase 3 report, e2e smoke).
+
+Open follow-ups (no decision needed now): acme base64url `-` SKU limitation (count affected Magento SKUs before any
+format change); `useSearchParams` in the header without Suspense relies on every route being dynamic; header
+integration assertions depend on HTML attribute order; prev link clamped to page 1 label; search item slug keeps a
+trailing `-`; canonical with a literal `%` for missing products (phase 1); the product module imports
+`buildSearchItemUrlKey` from `search/domain` (move it to the product domain).
+
+Working notes for the next session: the user writes in Spanish (Rioplatense replies); commits use
+`git -c user.name="Ricardo Monroy" -c user.email="ricardo@chupaprecios.com.mx"` (no git identity configured), no
+`Co-Authored-By`; shell is zsh (pass provider tokens with `A=("${(@f)$(jq -r '…token' file)}")`); the user's dev
+server usually runs on port 3000 against staging — don't kill it; agents cannot read or edit `.env*` (give the user the
+lines); legacy behavior must be checked in `~/Proyectos/chupaprecios-pwa`, never assumed (two mistakes this phase came
+from not checking: on-page store tabs, `searchTerm` redirects).
 
 ## Objective
 
@@ -115,14 +150,14 @@ authored lines in total: one stacked PR per task.
   metrics, never-reject result, gzip), mapper to `ProductCard` (link `/{vendor}-{sku}-{slug}.html`), pagination links,
   refinements, sorts, response `vendor`; fixtures recorded from staging. Check: MSW unit tests (found, empty, timeout,
   error, invalid, items without price).
-- [x] T3 (`src/app/search.html/page.tsx`; `resolveSearchPage`; test 822, integration 66; uncommitted) Search decision + route: parse `query`, `store` (default `chupachoice`; non-CHAPI or unknown → 307 to
+- [x] T3 (`src/app/search.html/page.tsx`; `resolveSearchPage`; test 822, integration 66; PR #17) Search decision + route: parse `query`, `store` (default `chupachoice`; non-CHAPI or unknown → 307 to
   `chupachoice`), `page`, `storeParams`; bots and empty query → 200 without CHAPI; no Magento `searchTerm` redirect
   (dropped, decision 8); CHAPI search (ChupaChoice: 4 parallel calls amazon 12, ebay 6, target 6, acme 6);
   `/search.html` served by Next; metadata title with the query, `noindex, follow`. Check: unit + integration.
-- [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
+- [x] T4 (search UI; PRs #18 and #19; test 874, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
-- [x] T5 (sku jump 44ad0f1; general placeholder fix + review fixes 90d7e4f; url-key hardening uncommitted on `feat/phase-3-05-sku-search`; test 927, integration 81) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
+- [x] T5 (sku jump 44ad0f1; general placeholder fix + review fixes 90d7e4f; url-key hardening 7e801e0, all on `feat/phase-3-05-sku-search`, not merged; test 927, integration 81) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
   product); resolve the product from CHAPI, render it on that URL with canonical = product canonical URL and `noindex`;
   bots → no CHAPI (phase 1 missing-product rule). Fixes the "Carmina Earrings" bug. Check: unit + integration.
 - [ ] T6 Extras: GTM `SEARCH_REQUEST`/`SEARCH_RESPONSE` dataLayer events; recommendation sliders
@@ -250,8 +285,7 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 
 ## Next step
 
-Parent: review and commit T3, then T4 (search UI). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to
-`.env.example`.
+See "Resume here" at the top of this file (handoff 2026-10-15). Entries below are the detailed T5 log.
 
 - 2026-10-15: decision (user): the acme base64url `-` SKU limitation (e.g. `~~~` → `fn5-`, read back as `~~`) stays
   as is for now — inherited from the legacy PWA and phase 1 product URLs. Follow-up before any format change: count how
