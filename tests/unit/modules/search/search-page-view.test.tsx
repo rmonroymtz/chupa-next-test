@@ -103,27 +103,9 @@ const links = (root: ParentNode, selector: string) =>
     ...params(a.getAttribute('href')),
   }));
 
-describe('SearchPage: store tabs', () => {
-  it('links every store with the same query on page 1, the current one marked', () => {
-    const body = render(single());
-
-    const nav = body.querySelector('nav[aria-label="Tiendas"]');
-    const tabs = [...(nav?.querySelectorAll('a') ?? [])];
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      'ChupaChoice',
-      'Amazon',
-      'eBay',
-      'Target',
-      'Acme',
-    ]);
-    expect(tabs.map((tab) => params(tab.getAttribute('href')))).toEqual(
-      ['chupachoice', 'amazon', 'ebay', 'target', 'acme'].map((store) => ({
-        query: 'taladro',
-        store,
-        page: '1',
-      })),
-    );
-    expect(tabs.filter((tab) => tab.getAttribute('aria-current') === 'page')).toEqual([tabs[1]]);
+describe('SearchPage: store switching', () => {
+  it('renders no on-page store tabs: the header search bar switches stores, as in the legacy PWA', () => {
+    expect(render(single()).querySelector('nav[aria-label="Tiendas"]')).toBeNull();
   });
 
   it.each([
@@ -430,10 +412,8 @@ describe('SearchPage: ChupaChoice', () => {
     ]);
     expect(sections[1]?.textContent).toContain('Esta tienda no tiene ninguna coincidencia');
     expect(sections[2]?.querySelector('[role="alert"] a')?.getAttribute('href')).toBe(RETRY);
-    // The tabs mark ChupaChoice; no sort, filters or pagination in this view.
-    expect(body.querySelector('nav[aria-label="Tiendas"] [aria-current="page"]')?.textContent).toBe(
-      'ChupaChoice',
-    );
+    // No store tabs, sort, filters or pagination in this view.
+    expect(body.querySelector('nav[aria-label="Tiendas"]')).toBeNull();
     expect(body.querySelector('[data-search-sort]')).toBeNull();
     expect(body.querySelector('nav[aria-label="Paginación"]')).toBeNull();
     expect(loader).not.toHaveBeenCalled();

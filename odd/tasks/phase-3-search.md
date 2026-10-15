@@ -119,7 +119,7 @@ authored lines in total: one stacked PR per task.
   `chupachoice`), `page`, `storeParams`; bots and empty query → 200 without CHAPI; no Magento `searchTerm` redirect
   (dropped, decision 8); CHAPI search (ChupaChoice: 4 parallel calls amazon 12, ebay 6, target 6, acme 6);
   `/search.html` served by Next; metadata title with the query, `noindex, follow`. Check: unit + integration.
-- [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: store tabs, results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
+- [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
 - [ ] T5 `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
@@ -222,6 +222,12 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   (+5) green on the first run except one regex on attribute order. Checks: typecheck, lint, unit (859), integration
   (71), build pass; staging screenshots (amazon 1366/390, sort, filter, page 2, ChupaChoice) look right. Known visual
   nit: ChupaChoice lists of 6/12 in the 5-column grid leave orphan rows.
+
+- 2026-10-15: user reported the on-page store tabs (`SearchStoreTabs`) as a visual error: the Chupaprecios PWA search
+  page has none (store switching lives only in the header search bar, which T4 makes reflect the current store and
+  query). The parent had asked for them in the T4 brief without checking the legacy. Removed; tests now assert no
+  `nav[aria-label="Tiendas"]` on single-store and ChupaChoice pages. "Store tabs" in decision 1 means the header
+  search bar tabs. Unit 859, integration 71.
 
 ## Next step
 

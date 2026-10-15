@@ -230,7 +230,8 @@ describe('search page', () => {
       page: '1',
       storeParams: sortBy.data[1]!.link,
     });
-    expect(option('Amazon')).toEqual({ query: 'taladro', store: 'amazon', page: '1' });
+    // No on-page store tabs (the header search bar switches stores, as in the legacy PWA).
+    expect(page.html).not.toContain('aria-label="Tiendas"');
     expect(page.html).not.toContain('Limpiar filtros');
     // The search response has no sorts: one sort_by call with the same search.
     expect(sortCalls().map((call) => call.body)).toEqual([

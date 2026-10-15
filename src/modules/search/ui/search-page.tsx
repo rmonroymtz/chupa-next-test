@@ -7,7 +7,6 @@ import type { SearchResult, SearchSortOption } from '@/modules/search/domain/sea
 import { SearchFiltersDisclosure, SearchFiltersSidebar } from './search-filters';
 import { SearchPagination } from './search-pagination';
 import { SearchSort, SearchSortPlaceholder } from './search-sort';
-import { SearchStoreTabs } from './search-store-tabs';
 
 type SearchPageView = Extract<SearchPageDecision, { kind: 'page' }>;
 
@@ -48,7 +47,6 @@ export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps)
       {results.kind === 'none' && results.reason === 'empty_query' ? (
         <p className="py-12 text-center text-neutral-grey">Escribe lo que quieres buscar.</p>
       ) : null}
-      {results.kind !== 'none' ? <SearchStoreTabs query={query} store={view.store} /> : null}
       {results.kind === 'single' ? (
         <SingleStore
           listing={results.listing}
