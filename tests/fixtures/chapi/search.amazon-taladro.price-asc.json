@@ -1,0 +1,202 @@
+{
+  "vendor": "amazon",
+  "status": "ok",
+  "data": {
+    "products": [
+      {
+        "asin": "B0GSVFJZXN",
+        "title": "DAN&DRE Gatillo de Taladro Taladro Destornillador Inalámbrico 8×4×2 7.2 V – 24 V Taladro Inalámbrico Control con Luz Pequeña",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 394.34,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 0.0
+        },
+        "image": {
+          "alt": "DAN&DRE Gatillo de Taladro Taladro Destornillador Inalámbrico 8×4×2 7.2 V – 24 V Taladro Inalámbrico Control con Luz Pequeña",
+          "src": "https://m.media-amazon.com/images/I/51KDaf7F6wL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0GYMY6DGV",
+        "title": "Taladro de repuesto de metal para taladros inalámbricos de 12 V, 16,8 V, 21 V, compatible con diámetro y longitud estándar del eje de salida",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 514.38,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 0.0
+        },
+        "image": {
+          "alt": "Taladro de repuesto de metal para taladros inalámbricos de 12 V, 16,8 V, 21 V, compatible con diámetro y longitud estándar...",
+          "src": "https://m.media-amazon.com/images/I/61OqknlsiFL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0GWS325DS",
+        "title": "Mini taladro eléctrico portátil DC 5 V con cable USB y 3 piezas, micro taladro de mano para tablero de papel de plástico de madera",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 550.09,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 0.0
+        },
+        "image": {
+          "alt": "Mini taladro eléctrico portátil DC 5 V con cable USB y 3 piezas, micro taladro de mano para tablero de papel de plástico d...",
+          "src": "https://m.media-amazon.com/images/I/51OT7PJ44UL._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      },
+      {
+        "asin": "B0GVSB9MWK",
+        "title": "# 1600A013HK Juego de destornilladores de taladro de litio Unidad de",
+        "brand": "",
+        "categories": [],
+        "release_date": "",
+        "price": {
+          "current_price": 685.96,
+          "currency": "MXN",
+          "before_price": 0.0
+        },
+        "reviews": {
+          "rating": 0.0
+        },
+        "image": {
+          "alt": "EGNic # 1600A013HK Juego de destornilladores de taladro de litio Unidad de | Para GSR12V-35/12V-35HX piezas de repuesto du...",
+          "src": "https://m.media-amazon.com/images/I/11du7jnxd3L._AC_UL320_.jpg"
+        },
+        "stock_status": "in_stock"
+      }
+    ],
+    "pagination": {
+      "current": 1,
+      "next": "/-/es/s?k=drill&s=price-asc-rank&page=2&xpid=bIhAv3fkfuHLB&qid=1792088452&ref=sr_pg_1",
+      "prev": "",
+      "links": [
+        {
+          "link": "/-/es/s?k=drill&s=price-asc-rank&page=2&xpid=bIhAv3fkfuHLB&qid=1792088452&ref=sr_pg_2",
+          "title": "2"
+        },
+        {
+          "link": "/-/es/s?k=drill&s=price-asc-rank&page=3&xpid=bIhAv3fkfuHLB&qid=1792088452&ref=sr_pg_3",
+          "title": "3"
+        }
+      ]
+    },
+    "refinements": [
+      {
+        "title": "Marcas",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "DEWALT",
+            "link": "/-/es/s?k=drill&rh=p_123%3A195991&s=price-asc-rank&dc&qid=1792088452&rnid=85457740011&ref=sr_nr_p_123_1&ds=v1%3A%2F%2B8VMzE0CTDzB8hP8be0YqCxCXIN2txNPsTiFUIpZ8I",
+            "checked": false
+          },
+          {
+            "title": "Bosch",
+            "link": "/-/es/s?k=drill&rh=p_123%3A46644&s=price-asc-rank&dc&qid=1792088452&rnid=85457740011&ref=sr_nr_p_123_2&ds=v1%3AAhAFoLtRS4LfSYb0YJuhfJaoSCokeMOq3jgxVGhLbiw",
+            "checked": false
+          },
+          {
+            "title": "Festool",
+            "link": "/-/es/s?k=drill&rh=p_123%3A254824&s=price-asc-rank&dc&qid=1792088452&rnid=85457740011&ref=sr_nr_p_123_3&ds=v1%3AJfj5c77Iwx2sNrjqnZ6jiESh1aGlKZoZM5ONL9cEUXI",
+            "checked": false
+          },
+          {
+            "title": "metabo",
+            "link": "/-/es/s?k=drill&rh=p_123%3A311470&s=price-asc-rank&dc&qid=1792088452&rnid=85457740011&ref=sr_nr_p_123_4&ds=v1%3AQPZc5M23UhCsRmfukW9WxpzU3JHz1I1FQcZtx2lliTQ",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Fuente Alimentación",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Alimentación eléctrica con cable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101016441455111%3A205746257011&s=price-asc-rank&dc&qid=1792088452&rnid=205746256011&ref=sr_nr_p_n_g-101016441455111_1&ds=v1%3AMY%2Fa3xST6qBdoqLG5%2FEpARnwHZAX9hDxn7Z9DxQDW7k",
+            "checked": false
+          },
+          {
+            "title": "alimentación por batería",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101016441455111%3A205746258011&s=price-asc-rank&dc&qid=1792088452&rnid=205746256011&ref=sr_nr_p_n_g-101016441455111_2&ds=v1%3AYy9SFlp6349cViWZTXogBa7UwZG6G%2BzOi5mIT0DKL%2F8",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Artículos Incluidos",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Cargador de batería",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443377011&s=price-asc-rank&dc&qid=1792088452&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_1&ds=v1%3ADLYIZwPUz0jZQEaQhGQKw%2FI57Mk%2BwszifUsNxlAjfqg",
+            "checked": false
+          },
+          {
+            "title": "Manual del usuario",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443376011&s=price-asc-rank&dc&qid=1792088452&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_2&ds=v1%3A%2BKf65Rmkv%2BNXS5YResrrvRCadwMUtW1YpARZPqvGsX0",
+            "checked": false
+          },
+          {
+            "title": "Accesorio de taladro",
+            "link": "/-/es/s?k=drill&rh=p_n_g-1001833455111%3A212443369011&s=price-asc-rank&dc&qid=1792088452&rnid=9060619011&ref=sr_nr_p_n_g-1001833455111_3&ds=v1%3AlYqpLwJ3eFIs8cawXO4DkBOmUMC12SMQjfPD3knONBc",
+            "checked": false
+          }
+        ]
+      },
+      {
+        "title": "Características",
+        "type": "checkbox",
+        "links": [
+          {
+            "title": "Velocidad variable",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987507011&s=price-asc-rank&dc&qid=1792088452&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_1&ds=v1%3A6IF7YVLFs3rNl8%2B8iTTDjGQUs2uc%2BUYUpS%2FYYz%2BDz9Y",
+            "checked": false
+          },
+          {
+            "title": "Luz de trabajo LED incorporada",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987517011&s=price-asc-rank&dc&qid=1792088452&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_2&ds=v1%3AnEJcUXzyvITeVlxSSLFE5sIYb2i6klfJEo%2BlsrPKuCM",
+            "checked": false
+          },
+          {
+            "title": "Compacto",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987509011&s=price-asc-rank&dc&qid=1792088452&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_3&ds=v1%3AFfC2DSUWz0qx5e2nisLKnfR8ocsNRR7vxqX0LujdTWM",
+            "checked": false
+          },
+          {
+            "title": "Inalámbrico",
+            "link": "/-/es/s?k=drill&rh=p_n_g-101014845023111%3A117987523011&s=price-asc-rank&dc&qid=1792088452&rnid=117987457011&ref=sr_nr_p_n_g-101014845023111_4&ds=v1%3AM6sH6Eohg2D5g0QjrZ3JfLxWEPWqAdyNN%2BmTmFsbUt0",
+            "checked": false
+          }
+        ]
+      }
+    ],
+    "sorts": [],
+    "totalProducts": 16,
+    "vendor": "amazon",
+    "engine": "direct"
+  },
+  "search_time": 1.3317160606384277,
+  "cache_hit": false,
+  "debug_html": null,
+  "error": null
+}

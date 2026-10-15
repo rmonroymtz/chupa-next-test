@@ -1,0 +1,22 @@
+{
+  "vendor": "amazon",
+  "status": "no_results",
+  "data": {
+    "products": [],
+    "pagination": {
+      "current": 1,
+      "next": "",
+      "prev": "",
+      "links": []
+    },
+    "refinements": [],
+    "sorts": [],
+    "totalProducts": 0,
+    "vendor": "amazon",
+    "engine": "direct"
+  },
+  "search_time": 0.8328633308410645,
+  "cache_hit": false,
+  "debug_html": null,
+  "error": null
+}

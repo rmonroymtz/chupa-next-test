@@ -1,0 +1,39 @@
+{
+  "vendor": "amazon",
+  "status": "ok",
+  "data": [
+    {
+      "title": "Destacados",
+      "link": "/s?k=drill&s=relevanceblender&qid=1792088435&ref=sr_st_relevanceblender&ds=v1%3Ak0Fn5ehxayGzH0m0lbvWIBGDb74dqGxXcmfN6O7mvBA",
+      "selected": true
+    },
+    {
+      "title": "Precio: Del más bajo al más alto",
+      "link": "/s?k=drill&s=price-asc-rank&qid=1792088435&ref=sr_st_price-asc-rank&ds=v1%3AXA4hGYW2OR1fy5S9kzr261gM0HrBfOv%2BY0%2FUxGtLIvI",
+      "selected": false
+    },
+    {
+      "title": "Precio: Del más alto al más bajo",
+      "link": "/s?k=drill&s=price-desc-rank&qid=1792088435&ref=sr_st_price-desc-rank&ds=v1%3AF%2BEVh%2BE2qQDWjbghJAOHhM5BFZuapdaxiVo1COsciMM",
+      "selected": false
+    },
+    {
+      "title": "Promedio Opinión del cliente",
+      "link": "/s?k=drill&s=review-rank&qid=1792088435&ref=sr_st_review-rank&ds=v1%3Am4%2FCtFK0JtTEbYQ96VCe0mDFchwA%2B5yH6Z7imKkb%2Big",
+      "selected": false
+    },
+    {
+      "title": "Llegadas más recientes",
+      "link": "/s?k=drill&s=date-desc-rank&qid=1792088435&ref=sr_st_date-desc-rank&ds=v1%3AU244s3gzYbZ5r6ypEHD1iggJb951ptpH1YHjBa%2FXfzU",
+      "selected": false
+    },
+    {
+      "title": "Los más vendidos",
+      "link": "/s?k=drill&s=exact-aware-popularity-rank&qid=1792088435&ref=sr_st_exact-aware-popularity-rank&ds=v1%3AncJnudrg7Sk66EIgsBO79z%2FYnazRfy4S2FZ0JHzDgYQ",
+      "selected": false
+    }
+  ],
+  "search_time": 1.6622462272644043,
+  "cache_hit": false,
+  "debug_html": null
+}
