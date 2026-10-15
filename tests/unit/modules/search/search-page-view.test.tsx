@@ -200,6 +200,38 @@ describe('SearchPage: single store states', () => {
     expect(loader).toHaveBeenCalledWith(expect.objectContaining({ store: 'amazon' }));
   });
 
+  it('fallback to a vendor that is not a search store: products only, no CHAPI links', async () => {
+    const fallback = result({
+      vendor: 'walmart',
+      pagination: {
+        current: 1,
+        totalPages: null,
+        next: '/walmart-next',
+        prev: null,
+        links: [{ title: '2', link: '/walmart-next' }],
+      },
+      refinements: [
+        {
+          title: 'Marcas',
+          type: 'checkbox',
+          options: [{ title: 'DEWALT', link: '/walmart-dewalt', checked: false }],
+        },
+      ],
+    });
+    const loader = vi.fn(() => Promise.resolve(SORTS));
+    const body = await renderAll(
+      single({ store: 'target', servedByFallback: true, result: fallback }, { store: 'target' }),
+      loader,
+    );
+
+    expect(body.querySelectorAll('a[href^="/amazon-"]')).toHaveLength(2);
+    const withStoreParams = [...body.querySelectorAll('a[href^="/search.html"]')].filter(
+      (a) => params(a.getAttribute('href')).storeParams !== undefined,
+    );
+    expect(withStoreParams).toHaveLength(0);
+    expect(loader).not.toHaveBeenCalled();
+  });
+
   it('no notice when the requested store answered', () => {
     expect(render(single()).querySelector('[data-search-fallback]')).toBeNull();
   });
@@ -211,6 +243,22 @@ describe('SearchPage: sort selector', () => {
 
     expect(body.querySelector('[data-search-sort="placeholder"]')).not.toBeNull();
     expect(body.querySelectorAll('a[href^="/amazon-"]')).toHaveLength(2);
+  });
+
+  it('drops the legacy Magento "price" and "position" sort links', async () => {
+    const loader = vi.fn<SortOptionsLoader>(() =>
+      Promise.resolve([
+        ...SORTS,
+        { title: 'Precio', link: 'price', selected: false },
+        { title: 'Posición', link: 'position', selected: false },
+      ]),
+    );
+    const body = await renderAll(single(), loader);
+
+    expect(links(body, '[data-search-sort="options"]').map((link) => link.text)).toEqual([
+      'Destacados',
+      'Precio: Del más bajo al más alto',
+    ]);
   });
 
   it('asks the loader with the listing and renders every option as a link, selected marked', async () => {

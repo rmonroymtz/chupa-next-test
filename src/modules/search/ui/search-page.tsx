@@ -88,10 +88,11 @@ function SingleStore({
   }
 
   // CHAPI links belong to the store that answered: following them must ask that store, not the
-  // requested one (decided 2026-10-15; the legacy PWA kept the requested store).
+  // requested one (decided 2026-10-15; the legacy PWA kept the requested store). When that store is
+  // not a search store, no link can carry them safely: products only.
   const linkStore = answeringStore(listing, result);
-  const location: SearchLocation = { query: view.query, store: linkStore };
-  const hasFilters = result.refinements.length > 0;
+  const location: SearchLocation = { query: view.query, store: linkStore ?? listing.store };
+  const hasFilters = linkStore !== null && result.refinements.length > 0;
   return (
     <div
       className={`mt-6 ${hasFilters ? 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8' : ''}`}
@@ -112,18 +113,22 @@ function SingleStore({
           <p data-search-count className="text-sm text-neutral-grey">
             {productCount(result.items.length)}
           </p>
-          <Suspense fallback={<SearchSortPlaceholder />}>
-            <SearchSort
-              options={safeSortOptions(loadSortOptions, { ...listing, store: linkStore, result })}
-              location={location}
-            />
-          </Suspense>
+          {linkStore !== null ? (
+            <Suspense fallback={<SearchSortPlaceholder />}>
+              <SearchSort
+                options={safeSortOptions(loadSortOptions, { ...listing, store: linkStore, result })}
+                location={location}
+              />
+            </Suspense>
+          ) : null}
           {hasFilters ? (
             <SearchFiltersDisclosure refinements={result.refinements} location={location} />
           ) : null}
         </div>
         <ProductCards cards={result.items} appearance="grid" />
-        <SearchPagination pagination={result.pagination} page={view.page} location={location} />
+        {linkStore !== null ? (
+          <SearchPagination pagination={result.pagination} page={view.page} location={location} />
+        ) : null}
       </div>
     </div>
   );
@@ -235,8 +240,11 @@ function storeLabel(store: string): string {
   return SEARCH_STORES.find((entry) => entry.id === store)?.label ?? store;
 }
 
-/** The store whose CHAPI links a listing carries: the vendor that answered when it is a search store. */
-function answeringStore(listing: StoreListing, result: SearchResult): string {
+/**
+ * The store whose CHAPI links a listing carries: the requested store, or the vendor that answered
+ * a fallback when it is a search store; null when no search store can follow them.
+ */
+function answeringStore(listing: StoreListing, result: SearchResult): string | null {
   if (!listing.servedByFallback) return listing.store;
-  return SEARCH_STORES.some((entry) => entry.id === result.vendor) ? result.vendor : listing.store;
+  return SEARCH_STORES.some((entry) => entry.id === result.vendor) ? result.vendor : null;
 }

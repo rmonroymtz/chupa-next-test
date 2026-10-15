@@ -59,8 +59,8 @@ export function SearchSort({ options, location }: SearchSortProps) {
         </svg>
       </summary>
       <ul className="absolute right-0 z-20 mt-1 w-max max-w-[min(20rem,calc(100vw-2rem))] rounded border border-neutral-medium-grey bg-white py-1 shadow-md">
-        {sorted.map((option) => (
-          <li key={option.link}>
+        {sorted.map((option, index) => (
+          <li key={`${index}-${option.link}`}>
             <a
               href={storeParamsHref(location, option.link)}
               aria-current={option.selected ? 'true' : undefined}

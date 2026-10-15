@@ -108,6 +108,23 @@ describe('searchPaginationModel (CHAPI links, no total pages)', () => {
     ]);
   });
 
+  it('keeps a repeated non-numeric title once', () => {
+    const model = searchPaginationModel(
+      pagination({
+        links: [
+          { title: 'Última', link: 'last' },
+          { title: 'Última', link: 'last-again' },
+        ],
+      }),
+      null,
+    );
+
+    expect(model.pages).toEqual([
+      { page: '1', link: null },
+      { page: 'Última', link: 'last' },
+    ]);
+  });
+
   it('is empty when there is nothing to paginate', () => {
     expect(searchPaginationModel(pagination(), null)).toEqual({
       prev: null,

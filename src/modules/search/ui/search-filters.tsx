@@ -34,8 +34,8 @@ function FilterGroups({ refinements, location }: SearchFiltersProps) {
           Limpiar filtros
         </a>
       ) : null}
-      {refinements.map((group) => (
-        <div key={group.title}>
+      {refinements.map((group, groupIndex) => (
+        <div key={`${groupIndex}-${group.title}`}>
           <h3 className="mb-2 text-sm font-semibold">{group.title}</h3>
           <OptionList options={group.options.slice(0, VISIBLE_OPTIONS)} location={location} />
           {group.options.length > VISIBLE_OPTIONS ? (
@@ -66,8 +66,8 @@ function OptionList({
 }) {
   return (
     <ul className="space-y-1">
-      {options.map((option) => (
-        <li key={option.link}>
+      {options.map((option, index) => (
+        <li key={`${index}-${option.link}`}>
           <a
             href={storeParamsHref(location, option.link)}
             aria-current={option.checked ? 'true' : undefined}
