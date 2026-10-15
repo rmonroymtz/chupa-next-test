@@ -108,12 +108,16 @@ function StoreLogo({ store, label }: { readonly store: string; readonly label: s
   );
 }
 
+/** Whole-percent discount from the previous price; 0 when there is no usable previous price. */
+export function discountPercent(amount: number, previous: number | null): number {
+  if (previous === null || !Number.isFinite(previous) || !Number.isFinite(amount)) return 0;
+  if (previous <= 0 || amount >= previous) return 0;
+  return Math.round(((previous - amount) / previous) * 100);
+}
+
 function ChupaChoiceItem({ item }: { readonly item: SearchItem }) {
   const price = getDisplayPrice(item);
-  const discount =
-    price?.previous != null
-      ? Math.round(((price.previous - price.amount) / price.previous) * 100)
-      : 0;
+  const discount = price ? discountPercent(price.amount, price.previous ?? null) : 0;
   const name =
     item.name.length > MAX_NAME_LENGTH
       ? `${item.name.substring(0, MAX_NAME_LENGTH - 3)}...`
