@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ProductPageDecision } from '@/modules/product/application/product-page-service';
 import type { MagentoProduct } from '@/modules/product/domain/product';
 import { htmlToPlainText } from '@/modules/product/ui/html-to-text';
+import { withoutSiteNameSuffix } from '@/modules/seo/domain/page-title';
 import { OG_LOCALE, SITE_NAME } from '@/modules/seo/domain/site';
 
 const DESCRIPTION_LENGTH = 160;
@@ -33,7 +34,7 @@ function magentoProductMetadata(
   canonicalUrl: string,
   robots: { readonly index: boolean; readonly follow: boolean },
 ): Metadata {
-  const title = product.metaTitle ?? product.name;
+  const title = withoutSiteNameSuffix(product.metaTitle) ?? product.name;
   const description = productDescription(product);
   const images = product.images.map((image) => ({
     url: image.url,

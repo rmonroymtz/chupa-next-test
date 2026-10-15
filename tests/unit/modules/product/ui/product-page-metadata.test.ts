@@ -58,6 +58,20 @@ describe('buildProductPageMetadata — product in Magento', () => {
     expect(metadata.openGraph?.title).toBe('Audífonos Sony | Oferta');
   });
 
+  it('strips a trailing site name from the meta title, also in Open Graph and Twitter', () => {
+    const metadata = buildProductPageMetadata(
+      exists({ metaTitle: 'Audífonos Sony | Oferta - Chupaprecios' }),
+    );
+    expect(metadata.title).toBe('Audífonos Sony | Oferta');
+    expect(metadata.openGraph?.title).toBe('Audífonos Sony | Oferta');
+    expect(metadata.twitter?.title).toBe('Audífonos Sony | Oferta');
+  });
+
+  it('falls back to the product name when the meta title is only the site name', () => {
+    const metadata = buildProductPageMetadata(exists({ metaTitle: 'Chupaprecios' }));
+    expect(metadata.title).toBe('Audífonos inalámbricos');
+  });
+
   it('falls back to the short description when the meta description has no text', () => {
     const metadata = buildProductPageMetadata(
       exists({ metaDescription: '<ul class="a"></ul>', shortDescriptionHtml: '<p>Corta.</p>' }),

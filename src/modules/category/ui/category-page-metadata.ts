@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { Category } from '@/modules/category/domain/category';
 import { htmlToPlainText } from '@/modules/product/ui/html-to-text';
+import { withoutSiteNameSuffix } from '@/modules/seo/domain/page-title';
 import { OG_LOCALE, SITE_NAME } from '@/modules/seo/domain/site';
 
 const DESCRIPTION_LENGTH = 160;
@@ -21,7 +22,7 @@ export function buildCategoryPageMetadata(
   category: Category,
   { canonicalUrl, indexable }: CategoryPageMetadataOptions,
 ): Metadata {
-  const title = category.metaTitle ?? category.name;
+  const title = withoutSiteNameSuffix(category.metaTitle) ?? category.name;
   const description = toDescription(category.metaDescription);
   const withDescription = description ? { description } : {};
   return {

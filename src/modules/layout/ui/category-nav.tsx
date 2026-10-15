@@ -1,9 +1,12 @@
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
 import { LEGACY_ROUTES } from '@/modules/layout/domain/legacy-routes';
+import { CategoryNavScroller } from './category-nav-scroller.client';
 import { ChevronDownIcon, MenuIcon } from './icons';
 
-// Category and search pages are served by PWA Studio: plain anchors only
-// (full navigation, no Next prefetch). See `legacy-routes.ts`.
+// Plain anchors only (full navigation, no Next prefetch), like every other
+// internal link: the header is shared by Next and PWA Studio pages, and
+// `next/link` would prefetch the (Magento-backed) category pages in view.
+// See `legacy-routes.ts`.
 
 const NAV_HEIGHT = 'h-12';
 
@@ -16,54 +19,60 @@ export function DesktopCategoryNavPlaceholder() {
 }
 
 /**
- * Legacy desktop megamenu: top-level categories link to the search page; the
- * submenu (category pages) opens on hover or keyboard focus, CSS only.
+ * Legacy desktop megamenu: every level links to its category page; the
+ * submenu opens on hover or keyboard focus, CSS only. The top level is one
+ * line that scrolls horizontally when it does not fit, with side arrows added
+ * by `CategoryNavScroller` (the links themselves stay server-rendered).
  */
 export function DesktopCategoryNav({ items }: { readonly items: readonly MenuItem[] }) {
   if (items.length === 0) return <DesktopCategoryNavPlaceholder />;
   return (
-    // `relative` here, not on the items: submenus span the full width and are
-    // not clipped by the horizontally scrollable list.
+    // `relative` here, not on the items or the scroller: submenus are
+    // positioned against the nav, an ancestor of the scroll container, so its
+    // overflow does not clip them, and they span the full width.
     <nav aria-label="Categorías" className="relative hidden lg:block">
-      <ul
-        className={`flex ${NAV_HEIGHT} items-stretch justify-center overflow-x-auto overflow-y-hidden [scrollbar-width:none]`}
-      >
-        {items.map((item) => (
-          <li key={item.id} className="group flex shrink-0">
-            <a
-              href={item.searchHref}
-              className="inline-flex items-center gap-1 px-3 font-noto text-[0.9rem] whitespace-nowrap uppercase decoration-brand-yellow decoration-2 group-focus-within:underline group-hover:underline"
-            >
-              {item.label}
-              {item.children.length > 0 ? <ChevronDownIcon className="size-4" /> : null}
-            </a>
-            {item.children.length > 0 ? (
-              <div className="invisible absolute inset-x-0 top-full z-50 border-t border-neutral-inactive bg-white shadow-md group-focus-within:visible group-hover:visible">
-                <ul className="container-padded grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-6 py-6">
-                  {item.children.map((child) => (
-                    <li key={child.id}>
-                      <a href={child.categoryHref} className="font-semibold hover:underline">
-                        {child.label}
-                      </a>
-                      {child.children.length > 0 ? (
-                        <ul className="mt-2 space-y-1 text-sm">
-                          {child.children.map((leaf) => (
-                            <li key={leaf.id}>
-                              <a href={leaf.categoryHref} className="hover:underline">
-                                {leaf.label}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+      <CategoryNavScroller>
+        {/* `w-max min-w-full` centers the items while they fit and starts them
+            at the left edge once they overflow (plain `justify-center` would
+            push the first items out of reach on the left). */}
+        <ul className={`flex ${NAV_HEIGHT} w-max min-w-full items-stretch justify-center`}>
+          {items.map((item) => (
+            <li key={item.id} className="group flex shrink-0">
+              <a
+                href={item.categoryHref}
+                className="inline-flex items-center gap-1 px-3 font-noto text-[0.9rem] whitespace-nowrap uppercase decoration-brand-yellow decoration-2 group-focus-within:underline group-hover:underline"
+              >
+                {item.label}
+                {item.children.length > 0 ? <ChevronDownIcon className="size-4" /> : null}
+              </a>
+              {item.children.length > 0 ? (
+                <div className="invisible absolute inset-x-0 top-full z-50 border-t border-neutral-inactive bg-white shadow-md group-focus-within:visible group-hover:visible">
+                  <ul className="container-padded grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-6 py-6">
+                    {item.children.map((child) => (
+                      <li key={child.id}>
+                        <a href={child.categoryHref} className="font-semibold hover:underline">
+                          {child.label}
+                        </a>
+                        {child.children.length > 0 ? (
+                          <ul className="mt-2 space-y-1 text-sm">
+                            {child.children.map((leaf) => (
+                              <li key={leaf.id}>
+                                <a href={leaf.categoryHref} className="hover:underline">
+                                  {leaf.label}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </CategoryNavScroller>
     </nav>
   );
 }
@@ -76,7 +85,7 @@ export function MobileCategoryMenuPlaceholder() {
 /**
  * Legacy mobile navigation drawer as a native `<details>` disclosure (no JS).
  * The panel overlays the page below the header, so opening it shifts nothing.
- * Every level links to the search page, as the legacy category tree does.
+ * Every level links to its category page.
  */
 export function MobileCategoryMenu({ items }: { readonly items: readonly MenuItem[] }) {
   return (
@@ -102,13 +111,13 @@ export function MobileCategoryMenu({ items }: { readonly items: readonly MenuIte
                   </summary>
                   <ul className="pb-2">
                     <li>
-                      <a href={item.searchHref} className="block px-8 py-2 font-semibold">
+                      <a href={item.categoryHref} className="block px-8 py-2 font-semibold">
                         Ver todo
                       </a>
                     </li>
                     {item.children.map((child) => (
                       <li key={child.id}>
-                        <a href={child.searchHref} className="block px-8 py-2">
+                        <a href={child.categoryHref} className="block px-8 py-2">
                           {child.label}
                         </a>
                       </li>
@@ -116,7 +125,7 @@ export function MobileCategoryMenu({ items }: { readonly items: readonly MenuIte
                   </ul>
                 </details>
               ) : (
-                <a href={item.searchHref} className="block px-4 py-3">
+                <a href={item.categoryHref} className="block px-4 py-3">
                   {item.label}
                 </a>
               )}

@@ -12,7 +12,13 @@ vi.mock('@/modules/page-builder/ui/page-builder-content', () => ({
   ),
 }));
 
+// The site origin comes from the validated environment in production.
+vi.mock('@/modules/seo/infrastructure/site-config', () => ({
+  getSiteConfig: () => ({ baseUrl: 'https://chupaprecios.com.mx', logoUrl: null, sameAs: [] }),
+}));
+
 const CLEAN_URL = '/electronica/computacion/laptops.html';
+const BASE = 'https://chupaprecios.com.mx';
 
 const card = (index: number): ProductCard => ({
   uid: `uid-${index}`,
@@ -46,7 +52,58 @@ const paginationLinks = (html: string) => {
   ]);
 };
 
+/** Breadcrumb entries in document order: [href or null for the current category, text]. */
+const breadcrumbs = (html: string) => {
+  const nav = /<nav aria-label="Ruta de navegación"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? '';
+  return [...nav.matchAll(/<(a|span)\b([^>]*)>([^<]*)<\/\1>/g)]
+    .filter(([, , attrs]) => !(attrs ?? '').includes('aria-hidden'))
+    .map(([, tag, attrs, text]) => [
+      tag === 'a' ? (/href="([^"]*)"/.exec(attrs ?? '')?.[1] ?? '') : null,
+      text,
+    ]);
+};
+
+/** Parsed JSON-LD blocks of the markup, by `@type`. */
+const jsonLd = (html: string) =>
+  [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(
+    ([, json]) => JSON.parse(json ?? '') as { '@type': string; [key: string]: unknown },
+  );
+
 describe('CategoryPage', () => {
+  it('shows the breadcrumb trail: Inicio, parent categories, then the current one unlinked', () => {
+    const html = render(listing());
+
+    expect(breadcrumbs(html)).toEqual([
+      ['/', 'Inicio'],
+      ['/electronica.html', 'Electrónica'],
+      ['/electronica/computacion.html', 'Computación'],
+      [null, 'Laptops'],
+    ]);
+    expect(html).toMatch(/<span aria-current="page"[^>]*>Laptops<\/span>/);
+  });
+
+  it('describes an indexable category with BreadcrumbList and CollectionPage JSON-LD', () => {
+    const blocks = jsonLd(render(listing()));
+
+    expect(blocks.map((block) => block['@type'])).toEqual(['BreadcrumbList', 'CollectionPage']);
+    expect(blocks[1]).toMatchObject({
+      url: `${BASE}${CLEAN_URL}`,
+      mainEntity: {
+        itemListElement: [
+          { position: 1, url: `${BASE}/ebay-1-laptop.html`, name: 'Laptop 1' },
+          { position: 2, url: `${BASE}/ebay-2-laptop.html`, name: 'Laptop 2' },
+        ],
+      },
+    });
+  });
+
+  it('an empty (noindex) category keeps its breadcrumbs but has no structured data', () => {
+    const html = render(listing({ items: [], totalPages: 0, totalCount: 0 }));
+
+    expect(breadcrumbs(html)).toHaveLength(4);
+    expect(jsonLd(html)).toEqual([]);
+  });
+
   it('shows the category name as h1, its description and a card per product', () => {
     const html = render(listing());
 

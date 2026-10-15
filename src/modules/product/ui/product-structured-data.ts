@@ -1,3 +1,4 @@
+import { DEFAULT_CATEGORY_URL_SUFFIX, toCategoryUrl } from '@/modules/category/domain/category';
 import { getDisplayPrice } from '@/modules/product/domain/display-price';
 import type {
   Availability,
@@ -6,7 +7,11 @@ import type {
   ProductCategory,
 } from '@/modules/product/domain/product';
 import { htmlToPlainText } from '@/modules/product/ui/html-to-text';
-import { SEARCH_PATH, siteRootUrl } from '@/modules/seo/domain/site';
+import {
+  buildBreadcrumbListJsonLd,
+  type BreadcrumbListJsonLd,
+} from '@/modules/seo/domain/breadcrumb-list';
+import { siteRootUrl } from '@/modules/seo/domain/site';
 
 type SchemaAvailability = 'https://schema.org/InStock' | 'https://schema.org/OutOfStock';
 
@@ -29,24 +34,6 @@ export interface ProductJsonLd {
   readonly url: string;
   readonly offers?: OfferJsonLd;
 }
-
-export interface BreadcrumbListJsonLd {
-  readonly '@context': 'https://schema.org';
-  readonly '@type': 'BreadcrumbList';
-  readonly itemListElement: readonly {
-    readonly '@type': 'ListItem';
-    readonly position: number;
-    readonly name: string;
-    readonly item: string;
-  }[];
-}
-
-/**
- * Category pages are not served by Magento routing on the current site: the
- * legacy menu links categories to the search page with this store, so
- * breadcrumbs point where shoppers actually land.
- */
-const CATEGORY_SEARCH_STORE = 'amazon';
 
 /** Unknown availability is omitted rather than guessed. */
 export function toSchemaAvailability(availability: Availability): SchemaAvailability | undefined {
@@ -92,30 +79,43 @@ export function buildProductJsonLd(product: MagentoProduct, canonicalUrl: string
   };
 }
 
-/** Inicio → deepest Magento category path → product, with absolute urls. */
+interface BreadcrumbJsonLdOptions {
+  readonly baseUrl: string;
+  readonly canonicalUrl: string;
+  /**
+   * Store `category_url_suffix`. The product query does not read the store
+   * config, so it defaults to Magento's `.html`, the suffix of the store's
+   * category urls today.
+   */
+  readonly categoryUrlSuffix?: string;
+}
+
+/**
+ * Inicio → deepest Magento category path → product, with absolute urls. The
+ * categories link to their category pages (`/{url_path}{suffix}`), the same
+ * urls the menu and the category breadcrumbs use.
+ */
 export function buildBreadcrumbJsonLd(
   product: MagentoProduct,
-  { baseUrl, canonicalUrl }: { readonly baseUrl: string; readonly canonicalUrl: string },
+  {
+    baseUrl,
+    canonicalUrl,
+    categoryUrlSuffix = DEFAULT_CATEGORY_URL_SUFFIX,
+  }: BreadcrumbJsonLdOptions,
 ): BreadcrumbListJsonLd {
   const root = siteRootUrl(baseUrl);
   const category = deepestCategory(product.categories);
   const trail = category ? [...category.breadcrumbs, category] : [];
-  const items = [
+  return buildBreadcrumbListJsonLd([
     { name: 'Inicio', item: root },
     ...trail
       .filter((link): link is CategoryLink & { urlPath: string } => Boolean(link.urlPath))
-      .map((link) => ({ name: link.name, item: categoryUrl(root, link.urlPath) })),
+      .map((link) => ({
+        name: link.name,
+        item: `${root}${toCategoryUrl(link.urlPath, categoryUrlSuffix).slice(1)}`,
+      })),
     { name: product.name, item: canonicalUrl },
-  ];
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: items.map((entry, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      ...entry,
-    })),
-  };
+  ]);
 }
 
 function deepestCategory(categories: readonly ProductCategory[]): ProductCategory | undefined {
@@ -124,11 +124,6 @@ function deepestCategory(categories: readonly ProductCategory[]): ProductCategor
       !deepest || category.breadcrumbs.length > deepest.breadcrumbs.length ? category : deepest,
     undefined,
   );
-}
-
-function categoryUrl(root: string, urlPath: string): string {
-  const query = new URLSearchParams({ query: urlPath, store: CATEGORY_SEARCH_STORE });
-  return `${root}${SEARCH_PATH.slice(1)}?${query.toString()}`;
 }
 
 function plainText(html: string): string {

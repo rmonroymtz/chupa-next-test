@@ -6,7 +6,7 @@ import styles from './search-form.module.css';
 /**
  * Legacy search bar as a plain GET form to the PWA Studio search page:
  * `/search.html?store=…&query=…&page=1` (same parameters as the legacy
- * `buildSearchUrl`; their order does not matter). Works without JavaScript and
+ * search bar; their order does not matter). Works without JavaScript and
  * is a full navigation, like every link to pages PWA Studio still serves.
  *
  * Not replicated (needs client code, PWA Studio still provides it on its own

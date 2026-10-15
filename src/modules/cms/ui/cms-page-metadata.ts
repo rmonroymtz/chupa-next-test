@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { CmsPage } from '@/modules/cms/domain/cms-page';
 import { htmlToPlainText } from '@/modules/product/ui/html-to-text';
+import { withoutSiteNameSuffix } from '@/modules/seo/domain/page-title';
 import { OG_LOCALE, SITE_NAME } from '@/modules/seo/domain/site';
 
 const DESCRIPTION_LENGTH = 160;
@@ -11,8 +12,9 @@ const DESCRIPTION_LENGTH = 160;
  */
 export function buildCmsPageMetadata(page: CmsPage, canonicalUrl: string): Metadata {
   const title =
-    [page.metaTitle, page.title, page.contentHeading].map((value) => value?.trim()).find(Boolean) ??
-    SITE_NAME;
+    [page.metaTitle, page.title, page.contentHeading]
+      .map((value) => withoutSiteNameSuffix(value))
+      .find(Boolean) ?? SITE_NAME;
   const description = toDescription(page.metaDescription);
   const withDescription = description ? { description } : {};
   return {

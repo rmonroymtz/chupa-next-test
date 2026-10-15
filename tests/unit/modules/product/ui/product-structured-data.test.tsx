@@ -108,7 +108,7 @@ describe('price parity (visible price === JSON-LD offer price)', () => {
 });
 
 describe('buildBreadcrumbJsonLd', () => {
-  it('goes Inicio → deepest category path → product, with absolute urls', () => {
+  it('goes Inicio → deepest category path (category pages) → product, with absolute urls', () => {
     const product = buildMagentoProduct({
       categories: [
         { name: 'Electrónica', urlPath: 'electronica', breadcrumbs: [] },
@@ -132,23 +132,36 @@ describe('buildBreadcrumbJsonLd', () => {
           '@type': 'ListItem',
           position: 2,
           name: 'Electrónica',
-          item: `${BASE}/search.html?query=electronica&store=amazon`,
+          item: `${BASE}/electronica.html`,
         },
         {
           '@type': 'ListItem',
           position: 3,
           name: 'Audio',
-          item: `${BASE}/search.html?query=electronica%2Faudio&store=amazon`,
+          item: `${BASE}/electronica/audio.html`,
         },
         {
           '@type': 'ListItem',
           position: 4,
           name: 'Audífonos',
-          item: `${BASE}/search.html?query=electronica%2Faudio%2Faudifonos&store=amazon`,
+          item: `${BASE}/electronica/audio/audifonos.html`,
         },
         { '@type': 'ListItem', position: 5, name: 'Audífonos inalámbricos', item: CANONICAL },
       ],
     });
+  });
+
+  it('uses the store category suffix when given', () => {
+    const product = buildMagentoProduct({
+      categories: [{ name: 'Moda', urlPath: 'moda', breadcrumbs: [] }],
+    });
+
+    const crumbs = buildBreadcrumbJsonLd(product, {
+      baseUrl: `${BASE}/`,
+      canonicalUrl: CANONICAL,
+      categoryUrlSuffix: '',
+    }).itemListElement;
+    expect(crumbs[1]).toMatchObject({ name: 'Moda', item: `${BASE}/moda` });
   });
 
   it('skips categories without a url path and works without categories', () => {

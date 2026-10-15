@@ -5,18 +5,18 @@ import { FAKE_CATEGORY } from '../../../support/fakes';
 const CANONICAL = 'https://chupaprecios.com.mx/electronica/computacion/laptops.html';
 
 describe('buildCategoryPageMetadata', () => {
-  it('is indexable with canonical, Magento meta title, description and Open Graph', () => {
+  it('is indexable with canonical, Magento meta title (site name stripped), description and Open Graph', () => {
     expect(
       buildCategoryPageMetadata(FAKE_CATEGORY, { canonicalUrl: CANONICAL, indexable: true }),
     ).toEqual({
-      title: 'Laptops | Chupaprecios',
+      title: 'Laptops',
       description: 'Compra laptops importadas con envío a todo México.',
       robots: { index: true, follow: true },
       alternates: { canonical: CANONICAL },
       openGraph: {
         type: 'website',
         url: CANONICAL,
-        title: 'Laptops | Chupaprecios',
+        title: 'Laptops',
         description: 'Compra laptops importadas con envío a todo México.',
         siteName: 'Chupaprecios',
         locale: 'es_MX',
@@ -32,6 +32,16 @@ describe('buildCategoryPageMetadata', () => {
 
     expect(metadata.robots).toEqual({ index: false, follow: true });
     expect(metadata.alternates).toEqual({ canonical: CANONICAL });
+  });
+
+  it('falls back to the category name when the meta title is only the site name', () => {
+    const metadata = buildCategoryPageMetadata(
+      { ...FAKE_CATEGORY, metaTitle: 'Chupaprecios' },
+      { canonicalUrl: CANONICAL, indexable: true },
+    );
+
+    expect(metadata.title).toBe('Laptops');
+    expect(metadata.openGraph?.title).toBe('Laptops');
   });
 
   it('falls back to the category name and omits a missing description', () => {

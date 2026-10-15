@@ -16,7 +16,6 @@ afterEach(cleanup);
 const item = (label: string, children: MenuItem[] = []): MenuItem => ({
   id: label,
   label,
-  searchHref: `/search.html?query=${label}&store=amazon&page=1`,
   categoryHref: `/${label}.html`,
   children,
 });
@@ -77,12 +76,12 @@ describe('SiteHeader', () => {
     expect(screen.getAllByRole('search')).toHaveLength(1);
   });
 
-  it('desktop navigation: top level links to the search page, submenu to category pages', () => {
+  it('desktop navigation: every level links to its category page', () => {
     render(<DesktopCategoryNav items={MENU} />);
     const nav = screen.getByRole('navigation', { name: 'Categorías' });
 
     expect(within(nav).getByRole('link', { name: 'hogar' }).getAttribute('href')).toBe(
-      '/search.html?query=hogar&store=amazon&page=1',
+      '/hogar.html',
     );
     expect(within(nav).getByRole('link', { name: 'cocina' }).getAttribute('href')).toBe(
       '/cocina.html',
@@ -99,7 +98,7 @@ describe('SiteHeader', () => {
     expect(container.firstElementChild?.className).toContain('h-12');
   });
 
-  it('mobile navigation is a native disclosure that links every level to the search page', () => {
+  it('mobile navigation is a native disclosure that links every level to its category page', () => {
     render(<MobileCategoryMenu items={MENU} />);
     const toggle = screen.getByLabelText('Alternar panel de navegación');
     expect(toggle.tagName).toBe('SUMMARY');
@@ -107,9 +106,9 @@ describe('SiteHeader', () => {
     const nav = screen.getByRole('navigation', { name: 'Menú principal', hidden: true });
     const links = within(nav).getAllByRole('link', { hidden: true });
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/search.html?query=hogar&store=amazon&page=1',
-      '/search.html?query=cocina&store=amazon&page=1',
-      '/search.html?query=juguetes&store=amazon&page=1',
+      '/hogar.html',
+      '/cocina.html',
+      '/juguetes.html',
       '/sign-in',
     ]);
   });

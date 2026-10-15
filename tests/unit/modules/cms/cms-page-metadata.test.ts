@@ -42,6 +42,23 @@ describe('buildCmsPageMetadata', () => {
     expect(metadata).not.toHaveProperty('description');
   });
 
+  it('strips a trailing site name from the meta title, also in Open Graph', () => {
+    const metadata = buildCmsPageMetadata(
+      { ...page, metaTitle: 'Aviso | Chupaprecios' },
+      'https://x.test/a',
+    );
+    expect(metadata.title).toBe('Aviso');
+    expect(metadata.openGraph?.title).toBe('Aviso');
+  });
+
+  it('falls back to the page title when the meta title is only the site name', () => {
+    const metadata = buildCmsPageMetadata(
+      { ...page, metaTitle: 'Chupaprecios' },
+      'https://x.test/a',
+    );
+    expect(metadata.title).toBe('Aviso de privacidad');
+  });
+
   it('declares keywords when the admin set them', () => {
     expect(
       buildCmsPageMetadata({ ...page, metaKeywords: 'envíos, México' }, 'https://x.test/a')

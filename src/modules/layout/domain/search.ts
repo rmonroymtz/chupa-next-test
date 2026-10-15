@@ -48,17 +48,3 @@ export const SEARCH_STORES: readonly SearchStore[] = [
  * server-rendered form cannot read it, so it always starts on the default.
  */
 export const DEFAULT_SEARCH_STORE = 'chupachoice';
-
-/** Store the legacy megamenu searches categories in. */
-const CATEGORY_SEARCH_STORE = 'amazon';
-
-/** `/search.html?query=…&store=…&page=1`, encoded like the legacy `URLSearchParams`. */
-export function buildSearchUrl({ query, store }: { query: string; store: string }): string {
-  const params = new URLSearchParams({ query: query.trim(), store, page: '1' });
-  return `${SEARCH_PATH}?${params.toString()}`;
-}
-
-/** Legacy megamenu link: the category `url_path` searched in Amazon. */
-export function buildCategorySearchUrl(urlPath: string): string {
-  return buildSearchUrl({ query: urlPath, store: CATEGORY_SEARCH_STORE });
-}

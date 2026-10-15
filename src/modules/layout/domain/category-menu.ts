@@ -1,5 +1,3 @@
-import { buildCategorySearchUrl } from '@/modules/layout/domain/search';
-
 /** A Magento category as the header menu needs it. */
 export interface CategoryNode {
   readonly uid: string;
@@ -19,9 +17,7 @@ export interface CategoryTree {
 export interface MenuItem {
   readonly id: string;
   readonly label: string;
-  /** Legacy megamenu and mobile navigation link (search page). */
-  readonly searchHref: string;
-  /** Category page url (`/{url_path}{suffix}`), used by the legacy desktop submenu. */
+  /** Category page url (`/{url_path}{suffix}`), the link at every menu level. */
   readonly categoryHref: string;
   readonly children: readonly MenuItem[];
 }
@@ -52,7 +48,6 @@ function toItems(nodes: readonly CategoryNode[], suffix: string, seen: Set<strin
         {
           id,
           label: node.name,
-          searchHref: buildCategorySearchUrl(node.urlPath),
           categoryHref: `/${node.urlPath}${suffix}`,
           children: toItems(node.children, suffix, seen),
         },
