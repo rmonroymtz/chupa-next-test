@@ -172,6 +172,28 @@ describe('resolveSearchPage: CHAPI outcomes', () => {
     });
   });
 
+  it('turns an unexpected rejection into an error state instead of failing the page', async () => {
+    const { resolve } = setup({
+      searchStore: vi.fn(async (store: string) => {
+        if (store === 'ebay') throw new Error('boom');
+        return ok(store);
+      }),
+    });
+
+    await expect(resolve('query=taladro&store=ebay')).resolves.toMatchObject({
+      results: { kind: 'single', listing: { result: null, failure: 'error' } },
+    });
+    const multi = await resolve('query=taladro');
+    expect(multi).toMatchObject({ results: { kind: 'multi' } });
+    if (multi.kind !== 'page' || multi.results.kind !== 'multi') throw new Error('expected multi');
+    expect(multi.results.listings.map((listing) => listing.failure)).toEqual([
+      null,
+      'error',
+      null,
+      null,
+    ]);
+  });
+
   it('flags a result served by a fallback store', async () => {
     const { resolve } = setup({ searchStore: vi.fn(async () => ok('target', 'amazon')) });
 

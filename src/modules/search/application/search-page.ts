@@ -145,8 +145,15 @@ async function listStore(
   filters: string,
   pageSize: number,
 ): Promise<StoreListing> {
-  const outcome = await deps.searchStore(store, query, filters, pageSize);
   const listing = { store, pageSize, filters };
+  let outcome: StoreSearchOutcome;
+  try {
+    outcome = await deps.searchStore(store, query, filters, pageSize);
+  } catch (error) {
+    // Decision 10: a search failure is a 200 error state, never a 5xx, even if a dependency throws.
+    deps.logger.error({ store, err: error }, 'search store failed unexpectedly');
+    return { ...listing, result: null, failure: 'error', servedByFallback: false };
+  }
   switch (outcome.status) {
     case 'ok':
       return {
