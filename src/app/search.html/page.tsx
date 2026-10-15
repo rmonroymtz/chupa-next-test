@@ -1,0 +1,31 @@
+import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { SEARCH_PATH } from '@/modules/layout/domain/search';
+import { toSearch } from '@/modules/routing/domain/request-path';
+import { getSearchPageDecision } from '@/modules/search/infrastructure/search-page.composition';
+import { SearchPage } from '@/modules/search/ui/search-page';
+import { buildSearchPageMetadata } from '@/modules/search/ui/search-page-metadata';
+
+// Rendered per request; no data cache. No loading.tsx: the store redirect and the
+// page state are decided before anything streams.
+export const dynamic = 'force-dynamic';
+
+interface SearchRouteProps {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/** Metadata needs only the query: no Magento or CHAPI call. */
+export async function generateMetadata({ searchParams }: SearchRouteProps): Promise<Metadata> {
+  const query = new URLSearchParams(toSearch(await searchParams)).get('query') ?? '';
+  return buildSearchPageMetadata(query);
+}
+
+export default async function SearchRoute({ searchParams }: SearchRouteProps) {
+  const [params, requestHeaders] = await Promise.all([searchParams, headers()]);
+  const search = toSearch(params);
+  const decision = await getSearchPageDecision(search, requestHeaders.get('user-agent'));
+  if (decision.kind === 'redirect') return redirect(decision.location);
+  const retryUrl = search ? `${SEARCH_PATH}?${search}` : SEARCH_PATH;
+  return <SearchPage view={decision} retryUrl={retryUrl} />;
+}
