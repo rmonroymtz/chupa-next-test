@@ -51,7 +51,7 @@ How each url resolves:
 | Missing → 404, empty → 200 `noindex`, failure → 5xx                                    | Same indexability rule as phase 1; an outage is never a 404.                                          |
 | `?page=N` on the server, size from `grid_per_page`, canonical without page, no filters | Like Venia; robots disallows query strings, so only the clean url is indexed.                         |
 | Invalid or out-of-range page → 307 to the clean url                                    | A page beyond the last may exist later, so the redirect is temporary.                                 |
-| Trailing site name stripped from Magento meta titles                                   | Avoids `…                                                                                             | Chupaprecios | Chupaprecios`. |
+| Trailing site name stripped from Magento meta titles                                   | Avoids a title ending in the site name twice (`X \| Chupaprecios \| Chupaprecios`).                   |
 | Desktop menu scrolls horizontally with arrows                                          | The staging tree overflows one line.                                                                  |
 | Edge: all remaining `.html` urls to Next, search urls first                            | The edge cannot tell categories from other `.html` urls; Next 404s what Magento does not know.        |
 
