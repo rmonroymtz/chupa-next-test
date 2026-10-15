@@ -87,11 +87,14 @@ METRICS_NAMESPACE=ChupaStorefront
 # NEXT_TELEMETRY_DISABLED=1
 
 # === E2E (Playwright; not used by the app) ===================================
-# Optional. Base URL of a real environment. When set, only the `pwa-checkout` (it creates a real
-# guest cart) and `phase-2-smoke` (read-only) projects run against it. Do not commit a real value.
+# Optional. Base URL of a real environment. When set, only the `pwa-checkout` project runs
+# against it (it creates a real guest cart). Do not commit a real value.
 # E2E_BASE_URL=https://staging.example.com
 # Optional. Path of an in-stock product served by Next, used with E2E_BASE_URL.
 # E2E_PRODUCT_PATH=/amazon-B0XXXXXXX-some-product.html
+# Optional. Set to 1 (with E2E_BASE_URL) to also run the read-only `phase-2-smoke` project.
+# Staging or a dev server only: production categories are empty today and the smoke would fail.
+# E2E_PHASE2_SMOKE=
 # Optional. phase-2-smoke: a category with products, the home CMS page's own url, and a .html url
 # Magento does not know. Defaults are staging examples (production categories are empty today).
 # E2E_CATEGORY_PATH=/herramientas.html

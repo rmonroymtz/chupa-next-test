@@ -8,9 +8,11 @@ import { defineConfig, devices } from '@playwright/test';
  *   environment. Runs only when `E2E_BASE_URL` is set (it creates a real cart);
  *   the local stack is then not started.
  * - `phase-2-smoke`: read-only home/category checks (`e2e/phase-2-smoke.spec.ts`),
- *   also only with `E2E_BASE_URL`.
+ *   only with `E2E_BASE_URL` and the opt-in `E2E_PHASE2_SMOKE=1` (staging or a dev
+ *   server; production categories are empty today).
  */
 const remoteBaseUrl = process.env.E2E_BASE_URL?.trim() || undefined;
+const phase2Smoke = process.env.E2E_PHASE2_SMOKE?.trim() === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -33,11 +35,15 @@ export default defineConfig({
           testMatch: 'pwa-checkout.spec.ts',
           use: { baseURL: remoteBaseUrl },
         },
-        {
-          name: 'phase-2-smoke',
-          testMatch: 'phase-2-smoke.spec.ts',
-          use: { baseURL: remoteBaseUrl },
-        },
+        ...(phase2Smoke
+          ? [
+              {
+                name: 'phase-2-smoke',
+                testMatch: 'phase-2-smoke.spec.ts',
+                use: { baseURL: remoteBaseUrl },
+              },
+            ]
+          : []),
       ]
     : [
         { name: 'local', testMatch: 'local/**/*.spec.ts' },

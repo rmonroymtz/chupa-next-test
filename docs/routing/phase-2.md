@@ -160,7 +160,7 @@ code '/venia-new-home?utm_source=x'         # 308 $B/?utm_source=x
 code /herramientas.html                     # 200
 head_tags /herramientas.html                # canonical $B/herramientas.html, index, follow
 code /computo/monitores-y-perifericos.html  # 200 (nested category)
-code '/herramientas.html?page=2'            # 200; canonical still $B/herramientas.html
+code '/herramientas.html?page=2'            # 307 $B/herramientas.html (12 products, one page of 16 on staging)
 code '/herramientas.html?page=abc'          # 307 $B/herramientas.html
 code /no-such-category-e2e.html             # 404
 curl -sI -A "$UA" "$B/herramientas.html" | grep -i '^vary'   # contains rsc (served by Next)
@@ -175,7 +175,13 @@ curl -sI -A "$UA" "$B/search.html?query=x" | grep -i '^vary' # no rsc (served by
 - [ ] Add to cart from a product page and the mini cart from a category page work (Server Action `POST`).
 - [ ] `/robots.txt` unchanged (from Next, `Sitemap: $B/sitemap.xml`).
 - [ ] Prerender no longer receives `/` or category urls.
-- [ ] Menu links on `/` point to category pages, not `/search.html` (also covered by `e2e/phase-2-smoke.spec.ts`, see the README).
+- [ ] Menu links on `/` point to category pages, not `/search.html`.
+
+The same checks, minus the routing ones, run as a read-only Playwright smoke (staging or a dev server only, never production while its categories are empty):
+
+```sh
+E2E_BASE_URL=$B E2E_PHASE2_SMOKE=1 pnpm test:e2e --project phase-2-smoke
+```
 
 ## Next step
 

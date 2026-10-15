@@ -2,17 +2,19 @@ import { expect, test, type APIResponse } from '@playwright/test';
 
 /**
  * Phase 2 smoke (home and category pages served by Next). Read-only: it only
- * loads pages, so it creates no cart. Runs when `E2E_BASE_URL` is set, against
- * a Next server or an edge with the phase 2 routing in place.
+ * loads pages, so it creates no cart. Runs only with `E2E_BASE_URL` and the
+ * opt-in `E2E_PHASE2_SMOKE=1` (see `playwright.config.ts`), against a Next
+ * server or an edge with the phase 2 routing in place.
  *
  * Production categories have no products today, so the defaults are staging
  * examples; do not point it at production until they do.
  *
- *   E2E_BASE_URL=http://localhost:3000 pnpm test:e2e --project phase-2-smoke
+ *   E2E_BASE_URL=http://localhost:3000 E2E_PHASE2_SMOKE=1 \
+ *     pnpm test:e2e --project phase-2-smoke
  *
  * Optional overrides:
- *   E2E_CATEGORY_PATH=/herramientas.html       category with products
- *   E2E_HOME_CMS_PATH=/venia-new-home          the configured home CMS page's own url
+ *   E2E_CATEGORY_PATH=/herramientas.html          category with products
+ *   E2E_HOME_CMS_PATH=/venia-new-home             the configured home CMS page's own url
  *   E2E_UNKNOWN_HTML_PATH=/e2e-no-such-page.html  a .html url Magento does not know
  */
 const baseUrl = process.env.E2E_BASE_URL?.trim();
@@ -25,25 +27,43 @@ test.skip(!baseUrl, 'Set E2E_BASE_URL to run the phase 2 smoke against a real se
 /** Path of an absolute canonical url (its origin is `PUBLIC_BASE_URL`, not the tested host). */
 const pathOf = (href: string | null) => (href === null ? null : new URL(href).pathname);
 
-/** Location header as a path (`?query` kept), whether the server sends it absolute or relative. */
+/**
+ * Location header as a path plus query. An absolute location must stay on the
+ * tested origin (a redirect to another host would be a routing bug).
+ */
 const locationOf = (response: APIResponse) => {
   const location = response.headers()['location'];
   if (!location) return null;
-  const url = new URL(location, 'http://placeholder');
+  const testedOrigin = new URL(baseUrl ?? '').origin;
+  const url = new URL(location, testedOrigin);
+  expect(url.origin, `redirect leaves the tested origin: ${location}`).toBe(testedOrigin);
   return `${url.pathname}${url.search}`;
+};
+
+/** The category url with `?page` replaced, and the clean url the server must redirect to. */
+const withInvalidPage = (path: string) => {
+  const url = new URL(path, 'http://placeholder');
+  url.searchParams.delete('page');
+  const clean = `${url.pathname}${url.search}`;
+  url.searchParams.set('page', 'abc');
+  return { request: `${url.pathname}${url.search}`, clean };
 };
 
 test.describe('phase 2 smoke', () => {
   test('home: 200, canonical root, menu links to category pages (no /search.html)', async ({
     page,
   }) => {
-    const response = await page.goto('/');
+    const response = await page.goto('/', { waitUntil: 'load' });
     expect(response?.status()).toBe(200);
     expect(pathOf(await page.locator('link[rel="canonical"]').getAttribute('href'))).toBe('/');
 
-    const menu = page.locator('nav[aria-label="Categorías"], nav[aria-label="Menú principal"]');
-    await expect(menu.locator('a[href$=".html"]').first()).toBeAttached();
-    await expect(menu.locator('a[href*="search.html"]')).toHaveCount(0);
+    // Desktop and mobile menus stream in separate Suspense boundaries: prove
+    // each one has rendered its category links before asserting on it.
+    for (const label of ['Categorías', 'Menú principal']) {
+      const nav = page.locator(`nav[aria-label="${label}"]`);
+      await expect(nav.locator('a[href$=".html"]').first(), `${label} links`).toBeAttached();
+      await expect(nav.locator('a[href*="search.html"]'), `${label} search links`).toHaveCount(0);
+    }
   });
 
   test('category: 200, h1, product cards, canonical without page', async ({ page }) => {
@@ -52,14 +72,15 @@ test.describe('phase 2 smoke', () => {
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.getByTestId('product-price').first()).toBeVisible();
     expect(pathOf(await page.locator('link[rel="canonical"]').getAttribute('href'))).toBe(
-      categoryPath,
+      new URL(categoryPath, 'http://placeholder').pathname,
     );
   });
 
   test('category with an invalid page: 307 to the clean url', async ({ request }) => {
-    const response = await request.get(`${categoryPath}?page=abc`, { maxRedirects: 0 });
+    const { request: invalid, clean } = withInvalidPage(categoryPath);
+    const response = await request.get(invalid, { maxRedirects: 0 });
     expect(response.status()).toBe(307);
-    expect(locationOf(response)).toBe(categoryPath);
+    expect(locationOf(response)).toBe(clean);
   });
 
   test('unknown .html url: 404', async ({ request }) => {
