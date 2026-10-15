@@ -34,8 +34,8 @@ export function SearchPagination({ pagination, page, location }: SearchPaginatio
             </a>
           </li>
         ) : null}
-        {pages.map((entry) => (
-          <li key={entry.page}>
+        {pages.map((entry, index) => (
+          <li key={`${index}-${entry.page}`}>
             {entry.link === null ? (
               <span aria-current="page" className={`${LINK} bg-brand-red font-semibold text-white`}>
                 {entry.page}

@@ -119,7 +119,7 @@ authored lines in total: one stacked PR per task.
   `chupachoice`), `page`, `storeParams`; bots and empty query → 200 without CHAPI; no Magento `searchTerm` redirect
   (dropped, decision 8); CHAPI search (ChupaChoice: 4 parallel calls amazon 12, ebay 6, target 6, acme 6);
   `/search.html` served by Next; metadata title with the query, `noindex, follow`. Check: unit + integration.
-- [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: store tabs, results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
+- [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
 - [ ] T5 `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
@@ -222,6 +222,31 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   (+5) green on the first run except one regex on attribute order. Checks: typecheck, lint, unit (859), integration
   (71), build pass; staging screenshots (amazon 1366/390, sort, filter, page 2, ChupaChoice) look right. Known visual
   nit: ChupaChoice lists of 6/12 in the 5-column grid leave orphan rows.
+
+- 2026-10-15: user reported the on-page store tabs (`SearchStoreTabs`) as a visual error: the Chupaprecios PWA search
+  page has none (store switching lives only in the header search bar, which T4 makes reflect the current store and
+  query). The parent had asked for them in the T4 brief without checking the legacy. Removed; tests now assert no
+  `nav[aria-label="Tiendas"]` on single-store and ChupaChoice pages. "Store tabs" in decision 1 means the header
+  search bar tabs. Unit 859, integration 71.
+
+- 2026-10-15: decision (user, T4 review warning): when CHAPI answers with another vendor (`servedByFallback`), the
+  pagination, filter and sort links and the `sort_by` call use **the store that answered** (when it is a search store),
+  not the requested one, so its opaque CHAPI links are never sent to a different store. Differs from the legacy PWA,
+  which kept the requested store. The header search bar then follows that store after a click. When the answering vendor is
+  not a search store, the page shows products only (no filters, sort or pagination links). Repeated non-numeric page
+  titles are kept once and list keys are index-prefixed; the legacy `price`/`position` sort links are dropped (now
+  tested). Unit 863, integration 71.
+
+- 2026-10-15: user asked the ChupaChoice view to look exactly like the PWA (`chupachoice` `ChupaChoice` +
+  `ProductList`). New `src/modules/search/ui/chupachoice-section.tsx` (search-only; `ProductCards` untouched): legacy
+  title (uppercase, light/bold 20px, line-height 90px) in `container-padded`, section `mb-12`, the store logo as the
+  `h2` (legacy rendered sizes: amazon 80x24, ebay 60x24, target 148x32, acme 131x48), "Ver MÁS productos" link
+  (orange, 20px light / 42px bold, legacy chevron) to `storeTabHref`, grid 2 → 3 (≥768px) → 6 (≥1280px) columns with
+  the legacy gaps, bordered item (image 194/172, stars, 90-char name, "Promoción N%" + "Precio final $1,234.56"), and
+  the legacy no-results box ("Esta tienda no tiene ninguna coincidencia" / "No pudimos consultar esta tienda en este
+  momento" + "Búsqueda: {query}"). Amazon/eBay/Target reuse the header logos (identical SVG paths); Acme uses the
+  legacy square `AcmeLogo`, added as `public/images/search/stores/acme.svg`. Kept a "Reintentar" link in the error
+  box (not in the legacy). Roboto Flex is already the base font. Unit 867, integration 71, build pass.
 
 ## Next step
 

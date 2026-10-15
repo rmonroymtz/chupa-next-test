@@ -40,7 +40,7 @@ export function searchPaginationModel(
   const named: SearchPageEntry[] = [];
   for (const { title, link } of pagination.links) {
     if (!PAGE_NUMBER.test(title)) {
-      named.push({ page: title, link });
+      if (!named.some((entry) => entry.page === title)) named.push({ page: title, link });
       continue;
     }
     const page = Number(title);

@@ -103,27 +103,9 @@ const links = (root: ParentNode, selector: string) =>
     ...params(a.getAttribute('href')),
   }));
 
-describe('SearchPage: store tabs', () => {
-  it('links every store with the same query on page 1, the current one marked', () => {
-    const body = render(single());
-
-    const nav = body.querySelector('nav[aria-label="Tiendas"]');
-    const tabs = [...(nav?.querySelectorAll('a') ?? [])];
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      'ChupaChoice',
-      'Amazon',
-      'eBay',
-      'Target',
-      'Acme',
-    ]);
-    expect(tabs.map((tab) => params(tab.getAttribute('href')))).toEqual(
-      ['chupachoice', 'amazon', 'ebay', 'target', 'acme'].map((store) => ({
-        query: 'taladro',
-        store,
-        page: '1',
-      })),
-    );
-    expect(tabs.filter((tab) => tab.getAttribute('aria-current') === 'page')).toEqual([tabs[1]]);
+describe('SearchPage: store switching', () => {
+  it('renders no on-page store tabs: the header search bar switches stores, as in the legacy PWA', () => {
+    expect(render(single()).querySelector('nav[aria-label="Tiendas"]')).toBeNull();
   });
 
   it.each([
@@ -185,6 +167,71 @@ describe('SearchPage: single store states', () => {
     );
   });
 
+  it('fallback store: pagination, filter and sort links use the store that answered', async () => {
+    const fallback = result({
+      vendor: 'amazon',
+      pagination: {
+        current: 1,
+        totalPages: null,
+        next: '/amazon-next',
+        prev: null,
+        links: [{ title: '2', link: '/amazon-next' }],
+      },
+      refinements: [
+        {
+          title: 'Marcas',
+          type: 'checkbox',
+          options: [{ title: 'DEWALT', link: '/amazon-dewalt', checked: false }],
+        },
+      ],
+    });
+    const loader = vi.fn(() => Promise.resolve(SORTS));
+    const body = await renderAll(
+      single({ store: 'target', servedByFallback: true, result: fallback }, { store: 'target' }),
+      loader,
+    );
+
+    const stores = [...body.querySelectorAll('a[href^="/search.html"]')]
+      .map((a) => params(a.getAttribute('href')))
+      .filter((link) => link.storeParams !== undefined)
+      .map((link) => link.store);
+    expect(stores.length).toBeGreaterThan(0);
+    expect(new Set(stores)).toEqual(new Set(['amazon']));
+    expect(loader).toHaveBeenCalledWith(expect.objectContaining({ store: 'amazon' }));
+  });
+
+  it('fallback to a vendor that is not a search store: products only, no CHAPI links', async () => {
+    const fallback = result({
+      vendor: 'walmart',
+      pagination: {
+        current: 1,
+        totalPages: null,
+        next: '/walmart-next',
+        prev: null,
+        links: [{ title: '2', link: '/walmart-next' }],
+      },
+      refinements: [
+        {
+          title: 'Marcas',
+          type: 'checkbox',
+          options: [{ title: 'DEWALT', link: '/walmart-dewalt', checked: false }],
+        },
+      ],
+    });
+    const loader = vi.fn(() => Promise.resolve(SORTS));
+    const body = await renderAll(
+      single({ store: 'target', servedByFallback: true, result: fallback }, { store: 'target' }),
+      loader,
+    );
+
+    expect(body.querySelectorAll('a[href^="/amazon-"]')).toHaveLength(2);
+    const withStoreParams = [...body.querySelectorAll('a[href^="/search.html"]')].filter(
+      (a) => params(a.getAttribute('href')).storeParams !== undefined,
+    );
+    expect(withStoreParams).toHaveLength(0);
+    expect(loader).not.toHaveBeenCalled();
+  });
+
   it('no notice when the requested store answered', () => {
     expect(render(single()).querySelector('[data-search-fallback]')).toBeNull();
   });
@@ -196,6 +243,22 @@ describe('SearchPage: sort selector', () => {
 
     expect(body.querySelector('[data-search-sort="placeholder"]')).not.toBeNull();
     expect(body.querySelectorAll('a[href^="/amazon-"]')).toHaveLength(2);
+  });
+
+  it('drops the legacy Magento "price" and "position" sort links', async () => {
+    const loader = vi.fn<SortOptionsLoader>(() =>
+      Promise.resolve([
+        ...SORTS,
+        { title: 'Precio', link: 'price', selected: false },
+        { title: 'Posición', link: 'position', selected: false },
+      ]),
+    );
+    const body = await renderAll(single(), loader);
+
+    expect(links(body, '[data-search-sort="options"]').map((link) => link.text)).toEqual([
+      'Destacados',
+      'Precio: Del más bajo al más alto',
+    ]);
   });
 
   it('asks the loader with the listing and renders every option as a link, selected marked', async () => {
@@ -397,45 +460,135 @@ describe('SearchPage: pagination', () => {
   });
 });
 
-describe('SearchPage: ChupaChoice', () => {
+describe('SearchPage: ChupaChoice (legacy PWA look)', () => {
   const multi = (listings: StoreListing[]) =>
     view({ kind: 'multi', listings }, { store: 'chupachoice' });
 
-  it('one titled section per store with "Ver más en {Tienda}" to that store search', () => {
+  const fourStores = () =>
+    multi([
+      listing({ store: 'amazon', pageSize: 12 }),
+      listing({ store: 'ebay', pageSize: 6, result: result({ items: [] }) }),
+      listing({ store: 'target', pageSize: 6, result: null, failure: 'error' }),
+      listing({ store: 'acme', pageSize: 6 }),
+    ]);
+
+  const priced = (overrides: Partial<SearchItem> = {}): SearchItem => ({
+    ...item(1),
+    price: {
+      final: { amount: 1234.5, currency: 'MXN' },
+      regular: { amount: 1543.13, currency: 'MXN' },
+      discount: null,
+    },
+    ...overrides,
+  });
+
+  const section = (body: HTMLElement, store: string) =>
+    body.querySelector(`section[data-search-section="${store}"]`);
+
+  it('legacy title and one section per store headed by the store logo', () => {
     const loader = vi.fn(noSorts);
-    const body = render(
-      multi([
-        listing({ store: 'amazon', pageSize: 12 }),
-        listing({ store: 'ebay', pageSize: 6, result: result({ items: [] }) }),
-        listing({ store: 'target', pageSize: 6, result: null, failure: 'error' }),
-        listing({ store: 'acme', pageSize: 6 }),
-      ]),
-      loader,
-    );
+    const body = render(fourStores(), loader);
 
     expect(body.querySelector('h1')?.textContent).toBe('Resultados por tienda: “taladro”');
     const sections = [...body.querySelectorAll('section[data-search-section]')];
-    expect(sections.map((section) => section.querySelector('h2')?.textContent)).toEqual([
+    expect(sections.map((node) => node.getAttribute('data-search-section'))).toEqual([
+      'amazon',
+      'ebay',
+      'target',
+      'acme',
+    ]);
+    // The logo is the section heading (its alt text names the store).
+    expect(sections.map((node) => node.querySelector('h2 img')?.getAttribute('alt'))).toEqual([
       'Amazon',
       'eBay',
       'Target',
       'Acme',
     ]);
-    const more = [...body.querySelectorAll('a')].filter((a) =>
-      a.textContent?.startsWith('Ver más en'),
+    // Legacy ChupaChoice uses the square Acme logo, not the search bar's wordmark.
+    expect(section(body, 'acme')?.querySelector('h2 img')?.getAttribute('src')).toContain(
+      '/images/search/stores/acme.svg',
     );
-    expect(more.map((a) => ({ text: a.textContent, ...params(a.getAttribute('href')) }))).toEqual([
-      { text: 'Ver más en Amazon', query: 'taladro', store: 'amazon', page: '1' },
-      { text: 'Ver más en Acme', query: 'taladro', store: 'acme', page: '1' },
-    ]);
-    expect(sections[1]?.textContent).toContain('Esta tienda no tiene ninguna coincidencia');
-    expect(sections[2]?.querySelector('[role="alert"] a')?.getAttribute('href')).toBe(RETRY);
-    // The tabs mark ChupaChoice; no sort, filters or pagination in this view.
-    expect(body.querySelector('nav[aria-label="Tiendas"] [aria-current="page"]')?.textContent).toBe(
-      'ChupaChoice',
-    );
+    // No store tabs, sort, filters or pagination in this view.
+    expect(body.querySelector('nav[aria-label="Tiendas"]')).toBeNull();
     expect(body.querySelector('[data-search-sort]')).toBeNull();
+    expect(body.querySelector('[data-search-filters]')).toBeNull();
     expect(body.querySelector('nav[aria-label="Paginación"]')).toBeNull();
     expect(loader).not.toHaveBeenCalled();
+  });
+
+  it('"Ver MÁS productos" to the store search, only for stores with products', () => {
+    const body = render(fourStores());
+
+    const more = [...body.querySelectorAll('a')].filter(
+      (a) => a.textContent === 'Ver MÁS productos',
+    );
+    expect(
+      more.map((a) => ({
+        label: a.getAttribute('aria-label'),
+        ...params(a.getAttribute('href')),
+      })),
+    ).toEqual([
+      { label: 'Ver más productos de Amazon', query: 'taladro', store: 'amazon', page: '1' },
+      { label: 'Ver más productos de Acme', query: 'taladro', store: 'acme', page: '1' },
+    ]);
+  });
+
+  it('lists products in the legacy grid (2, 3, then 6 columns), not the CMS product grid', () => {
+    const body = render(fourStores());
+
+    const grids = [...body.querySelectorAll('ul[data-search-grid="chupachoice"]')];
+    expect(grids).toHaveLength(2);
+    expect(grids[0]?.className).toContain('grid-cols-2');
+    expect(grids[0]?.className).toContain('md:grid-cols-3');
+    expect(grids[0]?.className).toContain('xl:grid-cols-6');
+    expect(grids[0]?.querySelectorAll(':scope > li')).toHaveLength(2);
+    expect(grids[0]?.querySelectorAll('a[href^="/amazon-"]')).toHaveLength(2);
+  });
+
+  it('legacy no-results and unavailable-store copy, with the logo and the query', () => {
+    const body = render(fourStores());
+
+    const empty = section(body, 'ebay')?.querySelector('[data-search-state="empty"]');
+    expect(empty?.querySelector('p')?.textContent).toBe(
+      'Esta tienda no tiene ninguna coincidencia',
+    );
+    expect(empty?.textContent).toContain('Búsqueda: taladro');
+    const failed = section(body, 'target')?.querySelector('[data-search-state="error"]');
+    expect(failed?.getAttribute('role')).toBe('alert');
+    expect(failed?.querySelector('p')?.textContent).toBe(
+      'No pudimos consultar esta tienda en este momento',
+    );
+    expect(failed?.textContent).toContain('Búsqueda: taladro');
+    expect(failed?.querySelector('a')?.getAttribute('href')).toBe(RETRY);
+    expect(section(body, 'target')?.querySelector('h2 img')?.getAttribute('alt')).toBe('Target');
+  });
+
+  it('legacy item: final price, discount as "Promoción", stars and the 90-character name', () => {
+    const longName = 'Taladro '.repeat(15).trim();
+    const body = render(
+      multi([
+        listing({
+          store: 'amazon',
+          result: result({
+            items: [
+              priced({ name: longName, rating: 3.5 }),
+              priced({ uid: 'amazon-2', price: null }),
+            ],
+          }),
+        }),
+      ]),
+    );
+
+    const [first, second] = [...body.querySelectorAll('ul[data-search-grid] > li')];
+    expect(first?.querySelector('h3')?.textContent).toBe(`${longName.slice(0, 87)}...`);
+    expect(first?.querySelector('[data-search-price]')?.textContent).toBe('Precio final$1,234.50');
+    expect(first?.querySelector('[data-search-discount]')?.textContent).toBe('Promoción20%');
+    const stars = first?.querySelector('[data-search-rating]');
+    expect(stars?.getAttribute('aria-label')).toBe('3.5 de 5 estrellas');
+    expect(stars?.querySelectorAll('[data-star="active"]')).toHaveLength(3);
+    expect(stars?.querySelectorAll('svg')).toHaveLength(5);
+    expect(second?.querySelector('[data-search-price]')).toBeNull();
+    expect(second?.querySelector('[data-search-discount]')).toBeNull();
+    expect(second?.querySelector('[data-search-rating]')).toBeNull();
   });
 });

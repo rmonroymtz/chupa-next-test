@@ -2,12 +2,12 @@ import { Suspense } from 'react';
 import { SEARCH_STORES } from '@/modules/layout/domain/search';
 import { ProductCards } from '@/modules/page-builder/ui/product-cards';
 import type { SearchPageDecision, StoreListing } from '@/modules/search/application/search-page';
-import { storeTabHref, type SearchLocation } from '@/modules/search/domain/search-links';
+import type { SearchLocation } from '@/modules/search/domain/search-links';
 import type { SearchResult, SearchSortOption } from '@/modules/search/domain/search-result';
+import { ChupaChoiceSection } from './chupachoice-section';
 import { SearchFiltersDisclosure, SearchFiltersSidebar } from './search-filters';
 import { SearchPagination } from './search-pagination';
 import { SearchSort, SearchSortPlaceholder } from './search-sort';
-import { SearchStoreTabs } from './search-store-tabs';
 
 type SearchPageView = Extract<SearchPageDecision, { kind: 'page' }>;
 
@@ -29,26 +29,41 @@ interface SearchPageProps {
 
 /**
  * Search results page (Server Component, plain links, no client JavaScript):
- * store tabs, then either one store (filters, sort, grid, pagination) or the
- * ChupaChoice view (one short list per store). Bots and blank queries get
+ * either one store (filters, sort, grid, pagination) or the ChupaChoice view
+ * (one legacy-styled list per store, `ChupaChoiceSection`). Bots and blank queries get
  * only the heading. The sort selector streams in its own Suspense boundary,
  * so the results never wait for the `sort_by` call.
  */
 export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps) {
   const { query, results } = view;
-  const heading =
-    results.kind === 'multi'
-      ? `Resultados por tienda: “${query}”`
-      : query
-        ? `Resultados para «${query}»`
-        : 'Búsqueda';
+  if (results.kind === 'multi') {
+    // Legacy ChupaChoice page: site column, uppercase light/bold title, one list per store.
+    return (
+      <div data-search-store={view.store} className="container-padded">
+        <h1 className="text-left text-[20px] leading-[90px] uppercase">
+          <span className="font-light">Resultados por tienda:</span>
+          <span className="font-bold"> “{query}”</span>
+        </h1>
+        <div className="mb-4">
+          {results.listings.map((listing) => (
+            <ChupaChoiceSection
+              key={listing.store}
+              listing={listing}
+              query={query}
+              retryUrl={retryUrl}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const heading = query ? `Resultados para «${query}»` : 'Búsqueda';
   return (
     <div data-search-store={view.store} className="mx-auto max-w-[1280px] px-4 py-6">
       <h1 className="text-2xl font-semibold">{heading}</h1>
       {results.kind === 'none' && results.reason === 'empty_query' ? (
         <p className="py-12 text-center text-neutral-grey">Escribe lo que quieres buscar.</p>
       ) : null}
-      {results.kind !== 'none' ? <SearchStoreTabs query={query} store={view.store} /> : null}
       {results.kind === 'single' ? (
         <SingleStore
           listing={results.listing}
@@ -57,11 +72,6 @@ export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps)
           loadSortOptions={loadSortOptions}
         />
       ) : null}
-      {results.kind === 'multi'
-        ? results.listings.map((listing) => (
-            <StoreSection key={listing.store} listing={listing} query={query} retryUrl={retryUrl} />
-          ))
-        : null}
     </div>
   );
 }
@@ -89,8 +99,12 @@ function SingleStore({
     );
   }
 
-  const location: SearchLocation = { query: view.query, store: listing.store };
-  const hasFilters = result.refinements.length > 0;
+  // CHAPI links belong to the store that answered: following them must ask that store, not the
+  // requested one (decided 2026-10-15; the legacy PWA kept the requested store). When that store is
+  // not a search store, no link can carry them safely: products only.
+  const linkStore = answeringStore(listing, result);
+  const location: SearchLocation = { query: view.query, store: linkStore ?? listing.store };
+  const hasFilters = linkStore !== null && result.refinements.length > 0;
   return (
     <div
       className={`mt-6 ${hasFilters ? 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8' : ''}`}
@@ -111,18 +125,22 @@ function SingleStore({
           <p data-search-count className="text-sm text-neutral-grey">
             {productCount(result.items.length)}
           </p>
-          <Suspense fallback={<SearchSortPlaceholder />}>
-            <SearchSort
-              options={safeSortOptions(loadSortOptions, { ...listing, result })}
-              location={location}
-            />
-          </Suspense>
+          {linkStore !== null ? (
+            <Suspense fallback={<SearchSortPlaceholder />}>
+              <SearchSort
+                options={safeSortOptions(loadSortOptions, { ...listing, store: linkStore, result })}
+                location={location}
+              />
+            </Suspense>
+          ) : null}
           {hasFilters ? (
             <SearchFiltersDisclosure refinements={result.refinements} location={location} />
           ) : null}
         </div>
         <ProductCards cards={result.items} appearance="grid" />
-        <SearchPagination pagination={result.pagination} page={view.page} location={location} />
+        {linkStore !== null ? (
+          <SearchPagination pagination={result.pagination} page={view.page} location={location} />
+        ) : null}
       </div>
     </div>
   );
@@ -173,51 +191,6 @@ function FallbackNotice({
   );
 }
 
-function StoreSection({
-  listing,
-  query,
-  retryUrl,
-}: {
-  readonly listing: StoreListing;
-  readonly query: string;
-  readonly retryUrl: string;
-}) {
-  const { result } = listing;
-  const hasItems = listing.failure === null && result !== null && result.items.length > 0;
-  return (
-    <section
-      data-search-section={listing.store}
-      aria-labelledby={`search-${listing.store}`}
-      className="mt-8"
-    >
-      <div className="flex items-center justify-between gap-4 border-b border-neutral-inactive pb-2">
-        <h2 id={`search-${listing.store}`} className="text-xl font-semibold">
-          {storeLabel(listing.store)}
-        </h2>
-        {hasItems ? (
-          <a
-            href={storeTabHref(query, listing.store)}
-            className="text-sm font-semibold whitespace-nowrap text-brand-red hover:underline"
-          >
-            Ver más en {storeLabel(listing.store)}
-          </a>
-        ) : null}
-      </div>
-      <div className="mt-4">
-        {listing.failure !== null || result === null ? (
-          <ErrorState retryUrl={retryUrl} />
-        ) : result.items.length === 0 ? (
-          <p data-search-state="empty" className="py-8 text-center text-neutral-grey">
-            Esta tienda no tiene ninguna coincidencia para «{query}».
-          </p>
-        ) : (
-          <ProductCards cards={result.items} appearance="grid" />
-        )}
-      </div>
-    </section>
-  );
-}
-
 function ErrorState({ retryUrl }: { readonly retryUrl: string }) {
   return (
     <div role="alert" data-search-state="error" className="py-12 text-center">
@@ -232,4 +205,13 @@ function ErrorState({ retryUrl }: { readonly retryUrl: string }) {
 
 function storeLabel(store: string): string {
   return SEARCH_STORES.find((entry) => entry.id === store)?.label ?? store;
+}
+
+/**
+ * The store whose CHAPI links a listing carries: the requested store, or the vendor that answered
+ * a fallback when it is a search store; null when no search store can follow them.
+ */
+function answeringStore(listing: StoreListing, result: SearchResult): string | null {
+  if (!listing.servedByFallback) return listing.store;
+  return SEARCH_STORES.some((entry) => entry.id === result.vendor) ? result.vendor : null;
 }
