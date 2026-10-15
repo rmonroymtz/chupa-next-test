@@ -56,6 +56,7 @@ test.describe('phase 2 smoke', () => {
     const response = await page.goto('/', { waitUntil: 'load' });
     expect(response?.status()).toBe(200);
     expect(pathOf(await page.locator('link[rel="canonical"]').getAttribute('href'))).toBe('/');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
 
     // Desktop and mobile menus stream in separate Suspense boundaries: prove
     // each one has rendered its category links before asserting on it.
@@ -66,11 +67,12 @@ test.describe('phase 2 smoke', () => {
     }
   });
 
-  test('category: 200, h1, product cards, canonical without page', async ({ page }) => {
+  test('category: 200, indexable, h1, product cards, canonical without page', async ({ page }) => {
     const response = await page.goto(categoryPath);
     expect(response?.status()).toBe(200);
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.getByTestId('product-price').first()).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
     expect(pathOf(await page.locator('link[rel="canonical"]').getAttribute('href'))).toBe(
       new URL(categoryPath, 'http://placeholder').pathname,
     );
