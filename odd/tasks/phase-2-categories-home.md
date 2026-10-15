@@ -225,6 +225,11 @@ Same as phase 1: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   tasks rewritten (T1–T6). Engram mirror pending (hook error "Claude host session registration could not be
   confirmed").
 
+- 2026-10-15: edge routing decided (user): option A in `docs/routing/phase-2.md` (all remaining `.html`, `/` and
+  `/venia-new-home` to Next). `/search.html` and `*-search.html` stay on PWA only as **temporary** rules until phase 3
+  serves search from Next (the user expects Next to own search; Next answers 404 for it today). Review fix: Magento
+  path rules (`/static/*`, `/media/*`, `/api/*`, callbacks) now match before `*.html`, with a checklist item.
+
 ## Next step
 
 Phase 2 code and docs complete. Add the four e2e lines to `.env.example`, commit and open the T6 PR; then the edge

@@ -1,15 +1,16 @@
 # Phase 2 routing: home and category pages move to Next
 
-Phase 2 adds **the home page (`/`) and the native Magento category pages (`/{url_path}.html`)** to what the edge sends to the Next.js storefront. It builds on the [phase 1 rules](phase-1.md), which stay in place. Search (`/search.html`, `*-search.html`), cart, checkout and account keep going to PWA Studio. Rolling back means deleting the three phase 2 rules.
+Phase 2 adds **the home page (`/`) and the native Magento category pages (`/{url_path}.html`)** to what the edge sends to the Next.js storefront. It builds on the [phase 1 rules](phase-1.md), which stay in place. Cart, checkout and account keep going to PWA Studio. Search (`/search.html`, `*-search.html`) will also be served by Next, but only from phase 3: until Next has a search page, a **temporary** rule keeps it on PWA Studio (Next answers 404 for `/search.html` today). Rolling back means deleting the three phase 2 Next rules.
 
 This document is for whoever operates the edge (CloudFront or nginx). The configs are **examples to adapt**, not drop-in files.
 
 ## Quick path
 
-1. Keep every phase 1 rule. Add a PWA rule for `/search.html` (exact) next to the existing `*-search.html` rule.
-2. Add, **after** both search rules: `/` → Next, `/{cms_home_page}` (today `/venia-new-home`) → Next, `*.html` → Next.
-3. Remove the prerender service for `/` and `*.html` (except the two search rules).
-4. Run the [checklist](#checklist), then watch 404 and 5xx rates on Next for a day.
+1. Keep every phase 1 rule. Add a **temporary** PWA rule for `/search.html` (exact) next to the existing `*-search.html` rule; both are removed in phase 3.
+2. Make sure every rule for paths Magento serves itself (`/static/*`, `/media/*`, `/api/*`, callbacks…) matches **before** the new `*.html` rule.
+3. Add, **after** the search and Magento rules: `/` → Next, `/{cms_home_page}` (today `/venia-new-home`) → Next, `*.html` → Next.
+4. Remove the prerender service for `/` and `*.html` (except the two search rules).
+5. Run the [checklist](#checklist), then watch 404 and 5xx rates on Next for a day.
 
 ## What changes
 
@@ -18,7 +19,7 @@ This document is for whoever operates the edge (CloudFront or nginx). The config
 | `/`                                                | PWA     | Next    | Next resolves `/` through Magento `route()` (the configured home CMS page).    |
 | `/{cms_home_page}` (`/venia-new-home` today)       | PWA     | Next    | Next answers `308 → /` (query string kept), so the home has one indexable url. |
 | Category `/{url_path}.html`, nested or not         | PWA     | Next    | Indexable category pages from Magento data (products, breadcrumbs, JSON-LD).   |
-| `/search.html`, `*-search.html`                    | PWA     | PWA     | Search moves in phase 3. Must match **before** the `*.html` rule.              |
+| `/search.html`, `*-search.html`                    | PWA     | PWA     | Temporary until phase 3 (Next has no search page yet); before `*.html`.        |
 | Product, listed CMS paths, Next internals          | Next    | Next    | Unchanged phase 1 rules.                                                       |
 | Cart, checkout, account, other PWA pages, `/api/*` | PWA     | PWA     | Unchanged.                                                                     |
 
@@ -53,7 +54,7 @@ Next resolves every url through Magento `route()` and answers 404 for anything M
 | B. Explicit list of category paths                 | One exact rule per category (nginx `include`, or CloudFront behaviors), from Magento url rewrites. | Only known categories move; everything else stays on PWA.                                              | Must be regenerated whenever a category is added or renamed. Staging already has dozens of nested categories; CloudFront's default quota is 25 behaviors per distribution. |
 | C. Prefix or header                                | Change category urls to `/c/...`, or have the edge look up the url type.                           | Unambiguous.                                                                                           | A prefix changes Magento urls (out of scope: no Magento changes) and breaks indexed urls. An edge lookup adds a Magento call and latency to every request.                 |
 
-**Recommendation: option A.** It needs one rule, follows Magento automatically, and Next already handles every non-category `.html` url correctly once the two search rules match first. Before go-live, list Magento's non-category, non-product `.html` url rewrites (CMS pages with `.html` keys, custom rewrites) to confirm nothing there should stay on PWA:
+**Decision (2026-10-15): option A.** It needs one rule, follows Magento automatically, and Next already handles every non-category `.html` url correctly once the two search rules match first. Before go-live, list Magento's non-category, non-product `.html` url rewrites (CMS pages with `.html` keys, custom rewrites) to confirm nothing there should stay on PWA:
 
 ```sql
 SELECT entity_type, COUNT(*) FROM url_rewrite
@@ -64,38 +65,38 @@ Also confirm PWA Studio serves no static `.html` file that browsers request dire
 
 ## Rules in order
 
-First match wins. Phase 1 rules keep their place; phase 2 adds rows marked **new**.
+First match wins. Phase 1 rules keep their place except the Magento paths, which must now match before `*.html`; phase 2 adds rows marked **new**.
 
-| #   | Request                                                               | Origin     | Methods    | Note                                                                                           |
-| --- | --------------------------------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------- |
-| 1-3 | `/_next/static/*`, `/_next/image*`, `/images/layout/*`, `/robots.txt` | Next       | as phase 1 | Unchanged.                                                                                     |
-| 4   | `/healthz`                                                            | not public |            | Unchanged.                                                                                     |
-| 5   | `/search.html` (exact) **new**                                        | PWA        | as today   | Search, phase 3. Above rule 8.                                                                 |
-| 6   | `*-search.html`                                                       | PWA        | as today   | Unchanged; above rule 8 and the product rules.                                                 |
-| 7   | product (`/{vendor}-*.html`), listed CMS paths                        | Next       | all        | Unchanged. Redundant with rule 8 for products; keep it so rollback only deletes phase 2 rules. |
-| 8   | `*.html` **new**                                                      | Next       | all        | Categories (any depth), plus anything else Magento resolves.                                   |
-| 9   | `/` (exact) **new**                                                   | Next       | all        | Home.                                                                                          |
-| 10  | `/{cms_home_page}` (exact, `/venia-new-home`) **new**                 | Next       | all        | 308 → `/`.                                                                                     |
-| 11  | Magento paths, `/api/*`                                               | as today   |            | Unchanged.                                                                                     |
-| 12  | everything else                                                       | PWA        | as today   | Cart, checkout, account, PWA assets.                                                           |
+| #   | Request                                                               | Origin     | Methods    | Note                                                                                                               |
+| --- | --------------------------------------------------------------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1-3 | `/_next/static/*`, `/_next/image*`, `/images/layout/*`, `/robots.txt` | Next       | as phase 1 | Unchanged.                                                                                                         |
+| 4   | `/healthz`                                                            | not public |            | Unchanged.                                                                                                         |
+| 5   | `/search.html` (exact) **new, temporary**                             | PWA        | as today   | Removed in phase 3, when Next serves search. Above rule 9.                                                         |
+| 6   | `*-search.html` **temporary**                                         | PWA        | as today   | Removed in phase 3. Above rule 9 and the product rules.                                                            |
+| 7   | Magento paths (`/static/*`, `/media/*`, callbacks…), `/api/*`         | as today   | as today   | **Moved above `*.html`**, so any `.html` file or page Magento serves under its own paths never reaches Next (404). |
+| 8   | product (`/{vendor}-*.html`), listed CMS paths                        | Next       | all        | Unchanged. Redundant with rule 9 for products; keep it so rollback only deletes phase 2 rules.                     |
+| 9   | `*.html` **new**                                                      | Next       | all        | Categories (any depth), plus anything else Magento resolves.                                                       |
+| 10  | `/` (exact) **new**                                                   | Next       | all        | Home.                                                                                                              |
+| 11  | `/{cms_home_page}` (exact, `/venia-new-home`) **new**                 | Next       | all        | 308 → `/`.                                                                                                         |
+| 12  | everything else                                                       | PWA        | as today   | Cart, checkout, account, PWA assets.                                                                               |
 
-All methods on rules 8-10: the header mini cart and add to cart use Server Actions, which `POST` to the page url itself. The headers Next needs (real `User-Agent`, `X-Forwarded-Host`, every query string, Next's `RSC`/`Next-*` headers) are the same as in [phase 1](phase-1.md#headers-next-needs).
+All methods on rules 9-11: the header mini cart and add to cart use Server Actions, which `POST` to the page url itself. The headers Next needs (real `User-Agent`, `X-Forwarded-Host`, every query string, Next's `RSC`/`Next-*` headers) are the same as in [phase 1](phase-1.md#headers-next-needs).
 
 ## CloudFront example
 
 Add three behaviors and one PWA behavior to the phase 1 set. Lower precedence number wins.
 
-| Precedence     | Path pattern                            | Origin   | Methods    | Cache policy      | Origin request policy |
-| -------------- | --------------------------------------- | -------- | ---------- | ----------------- | --------------------- |
-| 0-3            | phase 1 (Next internals, `/robots.txt`) | Next     | as phase 1 | as phase 1        | as phase 1            |
-| before 4       | `/search.html` **new**                  | PWA      | as today   | as today          | as today              |
-| 4              | `*-search.html`                         | PWA      | as today   | as today          | as today              |
-| 5-9…           | phase 1 products and CMS paths          | Next     | all        | `CachingDisabled` | `AllViewer`           |
-| after products | `/` **new**                             | Next     | all        | `CachingDisabled` | `AllViewer`           |
-| next           | `/venia-new-home` **new**               | Next     | all        | `CachingDisabled` | `AllViewer`           |
-| next           | `*.html` **new**                        | Next     | all        | `CachingDisabled` | `AllViewer`           |
-| —              | existing Magento and `/api/*` behaviors | as today |            |                   |                       |
-| default        | `*`                                     | PWA      | as today   | as today          | as today              |
+| Precedence      | Path pattern                                           | Origin   | Methods    | Cache policy      | Origin request policy |
+| --------------- | ------------------------------------------------------ | -------- | ---------- | ----------------- | --------------------- |
+| 0-3             | phase 1 (Next internals, `/robots.txt`)                | Next     | as phase 1 | as phase 1        | as phase 1            |
+| before 4        | `/search.html` **new, temporary**                      | PWA      | as today   | as today          | as today              |
+| 4               | `*-search.html` (temporary)                            | PWA      | as today   | as today          | as today              |
+| before `*.html` | existing Magento and `/api/*` behaviors (**moved up**) | as today | as today   | as today          | as today              |
+| 5-9…            | phase 1 products and CMS paths                         | Next     | all        | `CachingDisabled` | `AllViewer`           |
+| after products  | `/` **new**                                            | Next     | all        | `CachingDisabled` | `AllViewer`           |
+| next            | `/venia-new-home` **new**                              | Next     | all        | `CachingDisabled` | `AllViewer`           |
+| next            | `*.html` **new**                                       | Next     | all        | `CachingDisabled` | `AllViewer`           |
+| default         | `*`                                                    | PWA      | as today   | as today          | as today              |
 
 Notes:
 
@@ -110,16 +111,19 @@ Notes:
 ```nginx
     # Phase 2. Keep the phase 1 locations; regex locations match in file order.
 
-    # 5. Search stays on PWA (phase 3). Exact match beats every regex.
+    # 5. Search stays on PWA until phase 3 (temporary). Exact match beats every regex.
     location = /search.html      { proxy_pass http://pwa_studio; }   # plus the existing PWA/prerender config
     # 6. Phase 1 `location ~ -search\.html$` stays before the regexes below.
-    # 7. Phase 1 product regex and CMS includes stay as they are.
+    # 7. Magento path prefixes (/static/, /media/, /api/, callbacks): a regex location
+    #    beats a plain prefix location, so declare them with `^~` (or as exact matches)
+    #    or `\.html$` below would send any .html under them to Next.
+    # 8. Phase 1 product regex and CMS includes stay as they are.
 
-    # 9-10. Home and the home CMS page's own url
+    # 10-11. Home and the home CMS page's own url
     location = /                 { include snippets/storefront-next.conf; }
     location = /venia-new-home   { include snippets/storefront-next.conf; }
 
-    # 8. Every other .html url (categories, any depth); after the search regex
+    # 9. Every other .html url (categories, any depth); after the search regex
     location ~ \.html$           { include snippets/storefront-next.conf; }
 ```
 
@@ -131,7 +135,7 @@ Remove the prerender service for the new Next routes too: `/`, `/venia-new-home`
 
 ## Caching
 
-- **No caching.** Every Next page is `force-dynamic` with no data cache and answers with a `Cache-Control` that includes `no-store`. Use `CachingDisabled` (or nginx without `proxy_cache`) for rules 8-10.
+- **No caching.** Every Next page is `force-dynamic` with no data cache and answers with a `Cache-Control` that includes `no-store`. Use `CachingDisabled` (or nginx without `proxy_cache`) for rules 9-11.
 - Unlike missing products, category and home status does **not** depend on the user agent, but keep caching off: the CDN caching policy is a separate infra decision for a later phase.
 - Never cache `POST` (Server Actions).
 
@@ -172,6 +176,7 @@ curl -sI -A "$UA" "$B/search.html?query=x" | grep -i '^vary' # no rsc (served by
 - [ ] `?page=abc` and a page beyond the last answer 307 to the clean category url.
 - [ ] `/search.html?query=x` and `/amazon-x-search.html` still reach PWA (no `Vary: rsc`; PWA search results).
 - [ ] `/cart`, `/checkout`, `/sign-in`, `/my-account` still reach PWA.
+- [ ] Paths Magento serves itself (`/static/*`, `/media/*`, `/api/*`, payment or other callbacks) still reach Magento, including any `.html` file under them (no `Vary: rsc`, not a Next 404).
 - [ ] Add to cart from a product page and the mini cart from a category page work (Server Action `POST`).
 - [ ] `/robots.txt` unchanged (from Next, `Sitemap: $B/sitemap.xml`).
 - [ ] Prerender no longer receives `/` or category urls.
@@ -185,4 +190,4 @@ E2E_BASE_URL=$B E2E_PHASE2_SMOKE=1 pnpm test:e2e --project phase-2-smoke
 
 ## Next step
 
-Phase 3 moves `/search.html` to Next (CHAPI search). Until then rules 5 and 6 must stay above `*.html`.
+Phase 3 serves `/search.html` and `*-search.html` from Next (CHAPI search). Once it is live, delete the temporary rules 5 and 6; until then they must stay above `*.html`.
