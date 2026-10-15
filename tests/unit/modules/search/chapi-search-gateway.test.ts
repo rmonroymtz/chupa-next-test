@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createChapiSearchGateway } from '@/modules/search/infrastructure/chapi-search-gateway';
 import amazon from '../../../fixtures/chapi/search.amazon-taladro.json';
 import sortBy from '../../../fixtures/chapi/search-sort-by.amazon-taladro.json';
+import { DEFAULT_PRODUCT_VENDORS } from '@/shared/config/env';
 import { setupMswServer } from '../../../support/msw';
 import { createCapturingObservability } from '../../../support/observability';
 
@@ -19,13 +20,30 @@ const QUERY = {
 };
 const server = setupMswServer();
 
-function setup(timeoutMs = 200) {
+/**
+ * `fetch` resolving a 200 whose body stream breaks mid-way, like a connection
+ * reset after the headers. Injected directly (not through MSW) so the failure
+ * surfaces while the gateway reads the body, not inside `fetch`.
+ */
+const brokenBodyFetch: typeof fetch = async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      controller.enqueue(new TextEncoder().encode('{"vendor":"amazon","data":{'));
+      controller.error(new TypeError('terminated'));
+    },
+  });
+  return new Response(stream, { status: 200, headers: { 'Content-Type': 'application/json' } });
+};
+
+function setup(timeoutMs = 200, fetchImpl?: typeof fetch) {
   const observability = createCapturingObservability();
   const gateway = createChapiSearchGateway({
     baseUrl: BASE,
     timeoutMs,
     logger: observability.logger,
     metrics: observability.metrics,
+    vendors: DEFAULT_PRODUCT_VENDORS,
+    ...(fetchImpl ? { fetch: fetchImpl } : {}),
   });
   return { gateway, ...observability };
 }
@@ -96,6 +114,22 @@ describe('ChapiSearchGateway.search', () => {
     expect(logsAt('warn')[0]).toMatchObject({ store: 'amazon', skippedItems: 1 });
   });
 
+  it('does not count repeated skus as skipped items', async () => {
+    const [first] = amazon.data.products;
+    server.use(
+      http.post(SEARCH, () =>
+        HttpResponse.json({ ...amazon, data: { ...amazon.data, products: [first, first] } }),
+      ),
+    );
+    const { gateway, metricsNamed, logsAt } = setup();
+
+    const result = await gateway.search(QUERY);
+
+    expect(result).toMatchObject({ status: 'ok', data: { skippedItems: 0, duplicateItems: 1 } });
+    expect(metricsNamed('ChapiSearchSkippedItems')).toEqual([]);
+    expect(logsAt('warn')).toEqual([]);
+  });
+
   it('returns timeout when CHAPI is too slow and counts it', async () => {
     server.use(
       http.post(SEARCH, async () => {
@@ -127,6 +161,13 @@ describe('ChapiSearchGateway.search', () => {
 
     server.use(http.post(SEARCH, () => HttpResponse.error()));
     await expect(setup().gateway.search(QUERY)).resolves.toEqual({ status: 'error' });
+  });
+
+  it('returns error, not invalid, when a 2xx body stream fails', async () => {
+    const { gateway, metricsNamed } = setup(200, brokenBodyFetch);
+
+    await expect(gateway.search(QUERY)).resolves.toEqual({ status: 'error' });
+    expect(metricsNamed('ChapiError')[0]?.dimensions.Reason).toBe('http');
   });
 
   it('returns invalid for malformed JSON or a body without data', async () => {
@@ -172,6 +213,22 @@ describe('ChapiSearchGateway.sortOptions', () => {
       Operation: 'search_sort',
       Outcome: 'ok',
     });
+  });
+
+  it('returns error when a 2xx body stream fails and invalid for bad JSON', async () => {
+    const sortQuery = {
+      query: 'q',
+      store: 'amazon',
+      engineId: 'direct',
+      filters: '',
+      maxResults: 16,
+    };
+    await expect(setup(200, brokenBodyFetch).gateway.sortOptions(sortQuery)).resolves.toEqual({
+      status: 'error',
+    });
+
+    server.use(http.post(SORT, () => new HttpResponse('{"data": [', { status: 200 })));
+    await expect(setup().gateway.sortOptions(sortQuery)).resolves.toEqual({ status: 'invalid' });
   });
 
   it('never rejects', async () => {

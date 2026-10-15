@@ -19,6 +19,7 @@ const result: SearchResult = {
   refinements: [],
   sorts: [],
   skippedItems: 0,
+  duplicateItems: 0,
 };
 
 const SORTS = [{ title: 'Destacados', link: '/s?k=drill', selected: true }];

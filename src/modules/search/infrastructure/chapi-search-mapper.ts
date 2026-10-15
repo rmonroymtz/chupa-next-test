@@ -19,7 +19,9 @@ import type {
  * The page is only rejected when the envelope is unusable (no `data`, no
  * `products` list, no usable vendor). Unlike the legacy, which throws for the
  * whole response when one product has no price, bad items are skipped one by
- * one and counted in `skippedItems`.
+ * one and counted in `skippedItems`; repeated skus keep their first item and
+ * are counted apart in `duplicateItems`. Items whose card link would not
+ * route (see `toLinkVendor`) are skipped too.
  */
 
 /** Legacy hard-codes MXN; used only when an item carries no currency. */
@@ -28,26 +30,39 @@ const DEFAULT_CURRENCY = 'MXN';
 const VENDOR_PATTERN = /^[a-z0-9]+$/;
 const INVALID = { status: 'invalid' } as const;
 
+export interface SearchResponseContext {
+  /** CHAPI store the request was sent to (the requested store's service fallback). */
+  readonly requestedStore: string;
+  /** Vendors `parseProductUrl` routes (`PRODUCT_VENDORS`). */
+  readonly vendors: readonly string[];
+}
+
 export function parseSearchResponse(
   payload: unknown,
-  requestedStore: string,
+  context: SearchResponseContext,
 ): ChapiSearchResult<SearchResult> {
   if (!isRecord(payload) || !isRecord(payload.data)) return INVALID;
   const { data } = payload;
   if (!Array.isArray(data.products)) return INVALID;
 
+  const requestedStore = context.requestedStore.toLowerCase();
   const vendor = (
     nonEmptyString(data.vendor) ??
     nonEmptyString(payload.vendor) ??
     requestedStore
   ).toLowerCase();
   if (!VENDOR_PATTERN.test(vendor)) return INVALID;
+  const linkVendor = toLinkVendor(vendor, requestedStore, context.vendors);
 
   const items: SearchItem[] = [];
   const seen = new Set<string>();
+  let skippedItems = 0;
+  let duplicateItems = 0;
   for (const raw of data.products) {
-    const item = toItem(raw, vendor);
-    if (item && !seen.has(item.uid)) {
+    const item = linkVendor ? toItem(raw, linkVendor) : null;
+    if (!item) skippedItems += 1;
+    else if (seen.has(item.uid)) duplicateItems += 1;
+    else {
       seen.add(item.uid);
       items.push(item);
     }
@@ -62,9 +77,24 @@ export function parseSearchResponse(
       pagination: toPagination(data.pagination),
       refinements: toRefinements(data.refinements),
       sorts: toSorts(data.sorts),
-      skippedItems: data.products.length - items.length,
+      skippedItems,
+      duplicateItems,
     },
   };
+}
+
+/**
+ * Vendor used in card links: the responding vendor when product urls route
+ * it, else the requested store when they do, else null (items are skipped,
+ * since their links would not resolve).
+ */
+function toLinkVendor(
+  vendor: string,
+  requestedStore: string,
+  vendors: readonly string[],
+): string | null {
+  if (vendors.includes(vendor)) return vendor;
+  return vendors.includes(requestedStore) ? requestedStore : null;
 }
 
 /** `sort_by` answers `{ data: [{ title, link, selected }] }`. */

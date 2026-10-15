@@ -68,6 +68,8 @@ export interface SearchResult {
   readonly refinements: readonly SearchRefinement[];
   /** Empty when the response carries none (see the sort options use case). */
   readonly sorts: readonly SearchSortOption[];
-  /** Items dropped by the mapper (no SKU, no title or no positive price). */
+  /** Unusable items dropped by the mapper (no SKU, no title or no positive price). */
   readonly skippedItems: number;
+  /** Items dropped because their SKU was already listed (the first one is kept). */
+  readonly duplicateItems: number;
 }

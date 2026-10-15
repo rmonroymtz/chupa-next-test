@@ -21,6 +21,8 @@ export interface ChapiSearchGatewayConfig {
   readonly timeoutMs: number;
   readonly logger: Logger;
   readonly metrics: MetricsEmitter;
+  /** Vendors product urls route (`PRODUCT_VENDORS`); card links use one of them. */
+  readonly vendors: readonly string[];
   readonly fetch?: typeof fetch;
 }
 
@@ -110,7 +112,8 @@ export function createChapiSearchGateway(config: ChapiSearchGatewayConfig): Sear
           engine_id: query.engineId,
           page_size: query.pageSize,
         },
-        (payload) => parseSearchResponse(payload, query.store),
+        (payload) =>
+          parseSearchResponse(payload, { requestedStore: query.store, vendors: config.vendors }),
       );
       if (result.status === 'ok' && result.data.skippedItems > 0) {
         const { skippedItems } = result.data;
@@ -147,11 +150,14 @@ async function toResult<T>(
     await response.body?.cancel();
     return { status: 'error' };
   }
+  // A body-read failure (timeout, connection reset, broken gzip stream) is
+  // rethrown and classified like a fetch failure; only an unparseable or
+  // unusable body is `invalid`.
+  const text = await response.text();
   let payload: unknown;
   try {
-    payload = JSON.parse(await response.text());
-  } catch (error) {
-    if (isTimeoutError(error)) throw error;
+    payload = JSON.parse(text);
+  } catch {
     return { status: 'invalid' };
   }
   return parse(payload);
@@ -166,6 +172,7 @@ export function getChapiSearchGateway(): SearchGateway {
     defaultGateway = createChapiSearchGateway({
       baseUrl: env.CHAPI_BASE_URL,
       timeoutMs: env.CHAPI_SEARCH_TIMEOUT_MS,
+      vendors: env.PRODUCT_VENDORS,
       ...defaultObservability('chapi-search'),
     });
   }

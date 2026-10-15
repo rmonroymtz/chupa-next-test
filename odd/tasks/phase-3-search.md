@@ -171,6 +171,13 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   `*_search_engine` fields exist there too (homedepot `direct` in production, `bigbox` on staging; both fall back to
   amazon via `service_fallback`).
 
+- 2026-10-15: T2 review fixes: body-read failure after a 2xx → `error` (not `invalid`) for search and sort_by;
+  `duplicateItems` counted apart from `skippedItems` (only the latter alerts); card links only use a vendor in
+  `PRODUCT_VENDORS` (responding vendor → requested store → skip). **Known limitation confirmed (pre-existing, also in
+  legacy and phase 1 product URLs):** an acme SKU whose base64url contains `-` (e.g. `~~~` → `fn5-`) is read back by
+  `parseProductUrl` as a different SKU (`~~`); documented by a test, URL format unchanged, decision pending.
+  Unit 785.
+
 ## Next step
 
 Parent: review and commit T2, then T3 (search decision + route). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to

@@ -38,4 +38,19 @@ describe('buildSearchItemUrlKey', () => {
       expect(parseProductUrl(`/${urlKey}.html`, { vendors })).toMatchObject({ vendor, sku });
     }
   });
+
+  it('documents a known limitation shared with the legacy: an acme segment containing "-"', () => {
+    // '~~~' is base64 'fn5+', base64url 'fn5-'. Product urls are split on '-'
+    // (legacy and `parseProductUrl`), so the sku segment is cut to 'fn5' and
+    // reads back as '~~' — a different sku. The url format is kept as is;
+    // the fix belongs to the product url format, not to search.
+    expect(encodeSkuSegment('~~~', 'acme')).toBe('fn5-');
+    const urlKey = buildSearchItemUrlKey('acme', '~~~', 'Some Title');
+
+    expect(urlKey).toBe('acme-fn5--some-title');
+    expect(parseProductUrl(`/${urlKey}.html`, { vendors })).toMatchObject({
+      vendor: 'acme',
+      sku: '~~',
+    });
+  });
 });

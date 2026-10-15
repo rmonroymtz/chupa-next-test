@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { parseProductUrl } from '@/modules/product/domain/product-url';
 import {
   parseSearchResponse,
   parseSortResponse,
 } from '@/modules/search/infrastructure/chapi-search-mapper';
+import { DEFAULT_PRODUCT_VENDORS } from '@/shared/config/env';
 import empty from '../../../fixtures/chapi/search.amazon-empty.json';
 import dewalt from '../../../fixtures/chapi/search.amazon-taladro.dewalt.json';
 import amazon from '../../../fixtures/chapi/search.amazon-taladro.json';
@@ -11,8 +13,10 @@ import priceAsc from '../../../fixtures/chapi/search.amazon-taladro.price-asc.js
 import ebay from '../../../fixtures/chapi/search.ebay-taladro.json';
 import sortBy from '../../../fixtures/chapi/search-sort-by.amazon-taladro.json';
 
+const vendors = DEFAULT_PRODUCT_VENDORS;
+
 function ok(payload: unknown, store = 'amazon') {
-  const result = parseSearchResponse(payload, store);
+  const result = parseSearchResponse(payload, { requestedStore: store, vendors });
   if (result.status !== 'ok') throw new Error(`expected ok, got ${result.status}`);
   return result.data;
 }
@@ -126,6 +130,7 @@ describe('parseSearchResponse (recorded staging responses)', () => {
       refinements: [],
       sorts: [],
       skippedItems: 0,
+      duplicateItems: 0,
     });
   });
 });
@@ -151,13 +156,15 @@ describe('parseSearchResponse (tolerance)', () => {
 
     expect(result.items.map((item) => item.sku)).toEqual([good.asin]);
     expect(result.skippedItems).toBe(6);
+    expect(result.duplicateItems).toBe(0);
   });
 
   it('keeps the first of repeated skus so card keys stay unique', () => {
     const result = ok(withProducts([good, { ...good, title: 'Repeated' }]));
 
     expect(result.items.map((item) => item.name)).toEqual([good.title]);
-    expect(result.skippedItems).toBe(1);
+    expect(result.duplicateItems).toBe(1);
+    expect(result.skippedItems).toBe(0);
   });
 
   it('strips html from titles and degrades optional fields', () => {
@@ -185,6 +192,32 @@ describe('parseSearchResponse (tolerance)', () => {
     });
   });
 
+  it('links cards to the requested store when the responding vendor is not routable', () => {
+    const payload = { ...amazon, data: { ...amazon.data, vendor: 'homedepot' } };
+
+    const result = ok(payload, 'amazon');
+
+    expect(result.vendor).toBe('homedepot');
+    expect(result.skippedItems).toBe(0);
+    for (const item of result.items) {
+      expect(item.uid).toBe(`amazon-${item.sku}`);
+      expect(parseProductUrl(`/${item.relativeUrl}`, { vendors })).toMatchObject({
+        vendor: 'amazon',
+        sku: item.sku,
+      });
+    }
+  });
+
+  it('skips every item when neither vendor is routable', () => {
+    const payload = { ...amazon, data: { ...amazon.data, vendor: 'homedepot' } };
+
+    const result = ok(payload, 'walmart');
+
+    expect(result.items).toEqual([]);
+    expect(result.skippedItems).toBe(amazon.data.products.length);
+    expect(result.pagination.next).toBe(amazon.data.pagination.next);
+  });
+
   it('falls back to the requested store when the response has no vendor', () => {
     const payload = { status: 'ok', data: { ...ebay.data, vendor: null } };
 
@@ -197,7 +230,9 @@ describe('parseSearchResponse (tolerance)', () => {
     ['data without products', { vendor: 'amazon', data: { pagination: {} } }],
     ['an unusable vendor', { vendor: 'ama-zon', data: { ...amazon.data, vendor: 'ama-zon' } }],
   ])('returns invalid for %s', (_label, payload) => {
-    expect(parseSearchResponse(payload, 'amazon')).toEqual({ status: 'invalid' });
+    expect(parseSearchResponse(payload, { requestedStore: 'amazon', vendors })).toEqual({
+      status: 'invalid',
+    });
   });
 });
 
