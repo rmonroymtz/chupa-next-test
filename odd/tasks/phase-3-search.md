@@ -159,4 +159,4 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 
 ## Next step
 
-Start T1 (search config).
+Start T2 (CHAPI search adapter). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to `.env.example`.
