@@ -1,13 +1,17 @@
 import type { MagentoProductRepository } from '@/modules/product/application/ports';
+import type { ScrapedProductOutcome } from '@/modules/product/application/scraped-product-loader';
 import { getProductRobots, type ProductRobots } from '@/modules/product/domain/indexability';
 import type { MagentoProduct } from '@/modules/product/domain/product';
 import {
   buildCanonicalUrl,
+  decodeSkuSegment,
   DEFAULT_PRODUCT_URL_SUFFIX,
+  matchSkuSearchUrl,
   parseProductUrl,
   toRouteUrl,
 } from '@/modules/product/domain/product-url';
 import { HOME_PATHNAME } from '@/modules/routing/domain/request-path';
+import { buildSearchItemUrlKey } from '@/modules/search/domain/search-item-url';
 import type { MetricsEmitter } from '@/shared/observability/metrics';
 
 /** PDP case reported in the `PdpOutcome` metric. */
@@ -52,7 +56,17 @@ export type ProductPageDecision =
       readonly vendor: string;
       /** Legacy search page for alternatives. */
       readonly searchUrl: string;
+      /**
+       * `product_url`: Magento has no product for this product url.
+       * `sku_search`: header sku jump (`{vendor}-{sku}-search.html`), never
+       * looked up in Magento; once the scraper finds the product, the
+       * canonical becomes the product url (`resolveSkuSearchCanonicalUrl`).
+       */
+      readonly origin: 'product_url' | 'sku_search';
     };
+
+/** The `missing_product` decision. */
+export type MissingProductDecision = Extract<ProductPageDecision, { kind: 'missing_product' }>;
 
 export interface ProductPageRequest {
   /** Request pathname; may be percent-encoded. */
@@ -102,6 +116,18 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     // Magento resolves the site root itself: `route(url: "/")` is the configured home page.
     const routeUrl = pathname === HOME_PATHNAME ? HOME_PATHNAME : toRouteUrl(pathname);
     if (routeUrl === null) return { kind: 'not_found', case: null };
+
+    // Staging Magento answers a placeholder product for every `*-search.html`
+    // url, so the sku jump never asks Magento (decision 7 of phase 3).
+    const skuSearch = matchSkuSearchUrl(routeUrl, { vendors: deps.vendors, suffix });
+    if (skuSearch)
+      return skuSearchProduct(
+        routeUrl,
+        skuSearch.vendor,
+        skuSearch.skuSegment,
+        searchParams,
+        isBot,
+      );
 
     const lookup = await deps.products.findByRouteUrl(routeUrl);
     switch (lookup.kind) {
@@ -153,6 +179,31 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
       lookup: parsed ? { sku: parsed.sku, vendor: parsed.vendor } : null,
       vendor: urlKey.vendor,
       searchUrl: buildSearchUrl(urlKey.words, urlKey.vendor),
+      origin: 'product_url',
+    };
+  }
+
+  /** Same outcomes as a product missing from Magento, without the Magento lookup. */
+  function skuSearchProduct(
+    routeUrl: string,
+    vendor: string,
+    skuSegment: string,
+    searchParams: URLSearchParams,
+    isBot: boolean,
+  ): ProductPageDecision {
+    if (isBot) return { kind: 'not_found', case: 'missing_bot' };
+
+    const parsed = parseProductUrl(routeUrl, { vendors: deps.vendors, suffix, searchParams });
+    const typedSku = decodeSkuSegment(skuSegment, vendor) ?? '';
+    return {
+      kind: 'missing_product',
+      case: 'missing_user',
+      robots: getProductRobots({ existsInMagento: false }),
+      canonicalUrl: buildCanonicalUrl(deps.publicBaseUrl, routeUrl),
+      lookup: parsed ? { sku: parsed.sku, vendor: parsed.vendor } : null,
+      vendor,
+      searchUrl: buildSkuSearchUrl(typedSku, vendor),
+      origin: 'sku_search',
     };
   }
 
@@ -210,6 +261,32 @@ function page(decision: ProductPageDecision): string {
 function toLocation(relativeUrl: string): string {
   if (/^https?:\/\//i.test(relativeUrl)) return relativeUrl;
   return `/${relativeUrl.replace(/^\/+/, '')}`;
+}
+
+/** Search for the typed sku; without a usable sku, the store's search page. */
+function buildSkuSearchUrl(sku: string, vendor: string): string {
+  const query = new URLSearchParams(sku === '' ? { store: vendor } : { query: sku, store: vendor });
+  return `${SEARCH_PATH}?${query.toString()}`;
+}
+
+/**
+ * Canonical url of a sku search page: once the scraper found the product, the
+ * product url search results link to (`/{vendor}-{sku}-{slug}.html`, same
+ * builder as search items); otherwise, or when the title gives no slug, the
+ * decision's own canonical url.
+ */
+export function resolveSkuSearchCanonicalUrl(
+  publicBaseUrl: string,
+  decision: MissingProductDecision,
+  outcome: ScrapedProductOutcome,
+  suffix: string = DEFAULT_PRODUCT_URL_SUFFIX,
+): string {
+  if (outcome.kind !== 'found') return decision.canonicalUrl;
+  const { product } = outcome;
+  // The slug keeps only the ascii letters and digits of the title.
+  if (!/[a-z0-9]/i.test(product.title)) return decision.canonicalUrl;
+  const urlKey = buildSearchItemUrlKey(decision.vendor, product.sku, product.title);
+  return buildCanonicalUrl(publicBaseUrl, `${urlKey}${suffix}`);
 }
 
 function buildSearchUrl(words: readonly string[], vendor: string): string {

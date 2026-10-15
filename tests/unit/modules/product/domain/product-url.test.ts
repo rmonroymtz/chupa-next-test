@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCanonicalUrl,
   decodeSkuSegment,
+  matchSkuSearchUrl,
   normalizeSku,
   parseProductUrl,
   toRouteUrl,
@@ -291,6 +292,63 @@ describe('parseProductUrl', () => {
     it('returns null for malformed or empty input without throwing', () => {
       expect(parseProductUrl('', { vendors })).toBeNull();
       expect(parseProductUrl('/amazon-B0%E0%A4%A-x.html', { vendors })).toBeNull();
+    });
+  });
+});
+
+describe('matchSkuSearchUrl', () => {
+  it('matches the header sku jump /{vendor}-{sku}-search.html', () => {
+    expect(matchSkuSearchUrl('/amazon-B00IJ0ALYS-search.html', { vendors })).toEqual({
+      vendor: 'amazon',
+      skuSegment: 'B00IJ0ALYS',
+    });
+    expect(matchSkuSearchUrl('/ebay-405512345678-search.html', { vendors })).toEqual({
+      vendor: 'ebay',
+      skuSegment: '405512345678',
+    });
+  });
+
+  it('matches the vendor case-insensitively and keeps the sku segment as typed', () => {
+    expect(matchSkuSearchUrl('/AMAZON-b00ij0alys-search.html', { vendors })).toEqual({
+      vendor: 'amazon',
+      skuSegment: 'b00ij0alys',
+    });
+  });
+
+  it('decodes the path once (an encoded variant pipe becomes literal) and ignores the query', () => {
+    expect(matchSkuSearchUrl('/ebay-1%7C2-search.html?var=3', { vendors })).toEqual({
+      vendor: 'ebay',
+      skuSegment: '1|2',
+    });
+  });
+
+  it('matches an empty sku segment (the page decides it is unusable)', () => {
+    expect(matchSkuSearchUrl('/amazon--search.html', { vendors })).toEqual({
+      vendor: 'amazon',
+      skuSegment: '',
+    });
+  });
+
+  it.each([
+    '/amazon-B00X-other.html',
+    '/amazon-B00X-best-search.html',
+    '/amazon-B00X-SEARCH.html',
+    '/amazon-B00X-search.htm',
+    '/amazon-B00X-search',
+    '/amazon-search.html',
+    '/walmart-B00X-search.html',
+    '/search.html',
+    '/es/amazon-B00X-search.html',
+    '/amazon-B0%E0%A4%A-search.html',
+    '',
+  ])('does not match %s', (pathname) => {
+    expect(matchSkuSearchUrl(pathname, { vendors })).toBeNull();
+  });
+
+  it('honors a custom suffix', () => {
+    expect(matchSkuSearchUrl('/amazon-B00X-search', { vendors, suffix: '' })).toEqual({
+      vendor: 'amazon',
+      skuSegment: 'B00X',
     });
   });
 });

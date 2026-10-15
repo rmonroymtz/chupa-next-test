@@ -113,11 +113,31 @@ describe('buildProductPageMetadata — other decisions', () => {
       lookup: { sku: '1|2', vendor: 'ebay' },
       vendor: 'ebay',
       searchUrl: '/search.html?query=camisa&store=ebay',
+      origin: 'product_url',
     });
 
     expect(metadata).toEqual({
       robots: { index: false, follow: true },
       alternates: { canonical: CANONICAL },
+    });
+  });
+
+  it('sku search page: noindex, follow with the canonical it is given and no product claims', () => {
+    const productUrl = 'https://chupaprecios.com.mx/amazon-B00IJ0ALYS-dewalt-kit.html';
+    const metadata = buildProductPageMetadata({
+      kind: 'missing_product',
+      case: 'missing_user',
+      robots: { index: false, follow: true },
+      canonicalUrl: productUrl,
+      lookup: { sku: 'B00IJ0ALYS', vendor: 'amazon' },
+      vendor: 'amazon',
+      searchUrl: '/search.html?query=B00IJ0ALYS&store=amazon',
+      origin: 'sku_search',
+    });
+
+    expect(metadata).toEqual({
+      robots: { index: false, follow: true },
+      alternates: { canonical: productUrl },
     });
   });
 

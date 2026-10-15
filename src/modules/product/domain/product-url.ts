@@ -101,6 +101,43 @@ export function parseProductUrl(
   return { vendor, sku, urlKey, routeUrl };
 }
 
+/** Last url key segment of the header sku jump (`{vendor}-{sku}-search.html`). */
+const SKU_SEARCH_SEGMENT = 'search';
+
+export interface SkuSearchUrl {
+  /** Lowercase vendor from the allow-list. */
+  readonly vendor: string;
+  /** Sku segment as typed (raw, or base64url for acme); may be empty. */
+  readonly skuSegment: string;
+}
+
+/**
+ * Matches the legacy header sku jump `/{vendor}-{sku}-search{suffix}`
+ * (`useSearchBar.js` pushes `${store}-${query}-search.html` for a query that
+ * looks like a sku). After decoding the path once, the url key must split on
+ * `-` into exactly three segments: an allow-listed vendor (case-insensitive,
+ * as for product urls), the sku segment (possibly empty; the caller decides
+ * whether it is usable) and the literal lowercase `search`. Anything else,
+ * such as a real product slug ending in `-search`, returns null.
+ */
+export function matchSkuSearchUrl(
+  pathname: string,
+  options: Pick<ParseProductUrlOptions, 'suffix' | 'vendors'>,
+): SkuSearchUrl | null {
+  const suffix = options.suffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
+  const routeUrl = toRouteUrl(pathname);
+  if (routeUrl === null || !routeUrl.endsWith(suffix)) return null;
+
+  const urlKey = routeUrl.slice(0, routeUrl.length - suffix.length);
+  if (urlKey.includes('/')) return null;
+
+  const segments = urlKey.split('-');
+  if (segments.length !== 3 || segments[2] !== SKU_SEARCH_SEGMENT) return null;
+  const [vendorSegment = '', skuSegment = ''] = segments;
+  const vendor = vendorSegment.toLowerCase();
+  return options.vendors.includes(vendor) ? { vendor, skuSegment } : null;
+}
+
 /**
  * Builds an absolute canonical URL. The result keeps a literal `|` (string
  * concatenation, not URL serialization, and `%7C` is normalized to `|`),

@@ -122,7 +122,7 @@ authored lines in total: one stacked PR per task.
 - [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
-- [ ] T5 `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
+- [x] T5 (sku jump, uncommitted, branch `feat/phase-3-05-sku-search`; test 905, integration 75) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
   product); resolve the product from CHAPI, render it on that URL with canonical = product canonical URL and `noindex`;
   bots → no CHAPI (phase 1 missing-product rule). Fixes the "Carmina Earrings" bug. Check: unit + integration.
 - [ ] T6 Extras: GTM `SEARCH_REQUEST`/`SEARCH_RESPONSE` dataLayer events; recommendation sliders
@@ -252,3 +252,33 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 
 Parent: review and commit T3, then T4 (search UI). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to
 `.env.example`.
+
+- 2026-10-15: decision (user): the acme base64url `-` SKU limitation (e.g. `~~~` → `fn5-`, read back as `~~`) stays
+  as is for now — inherited from the legacy PWA and phase 1 product URLs. Follow-up before any format change: count how
+  many real acme SKUs in Magento produce a `-` in their base64url encoding; only change the encoding (with redirects
+  for old URLs and coordination with the PWA) if that number justifies it.
+
+- 2026-10-15: T5 implemented (delegated writer, uncommitted, branch `feat/phase-3-05-sku-search`). Pattern
+  `matchSkuSearchUrl` (`product/domain/product-url.ts`): after decoding the path once, the url key splits on `-` into
+  exactly `[vendor in PRODUCT_VENDORS (case-insensitive), sku segment (may be empty), "search" (lowercase)]` + `.html`;
+  `-SEARCH.html`, `{vendor}-{sku}-best-search.html`, unknown vendors and nested paths keep the normal Magento flow.
+  The service checks it **before** Magento `route()` (never called for the pattern) and reuses the phase 1 missing
+  product branch: bots → `not_found`/`missing_bot` (404, no Magento, no CHAPI, no mutation); users →
+  `missing_product` with new field `origin: 'sku_search'` (phase 1 urls: `origin: 'product_url'`), lookup from
+  `parseProductUrl` (eBay `?var=`, acme base64url), `searchUrl` `/search.html?query={sku}&store={vendor}` (no `query`
+  for an empty sku). Canonical: `generateMetadata` awaits the scraper lookup (React `cache()`d per request, shared
+  with the streamed `ScrapedProductSection`: one CHAPI call) and points to `/{vendor}-{chapi asin}-{slug}.html` built
+  with the search item builder (`buildSearchItemUrlKey`); CHAPI miss/failure or a title without ascii letters/digits
+  → the `-search.html` url itself. Because `htmlLimitedBots: /.*/`, the head of a sku search page waits for CHAPI
+  (bounded by `CHAPI_TIMEOUT_MS`); Magento `route()` (~0.75 s) is skipped instead. Copy mutation (`processSku`) fires
+  after a found product, same as phase 1 (idempotent by sku, as for every scraped page view). No product JSON-LD.
+  CHAPI miss/failure → 200 `noindex, follow` "Producto no disponible". RED: unit 28 failed (matcher/service), integration
+  4 failed against base src (`index, follow` Carmina placeholder; bot got 200); GREEN. Checks: typecheck, lint, unit
+  (905), integration (75), build pass. Dev server (staging): `/amazon-B00IJ0ALYS-search.html` 200, DEWALT, no Carmina,
+  `noindex, follow`, canonical `…/amazon-B00IJ0ALYS-dewalt-kit-de-combo-de-perforaci-n-inal-mbrico-de-20v-max-2-herramienta-dck240c2-.html`,
+  ~1.0 s warm; Googlebot → 404 `noindex`; `/search.html?query=taladro&store=amazon` 200 `noindex, follow`.
+  **New finding (open):** staging Magento `route()` answers the same Carmina placeholder (`VA11-GO-NA`) for **every**
+  unknown vendor product url (e.g. `/amazon-B0ZZZZZZZZ-foo.html`, `/ebay-1-foo.html`, and the canonical url above);
+  `/no-existe-xyz.html` is a 404. So on staging the phase 1 missing-product flow never runs and the T5 canonical url
+  renders Carmina `index, follow`. Not fixed in T5 (outside its scope): needs a decision (check production; detect the
+  placeholder by sku/url mismatch like the legacy PWA does?).

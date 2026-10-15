@@ -4,7 +4,7 @@ import { AddToCart } from '@/modules/cart/ui/add-to-cart.client';
 import type { VendorProductRef } from '@/modules/product/application/product-page-service';
 import {
   getCopyTrigger,
-  getScrapedProductLoader,
+  loadScrapedProduct,
 } from '@/modules/product/infrastructure/product-page.composition';
 import { ProductUnavailable } from '@/modules/product/ui/product-unavailable';
 import { ScrapedProductView } from '@/modules/product/ui/scraped-product-view';
@@ -21,7 +21,8 @@ interface ScrapedProductSectionProps {
  * scraper found the product, and runs after the response has finished.
  */
 export async function ScrapedProductSection({ lookup, searchUrl }: ScrapedProductSectionProps) {
-  const outcome = await getScrapedProductLoader().load(lookup);
+  // Cached per request: a sku search page already loaded it for its canonical.
+  const outcome = await loadScrapedProduct(lookup);
   if (outcome.kind !== 'found') return <ProductUnavailable searchUrl={searchUrl} />;
 
   const { copyRequest } = outcome;
