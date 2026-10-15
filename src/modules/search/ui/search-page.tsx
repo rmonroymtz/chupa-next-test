@@ -2,8 +2,9 @@ import { Suspense } from 'react';
 import { SEARCH_STORES } from '@/modules/layout/domain/search';
 import { ProductCards } from '@/modules/page-builder/ui/product-cards';
 import type { SearchPageDecision, StoreListing } from '@/modules/search/application/search-page';
-import { storeTabHref, type SearchLocation } from '@/modules/search/domain/search-links';
+import type { SearchLocation } from '@/modules/search/domain/search-links';
 import type { SearchResult, SearchSortOption } from '@/modules/search/domain/search-result';
+import { ChupaChoiceSection } from './chupachoice-section';
 import { SearchFiltersDisclosure, SearchFiltersSidebar } from './search-filters';
 import { SearchPagination } from './search-pagination';
 import { SearchSort, SearchSortPlaceholder } from './search-sort';
@@ -28,19 +29,35 @@ interface SearchPageProps {
 
 /**
  * Search results page (Server Component, plain links, no client JavaScript):
- * store tabs, then either one store (filters, sort, grid, pagination) or the
- * ChupaChoice view (one short list per store). Bots and blank queries get
+ * either one store (filters, sort, grid, pagination) or the ChupaChoice view
+ * (one legacy-styled list per store, `ChupaChoiceSection`). Bots and blank queries get
  * only the heading. The sort selector streams in its own Suspense boundary,
  * so the results never wait for the `sort_by` call.
  */
 export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps) {
   const { query, results } = view;
-  const heading =
-    results.kind === 'multi'
-      ? `Resultados por tienda: “${query}”`
-      : query
-        ? `Resultados para «${query}»`
-        : 'Búsqueda';
+  if (results.kind === 'multi') {
+    // Legacy ChupaChoice page: site column, uppercase light/bold title, one list per store.
+    return (
+      <div data-search-store={view.store} className="container-padded">
+        <h1 className="text-left text-[20px] leading-[90px] uppercase">
+          <span className="font-light">Resultados por tienda:</span>
+          <span className="font-bold"> “{query}”</span>
+        </h1>
+        <div className="mb-4">
+          {results.listings.map((listing) => (
+            <ChupaChoiceSection
+              key={listing.store}
+              listing={listing}
+              query={query}
+              retryUrl={retryUrl}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const heading = query ? `Resultados para «${query}»` : 'Búsqueda';
   return (
     <div data-search-store={view.store} className="mx-auto max-w-[1280px] px-4 py-6">
       <h1 className="text-2xl font-semibold">{heading}</h1>
@@ -55,11 +72,6 @@ export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps)
           loadSortOptions={loadSortOptions}
         />
       ) : null}
-      {results.kind === 'multi'
-        ? results.listings.map((listing) => (
-            <StoreSection key={listing.store} listing={listing} query={query} retryUrl={retryUrl} />
-          ))
-        : null}
     </div>
   );
 }
@@ -176,51 +188,6 @@ function FallbackNotice({
       encontramos (<strong>{count}</strong>) resultados para “<strong>{query}</strong>” en{' '}
       <strong>{storeLabel(vendor)}</strong>.
     </p>
-  );
-}
-
-function StoreSection({
-  listing,
-  query,
-  retryUrl,
-}: {
-  readonly listing: StoreListing;
-  readonly query: string;
-  readonly retryUrl: string;
-}) {
-  const { result } = listing;
-  const hasItems = listing.failure === null && result !== null && result.items.length > 0;
-  return (
-    <section
-      data-search-section={listing.store}
-      aria-labelledby={`search-${listing.store}`}
-      className="mt-8"
-    >
-      <div className="flex items-center justify-between gap-4 border-b border-neutral-inactive pb-2">
-        <h2 id={`search-${listing.store}`} className="text-xl font-semibold">
-          {storeLabel(listing.store)}
-        </h2>
-        {hasItems ? (
-          <a
-            href={storeTabHref(query, listing.store)}
-            className="text-sm font-semibold whitespace-nowrap text-brand-red hover:underline"
-          >
-            Ver más en {storeLabel(listing.store)}
-          </a>
-        ) : null}
-      </div>
-      <div className="mt-4">
-        {listing.failure !== null || result === null ? (
-          <ErrorState retryUrl={retryUrl} />
-        ) : result.items.length === 0 ? (
-          <p data-search-state="empty" className="py-8 text-center text-neutral-grey">
-            Esta tienda no tiene ninguna coincidencia para «{query}».
-          </p>
-        ) : (
-          <ProductCards cards={result.items} appearance="grid" />
-        )}
-      </div>
-    </section>
   );
 }
 

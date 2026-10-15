@@ -237,6 +237,17 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   titles are kept once and list keys are index-prefixed; the legacy `price`/`position` sort links are dropped (now
   tested). Unit 863, integration 71.
 
+- 2026-10-15: user asked the ChupaChoice view to look exactly like the PWA (`chupachoice` `ChupaChoice` +
+  `ProductList`). New `src/modules/search/ui/chupachoice-section.tsx` (search-only; `ProductCards` untouched): legacy
+  title (uppercase, light/bold 20px, line-height 90px) in `container-padded`, section `mb-12`, the store logo as the
+  `h2` (legacy rendered sizes: amazon 80x24, ebay 60x24, target 148x32, acme 131x48), "Ver MÁS productos" link
+  (orange, 20px light / 42px bold, legacy chevron) to `storeTabHref`, grid 2 → 3 (≥768px) → 6 (≥1280px) columns with
+  the legacy gaps, bordered item (image 194/172, stars, 90-char name, "Promoción N%" + "Precio final $1,234.56"), and
+  the legacy no-results box ("Esta tienda no tiene ninguna coincidencia" / "No pudimos consultar esta tienda en este
+  momento" + "Búsqueda: {query}"). Amazon/eBay/Target reuse the header logos (identical SVG paths); Acme uses the
+  legacy square `AcmeLogo`, added as `public/images/search/stores/acme.svg`. Kept a "Reintentar" link in the error
+  box (not in the legacy). Roboto Flex is already the base font. Unit 867, integration 71, build pass.
+
 ## Next step
 
 Parent: review and commit T3, then T4 (search UI). The user still has to add `CHAPI_SEARCH_TIMEOUT_MS` to

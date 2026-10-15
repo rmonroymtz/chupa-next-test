@@ -195,7 +195,7 @@ describe('search page', () => {
       amazonTaladro.data.products.length + ebayTaladro.data.products.length,
     );
     const acme = /data-search-section="acme"[\s\S]*?<\/section>/.exec(page.html)?.[0] ?? '';
-    expect(acme).toContain('No pudimos cargar los resultados.');
+    expect(acme).toContain('No pudimos consultar esta tienda en este momento');
     const target = /data-search-section="target"[\s\S]*?<\/section>/.exec(page.html)?.[0] ?? '';
     expect(target).toContain('data-search-state="empty"');
   });
@@ -294,13 +294,13 @@ describe('search page', () => {
     });
   });
 
-  it('chupachoice: "Ver más en {Tienda}" for stores with results, no sort call', async () => {
+  it('chupachoice: "Ver MÁS productos" for stores with results, no sort call', async () => {
     const page = await get('/search.html?query=taladro');
 
-    const more = searchLinks(page.html).filter((link) => link.text.startsWith('Ver más en'));
-    expect(more).toEqual([
-      { text: 'Ver más en Amazon', params: { query: 'taladro', store: 'amazon', page: '1' } },
-      { text: 'Ver más en eBay', params: { query: 'taladro', store: 'ebay', page: '1' } },
+    const more = searchLinks(page.html).filter((link) => link.text === 'Ver MÁS productos');
+    expect(more.map((link) => link.params)).toEqual([
+      { query: 'taladro', store: 'amazon', page: '1' },
+      { query: 'taladro', store: 'ebay', page: '1' },
     ]);
     expect(sortCalls()).toHaveLength(0);
   });
