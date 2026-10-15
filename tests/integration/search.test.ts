@@ -1,5 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import sortBy from '../fixtures/chapi/search-sort-by.amazon-taladro.json';
+import amazonDewalt from '../fixtures/chapi/search.amazon-taladro.dewalt.json';
 import amazonTaladro from '../fixtures/chapi/search.amazon-taladro.json';
+import amazonPage2 from '../fixtures/chapi/search.amazon-taladro.page-2.json';
 import ebayTaladro from '../fixtures/chapi/search.ebay-taladro.json';
 import storeConfig from '../fixtures/magento/store-config.json';
 import { startMockBackends, type MockBackends } from './support/mock-backends';
@@ -12,6 +15,18 @@ const PUBLIC_BASE_URL = 'https://chupaprecios.com.mx';
 const GRID_PER_PAGE = 16;
 const CHAPI_SEARCH_TIMEOUT_MS = 1_000;
 
+/** Links of the recorded amazon search: the DEWALT refinement and page 2. */
+const DEWALT_LINK = amazonTaladro.data.refinements[0]!.links[0]!.link;
+const PAGE_2_LINK = amazonTaladro.data.pagination.links[0]!.link;
+/** A search response that carries its own sort options (staging never does). */
+const WITH_SORTS = {
+  ...amazonTaladro,
+  data: {
+    ...amazonTaladro.data,
+    sorts: [{ title: 'Destacados', link: '/s?k=sierra&s=relevance', selected: true }],
+  },
+};
+
 let backends: MockBackends;
 let next: RunningNext;
 
@@ -22,11 +37,15 @@ beforeAll(async () => {
     chapi: {},
     chapiSearch: {
       'amazon:taladro': { body: amazonTaladro },
+      [`amazon:taladro:${DEWALT_LINK}`]: { body: amazonDewalt },
+      [`amazon:taladro:${PAGE_2_LINK}`]: { body: amazonPage2 },
+      'amazon:sierra': { body: WITH_SORTS },
       'ebay:taladro': { body: ebayTaladro },
       'acme:taladro': { status: 500, body: { message: 'boom' } },
       'amazon:lento': { body: amazonTaladro, delayMs: CHAPI_SEARCH_TIMEOUT_MS * 3 },
       'amazon:roto': { status: 502, body: { message: 'bad gateway' } },
     },
+    chapiSortBy: { 'amazon:taladro': { body: sortBy } },
     chapiDefaultDelayMs: 0,
   });
   next = await startNext({
@@ -65,6 +84,17 @@ const cardLinks = (html: string) =>
 const sections = (html: string) =>
   [...html.matchAll(/data-search-section="([^"]+)"/g)].map((match) => match[1]);
 const searchCalls = () => backends.callsTo('chapi', '/api/v1/search/');
+const sortCalls = () => backends.callsTo('chapi', '/api/v1/search/sort_by');
+/** Every `/search.html` link of the page, decoded: [text, params]. */
+const searchLinks = (html: string) =>
+  [...html.matchAll(/<a\b[^>]*href="(\/search\.html\?[^"]*)"[^>]*>([\s\S]*?)<\/a>/g)].map(
+    ([, href, text]) => ({
+      text: (text ?? '').replace(/<[^>]+>/g, ''),
+      params: Object.fromEntries(
+        new URLSearchParams((href ?? '').replaceAll('&amp;', '&').split('?')[1]),
+      ),
+    }),
+  );
 /** Magento calls other than the store config and the layout's header menu. */
 const otherMagentoCalls = () =>
   backends
@@ -168,5 +198,109 @@ describe('search page', () => {
     expect(acme).toContain('No pudimos cargar los resultados.');
     const target = /data-search-section="target"[\s\S]*?<\/section>/.exec(page.html)?.[0] ?? '';
     expect(target).toContain('data-search-state="empty"');
+  });
+
+  it('single store: refinement, pagination and (streamed) sort links carry CHAPI links as storeParams', async () => {
+    const page = await get('/search.html?query=taladro&store=amazon');
+    const links = searchLinks(page.html);
+
+    const option = (text: string) => links.find((link) => link.text === text)?.params;
+    expect(option('DEWALT')).toEqual({
+      query: 'taladro',
+      store: 'amazon',
+      page: '1',
+      storeParams: DEWALT_LINK,
+    });
+    expect(option('2')).toEqual({
+      query: 'taladro',
+      store: 'amazon',
+      page: '2',
+      storeParams: PAGE_2_LINK,
+    });
+    expect(option('Siguiente')).toEqual({
+      query: 'taladro',
+      store: 'amazon',
+      page: '2',
+      storeParams: amazonTaladro.data.pagination.next,
+    });
+    expect(page.html).toMatch(/<span aria-current="page"[^>]*>1<\/span>/);
+    expect(option('Precio: Del más bajo al más alto')).toEqual({
+      query: 'taladro',
+      store: 'amazon',
+      page: '1',
+      storeParams: sortBy.data[1]!.link,
+    });
+    expect(option('Amazon')).toEqual({ query: 'taladro', store: 'amazon', page: '1' });
+    expect(page.html).not.toContain('Limpiar filtros');
+    // The search response has no sorts: one sort_by call with the same search.
+    expect(sortCalls().map((call) => call.body)).toEqual([
+      { filters: '', query: 'taladro', store: 'amazon', engine_id: 'direct', max_results: 16 },
+    ]);
+    // The header search bar shows the current search, in the first (and only) render.
+    expect(page.html.match(/id="site-search-query"/g)).toHaveLength(1);
+    expect(page.html).toMatch(/<input id="site-search-query"[^>]*value="taladro"/);
+    expect(page.html).toMatch(/<input type="radio"[^>]*name="store" checked="" value="amazon"/);
+  });
+
+  it('a refinement link round trip: CHAPI gets the link byte for byte; the checked option removes it', async () => {
+    const page = await get(
+      `/search.html?query=taladro&store=amazon&page=1&storeParams=${encodeURIComponent(DEWALT_LINK)}`,
+    );
+
+    expect(searchCalls().map((call) => call.body.filters)).toEqual([DEWALT_LINK]);
+    const dewalt =
+      /<a\b[^>]*aria-current="true"[^>]*aria-label="Eliminar filtro &quot;DEWALT&quot;\."[^>]*>/.exec(
+        page.html,
+      );
+    expect(dewalt).not.toBeNull();
+    const links = searchLinks(page.html);
+    expect(links.find((link) => link.text === 'DEWALT')?.params.storeParams).toBe(
+      amazonDewalt.data.refinements[0]!.links[0]!.link,
+    );
+    expect(links.find((link) => link.text === 'Limpiar filtros')?.params).toEqual({
+      query: 'taladro',
+      store: 'amazon',
+      page: '1',
+    });
+    expect(sortCalls().map((call) => call.body.filters)).toEqual([DEWALT_LINK]);
+  });
+
+  it('page 2 through its pagination link: page shown as current, prev back to page 1', async () => {
+    const page = await get(
+      `/search.html?query=taladro&store=amazon&page=2&storeParams=${encodeURIComponent(PAGE_2_LINK)}`,
+    );
+
+    expect(searchCalls().map((call) => call.body.filters)).toEqual([PAGE_2_LINK]);
+    expect(page.html).toMatch(/<span aria-current="page"[^>]*>2<\/span>/);
+    const links = searchLinks(page.html);
+    expect(links.find((link) => link.text === 'Anterior')?.params).toEqual({
+      query: 'taladro',
+      store: 'amazon',
+      page: '1',
+      storeParams: amazonPage2.data.pagination.prev,
+    });
+  });
+
+  it('no sort_by call when the search response has its own sorts', async () => {
+    const page = await get('/search.html?query=sierra&store=amazon');
+
+    expect(sortCalls()).toHaveLength(0);
+    expect(searchLinks(page.html).find((link) => link.text === 'Destacados')?.params).toEqual({
+      query: 'sierra',
+      store: 'amazon',
+      page: '1',
+      storeParams: '/s?k=sierra&s=relevance',
+    });
+  });
+
+  it('chupachoice: "Ver más en {Tienda}" for stores with results, no sort call', async () => {
+    const page = await get('/search.html?query=taladro');
+
+    const more = searchLinks(page.html).filter((link) => link.text.startsWith('Ver más en'));
+    expect(more).toEqual([
+      { text: 'Ver más en Amazon', params: { query: 'taladro', store: 'amazon', page: '1' } },
+      { text: 'Ver más en eBay', params: { query: 'taladro', store: 'ebay', page: '1' } },
+    ]);
+    expect(sortCalls()).toHaveLength(0);
   });
 });

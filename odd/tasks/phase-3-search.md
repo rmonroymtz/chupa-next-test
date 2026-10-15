@@ -119,7 +119,7 @@ authored lines in total: one stacked PR per task.
   `chupachoice`), `page`, `storeParams`; bots and empty query → 200 without CHAPI; no Magento `searchTerm` redirect
   (dropped, decision 8); CHAPI search (ChupaChoice: 4 parallel calls amazon 12, ebay 6, target 6, acme 6);
   `/search.html` served by Next; metadata title with the query, `noindex, follow`. Check: unit + integration.
-- [ ] T4 Search UI: store tabs, results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
+- [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: store tabs, results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
 - [ ] T5 `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
@@ -204,6 +204,24 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   missing dep at runtime, so unit tests were already green); GREEN after the removal. Checks: typecheck, lint, unit
   (822), integration (66), build pass; dev server (staging): amazon 200, 12 cards (staging returned fewer usable
   items than the earlier run's 16), `noindex, follow`; chupachoice 4 sections, 30 cards; walmart 307.
+
+- 2026-10-15: T4 implemented (delegated writer, uncommitted, branch `feat/phase-3-04-search-ui`). Pure link helper
+  `search/domain/search-links.ts` (pagination → `page=<title>&storeParams=<link>`, sort/refinement → `page=1&storeParams`,
+  tab → `query,store,page=1`, "Limpiar filtros" → no `storeParams`); pagination model
+  `search/domain/search-pagination.ts` (url `page` wins over CHAPI `current`; current page inserted among CHAPI links;
+  prev/next labeled current∓1). UI: store tabs (`aria-current`), sort `<details>` menu of links streamed in its own
+  `<Suspense>` via an injected `loadSortOptions` (route passes `getSearchSortOptions`; failures → no options; legacy
+  alphabetical order, `price`/`position` links dropped), refinements sidebar (lg) + `<details>` copy below lg, 5 options
+  per group then "Mostrar más" (opened when a hidden option is checked), CHAPI pagination, fallback notice (legacy
+  `BackupStoreMessage` copy), ChupaChoice view ("Resultados por tienda", "Ver más en {Tienda}" when a store has items).
+  Count line: "{n} productos en esta página" (items shown), never `totalProducts` (amazon = page count, eBay = whole
+  search). Header search bar reflects `/search.html` store and query via a small client component
+  (`usePathname`/`useSearchParams`, SSR-rendered because every route is dynamic); **no Suspense around it**: React
+  outlines boundaries > 500 bytes or with images, which sent the default state first and needed JS to swap. RED: 2 new
+  unit files failed at import, view test 9 failed / 8 passed, layout 4 failed; GREEN after implementation. Integration
+  (+5) green on the first run except one regex on attribute order. Checks: typecheck, lint, unit (859), integration
+  (71), build pass; staging screenshots (amazon 1366/390, sort, filter, page 2, ChupaChoice) look right. Known visual
+  nit: ChupaChoice lists of 6/12 in the 5-column grid leave orphan rows.
 
 ## Next step
 
