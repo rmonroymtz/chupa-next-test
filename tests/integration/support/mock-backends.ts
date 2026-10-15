@@ -63,10 +63,16 @@ export interface MockBackendsConfig {
   /** CHAPI answers by `${store}:${sku}`; unknown keys answer an empty `data`. */
   readonly chapi: Readonly<Record<string, ChapiScenario>>;
   /**
-   * CHAPI `/api/v1/search/` answers by `${store}:${query}` (the CHAPI store of
+   * CHAPI `/api/v1/search/` answers by `${store}:${query}:${filters}` when
+   * that key exists, else by `${store}:${query}` (store = the CHAPI store of
    * the request body); unknown keys answer CHAPI's `no_results` envelope.
    */
   readonly chapiSearch?: Readonly<Record<string, ChapiScenario>>;
+  /**
+   * CHAPI `/api/v1/search/sort_by` answers by `${store}:${query}`; unknown
+   * keys answer an `ok` envelope without options.
+   */
+  readonly chapiSortBy?: Readonly<Record<string, ChapiScenario>>;
   readonly chapiDefaultDelayMs: number;
 }
 
@@ -199,8 +205,19 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   const chapi = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
       const call = record('chapi', req.url ?? '', body, res);
+      if (req.url === '/api/v1/search/sort_by') {
+        const sort = config.chapiSortBy?.[`${String(body.store)}:${String(body.query)}`];
+        await delay(sort?.delayMs ?? config.chapiDefaultDelayMs);
+        return {
+          call,
+          status: sort?.status ?? 200,
+          body: sort?.body ?? { vendor: body.store, status: 'ok', data: [] },
+        };
+      }
       if (req.url === '/api/v1/search/') {
-        const search = config.chapiSearch?.[`${String(body.store)}:${String(body.query)}`];
+        const key = `${String(body.store)}:${String(body.query)}`;
+        const search =
+          config.chapiSearch?.[`${key}:${String(body.filters ?? '')}`] ?? config.chapiSearch?.[key];
         await delay(search?.delayMs ?? config.chapiDefaultDelayMs);
         return {
           call,
