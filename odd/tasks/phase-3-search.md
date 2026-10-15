@@ -181,8 +181,8 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
 - 2026-10-15: decision (user): sort options are requested **after** the search, only when the search response has
   no `data.sorts` (legacy behavior, already how T2 `getSearchSortOptions` works); the selector streams in its own
   Suspense boundary so results never wait for it (~2 s later than results with today's staging CHAPI, which always
-  returns `data.sorts: []`). Follow-ups for T3 (T2 review suggestions): an unusable responding vendor string should fall
-  back to the requested store instead of making the page `invalid`; add a URL round-trip test for titles starting with
+  returns `data.sorts: []`). Unusable responding vendor strings now fall back to the requested store (fixed in T2 after review).
+  Follow-up for T3: add a URL round-trip test for titles starting with
   a symbol (slug starting with `-`).
 
 ## Next step

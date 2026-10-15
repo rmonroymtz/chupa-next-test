@@ -224,11 +224,20 @@ describe('parseSearchResponse (tolerance)', () => {
     expect(ok(payload, 'ebay').vendor).toBe('ebay');
   });
 
+  it('falls back to the requested store for an unusable vendor instead of dropping the page', () => {
+    const payload = { vendor: 'ama-zon', data: { ...amazon.data, vendor: 'ama-zon' } };
+
+    const result = ok(payload, 'amazon');
+
+    expect(result.vendor).toBe('amazon');
+    expect(result.items.length).toBeGreaterThan(0);
+    expect(result.items.every((item) => item.relativeUrl.startsWith('amazon-'))).toBe(true);
+  });
+
   it.each([
     ['a non-object payload', 'oops'],
     ['missing data', { vendor: 'amazon', status: 'error', error: 'boom' }],
     ['data without products', { vendor: 'amazon', data: { pagination: {} } }],
-    ['an unusable vendor', { vendor: 'ama-zon', data: { ...amazon.data, vendor: 'ama-zon' } }],
   ])('returns invalid for %s', (_label, payload) => {
     expect(parseSearchResponse(payload, { requestedStore: 'amazon', vendors })).toEqual({
       status: 'invalid',

@@ -46,12 +46,13 @@ export function parseSearchResponse(
   if (!Array.isArray(data.products)) return INVALID;
 
   const requestedStore = context.requestedStore.toLowerCase();
-  const vendor = (
+  const responding = (
     nonEmptyString(data.vendor) ??
     nonEmptyString(payload.vendor) ??
     requestedStore
   ).toLowerCase();
-  if (!VENDOR_PATTERN.test(vendor)) return INVALID;
+  // An unusable vendor string must not hide a usable page: treat it as the requested store.
+  const vendor = VENDOR_PATTERN.test(responding) ? responding : requestedStore;
   const linkVendor = toLinkVendor(vendor, requestedStore, context.vendors);
 
   const items: SearchItem[] = [];
