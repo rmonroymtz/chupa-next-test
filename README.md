@@ -1,6 +1,6 @@
 # Chupaprecios storefront
 
-Next.js (App Router, React Server Components, TypeScript strict) storefront that serves product detail and CMS pages from Magento, replacing PWA Studio for those routes. Every page is rendered dynamically; no ISR or data cache is used.
+Next.js (App Router, React Server Components, TypeScript strict) storefront that serves the home page, category pages, product detail and CMS pages from Magento, replacing PWA Studio for those routes. Every page is rendered dynamically; no ISR or data cache is used.
 
 ## Requirements
 
@@ -17,38 +17,40 @@ pnpm dev
 
 ## Scripts
 
-| Script                  | Purpose                                                                                      |
-| ----------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm dev`              | Start the development server                                                                 |
-| `pnpm build`            | Production build (`output: 'standalone'`)                                                    |
-| `pnpm start`            | Serve the production build                                                                   |
-| `pnpm lint`             | ESLint (flat config, `eslint-config-next`)                                                   |
-| `pnpm typecheck`        | `tsc --noEmit`                                                                               |
-| `pnpm test`             | Run unit tests once (Vitest, fast)                                                           |
-| `pnpm test:integration` | Build, start the real server against mock Magento/CHAPI HTTP servers, test PDP and CMS pages |
-| `pnpm test:e2e`         | Playwright: shared-cart suite on the standalone server + mocks; PWA checkout suite (opt-in)  |
-| `pnpm test:watch`       | Vitest in watch mode                                                                         |
+| Script                  | Purpose                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`              | Start the development server                                                                                   |
+| `pnpm build`            | Production build (`output: 'standalone'`)                                                                      |
+| `pnpm start`            | Serve the production build                                                                                     |
+| `pnpm lint`             | ESLint (flat config, `eslint-config-next`)                                                                     |
+| `pnpm typecheck`        | `tsc --noEmit`                                                                                                 |
+| `pnpm test`             | Run unit tests once (Vitest, fast)                                                                             |
+| `pnpm test:integration` | Build, start the real server against mock Magento/CHAPI HTTP servers, test PDP and CMS pages                   |
+| `pnpm test:e2e`         | Playwright: shared-cart suite on the standalone server + mocks; PWA checkout and phase 2 smoke suites (opt-in) |
+| `pnpm test:watch`       | Vitest in watch mode                                                                                           |
 
 Unit tests live in `tests/unit`; server-level tests live in `tests/integration` (set `PDP_IT_SKIP_BUILD=1` to reuse an existing `.next` build). Browser tests live in `e2e/` (Playwright; install the browser once with `pnpm exec playwright install chromium`):
 
 - `e2e/local/`: builds (unless `PDP_IT_SKIP_BUILD=1`), starts mock Magento/CHAPI and the standalone server, adds to cart on a Magento PDP and a scraped PDP, and checks `M2_VENIA_BROWSER_PERSISTENCE__cartId` in the exact PWA format, the mini-cart count and contents, and recovery of a stale cart id.
 - `e2e/pwa-checkout.spec.ts`: skipped unless `E2E_BASE_URL` is set. With `E2E_BASE_URL=https://<env>` and `E2E_PRODUCT_PATH=/<vendor>-<sku>-<slug>.html` (an in-stock product served by Next) it adds to cart on the Next PDP, opens PWA Studio `/checkout` on the same domain and checks the cart id survived. It creates a real guest cart; the local stack is not started in this mode.
+- `e2e/phase-2-smoke.spec.ts`: read-only, also only with `E2E_BASE_URL`: `/` 200 with canonical `/` and no `/search.html` menu links; a category 200 with h1, product cards and canonical; `?page=abc` 307 to the clean url; an unknown `.html` 404; the home CMS url 308 to `/`. Paths default to staging examples and are overridable (`E2E_CATEGORY_PATH`, `E2E_HOME_CMS_PATH`, `E2E_UNKNOWN_HTML_PATH`, see `docs/environment.md`); production categories are empty today, so do not point it at production. Example: `E2E_BASE_URL=http://localhost:3000 pnpm test:e2e --project phase-2-smoke`.
 
-## Catch-all route (`src/app/[...path]/page.tsx`)
+## Catch-all route (`src/app/[[...path]]/page.tsx`)
 
-Every path not matched elsewhere is looked up once with Magento `route()` before anything is sent:
+Every path not matched elsewhere, `/` included, is looked up once with Magento `route()` before anything is sent:
 
-| Magento says                  | Visitor | Response                                                                                                                    |
-| ----------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Redirect (301/308 or 302/307) | any     | HTTP 308 / 307 to the target (self-redirects are ignored)                                                                   |
-| CMS page                      | any     | 200, indexable, canonical from Magento; Page Builder content rendered on the server (404 if `cmsPage` is gone)              |
-| Category                      | any     | 404 (phase 1 serves no categories)                                                                                          |
-| Product                       | user    | 200, indexable, canonical from Magento; copy mutation after the response                                                    |
-| Product                       | bot     | 200, indexable, no mutation                                                                                                 |
-| No entity, product-shaped url | user    | 200 `noindex, follow` shell; scraped product streamed in `<Suspense>`, then copy mutation; unavailable state on any failure |
-| No entity, product-shaped url | bot     | 404, no scraper call, no mutation                                                                                           |
-| No entity, other url          | any     | 404                                                                                                                         |
-| Magento failure               | any     | 5xx, never 404                                                                                                              |
+| Magento says                  | Visitor | Response                                                                                                                            |
+| ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Redirect (301/308 or 302/307) | any     | HTTP 308 / 307 to the target (self-redirects are ignored)                                                                           |
+| CMS page                      | any     | 200, indexable, canonical from Magento; Page Builder content rendered on the server (404 if `cmsPage` is gone)                      |
+| CMS page = `cms_home_page`    | any     | On `/`: 200, canonical `/`. On its own url: 308 to `/` (query kept)                                                                 |
+| Category                      | any     | 200 `index, follow` with products, 200 `noindex, follow` when empty; invalid/out-of-range `?page` 307 to the clean url; 404 if gone |
+| Product                       | user    | 200, indexable, canonical from Magento; copy mutation after the response                                                            |
+| Product                       | bot     | 200, indexable, no mutation                                                                                                         |
+| No entity, product-shaped url | user    | 200 `noindex, follow` shell; scraped product streamed in `<Suspense>`, then copy mutation; unavailable state on any failure         |
+| No entity, product-shaped url | bot     | 404, no scraper call, no mutation                                                                                                   |
+| No entity, other url          | any     | 404                                                                                                                                 |
+| Magento failure               | any     | 5xx, never 404                                                                                                                      |
 
 Indexability depends only on Magento existence; bot status only gates the scraper API and the mutation. There is no `loading.tsx` for this segment, since it would commit a 200 before the decision. `htmlLimitedBots: /.*/` keeps robots and canonical in the initial `<head>` for every user agent.
 
@@ -65,7 +67,7 @@ All configuration comes from server-side environment variables, validated with z
 - **Metadata** (`src/modules/product/ui/product-page-metadata.ts`): products in Magento get title (`meta_title` or name, root template `%s | Chupaprecios`), description (meta description, else short description, plain text, ~160 chars on a word boundary), canonical with a literal `|`, Open Graph (`website`, `es_MX`, gallery images; Magento gives no dimensions) and a `summary_large_image` Twitter card. Pages missing from Magento stay `noindex, follow` with no product claims: scraped data streams after the head and never feeds metadata. CMS pages (`src/modules/cms/ui/cms-page-metadata.ts`) are `index, follow` with `meta_title` (else title), `meta_description`, `meta_keywords`, Open Graph and a canonical from `relative_url` (else `url_key`). `metadataBase` is the runtime `PUBLIC_BASE_URL`.
 - **JSON-LD**, server-rendered and escaped by `serializeJsonLd` (`<`, `>`, `&`, U+2028/2029 as unicode escapes):
   - `Product` + `Offer` and `BreadcrumbList` only for products in Magento. The offer price and the visible price both come from `getDisplayPrice` (final price; regular price only shown struck through), currency from Magento, availability `InStock`/`OutOfStock` from `stock_status` (omitted when unknown). Magento exposes no condition, so `itemCondition` is not declared.
-  - Breadcrumbs: Inicio → the product's deepest Magento category path → product. Category pages are not Magento-routed on the current site, so category items point where the legacy menu sends shoppers: `/search.html?query=<url_path>&store=amazon`. Note that robots.txt disallows `/*?*`, so those urls are not crawled.
+  - Breadcrumbs: Inicio → the product's deepest Magento category path → product, with category items pointing to the category pages (`/{url_path}.html`). Category pages add `CollectionPage`/`ItemList` and `BreadcrumbList`.
   - `Organization` and `WebSite` (with a `SearchAction` on `/search.html?query={search_term_string}`) once per page from the root layout; logo and `sameAs` come from `ORGANIZATION_LOGO_URL` and `ORGANIZATION_SAME_AS` (optional).
 - **robots.txt** (`src/app/robots.txt/route.ts`): the production rules in the same order, with a single `Sitemap: ${PUBLIC_BASE_URL}/sitemap.xml`. Sitemaps keep being served by Magento; the storefront does not generate them.
 
@@ -89,8 +91,8 @@ All configuration comes from server-side environment variables, validated with z
 
 - **Theme**: tokens from `@chupaprecios/pwa-ch-theme` ported to Tailwind v4 `@theme` in `src/app/globals.css` with legacy names (`brand-red`, `marketplace-amazon`, `neutral-black-base`, `ch-dark-grey`, `max-w-site`, `container-padded`...). The legacy type scale replaces Tailwind's (`text-2xl` is 2.125rem, every step line-height 1.5); legacy named spacing is not ported (it would change `max-w-sm`/`max-w-md` in Tailwind v4).
 - **Fonts**: `next/font/google` downloads Roboto Flex (base), Noto Sans (desktop menu) and Montserrat (footer) at build time and serves them from `/_next/static/media` (no request to Google from the browser; the build needs network). Variable fonts, latin subset, `display: swap` with metric-adjusted fallbacks; only Roboto Flex is preloaded.
-- **Header**: logo, a plain GET search form to `/search.html` (`query`, `store`, `page=1`; store tabs ChupaChoice/Amazon/eBay/Target/Acme as radio buttons, CSS only), sign-in, the mini-cart trigger (`data-slot="cart-trigger"`, see below) and the category menu. The menu comes from one `HeaderMenu` Magento query per request (legacy `getMegaMenu` + `category_url_suffix`; `include_in_menu` filter and `position` order like legacy; own timeout `MAGENTO_MENU_TIMEOUT_MS`, default 1500 ms). It streams in Suspense boundaries with same-size placeholders, so it never delays the page or changes its status, and on any failure the header renders without categories. Top-level links go to `/search.html?query={url_path}&store=amazon&page=1` (legacy megamenu), desktop submenus to category pages, mobile (`<details>`, no JS) to the search page like the legacy drawer.
-- **Links**: every header/footer link targets pages PWA Studio (or Magento CMS) serves, so they are plain `<a>` (full navigation, no Next prefetch), as for product links.
+- **Header**: logo, a plain GET search form to `/search.html` (`query`, `store`, `page=1`; store tabs ChupaChoice/Amazon/eBay/Target/Acme as radio buttons, CSS only), sign-in, the mini-cart trigger (`data-slot="cart-trigger"`, see below) and the category menu. The menu comes from one `HeaderMenu` Magento query per request (legacy `getMegaMenu` + `category_url_suffix`; `include_in_menu` filter and `position` order like legacy; own timeout `MAGENTO_MENU_TIMEOUT_MS`, default 1500 ms). It streams in Suspense boundaries with same-size placeholders, so it never delays the page or changes its status, and on any failure the header renders without categories. Every level, desktop and mobile (`<details>`, no JS), links to the category page (`categoryHref`); the desktop menu scrolls horizontally with arrows when it overflows.
+- **Links**: header/footer links are plain `<a>` (full navigation, no Next prefetch), as for product links: many target pages PWA Studio serves, and the edge decides the origin per url.
 - **Not replicated**: search autocomplete, remembering the last store (`currentStoreSearcher` in browser storage) and the SKU shortcut to `/{store}-{sku}-search.html`; PWA Studio pages keep them.
 - **Assets**: `public/images/layout/` (logo, cart, store and payment logos, AMVO seal), converted from the legacy inline SVG components. With `output: 'standalone'`, deployments must copy `public/` and `.next/static/` next to `server.js` (the integration harness does).
 
@@ -112,14 +114,14 @@ While checkout stays on PWA Studio (same domain), the cart and session live in P
 - **Mini cart**: the trigger keeps the legacy accessible name and a `99+` badge, and announces count changes in a polite live region. A native modal `<dialog>` drawer lists items (variant options, quantity, unit price), the `subtotal_excluding_tax` and plain links to `/checkout` and `/cart`.
 - **Metrics**: `CartAddToCart` (`Outcome` = success, user_error, failure), `CartCreated` (`Reason` = missing, recovery), `CartRecovered`, `CartReadFailure` (`Operation`, `Outcome`), plus `MagentoLatency`/`MagentoError` per operation.
 - **Not replicated**: removing items from the mini cart (PWA cart page), the scraped variant selector and its "selected variant unavailable" check (the PDP does not render scraped variants yet), live count sync with other tabs.
-- **Deployment**: Server Actions post to the page url (a PDP or CMS path), so those paths must reach Next for `POST` too. Behind a proxy that rewrites `Host`, Next's Server Action origin check needs `X-Forwarded-Host` to match the browser origin; when the proxy cannot send it, build with `SERVER_ACTIONS_ALLOWED_ORIGINS` (comma-separated hosts, `*.` wildcards; it feeds `experimental.serverActions.allowedOrigins`).
+- **Deployment**: Server Actions post to the page url (home, category, PDP or CMS path), so those paths must reach Next for `POST` too. Behind a proxy that rewrites `Host`, Next's Server Action origin check needs `X-Forwarded-Host` to match the browser origin; when the proxy cannot send it, build with `SERVER_ACTIONS_ALLOWED_ORIGINS` (comma-separated hosts, `*.` wildcards; it feeds `experimental.serverActions.allowedOrigins`).
 
 ## Deployment
 
 - **Image**: `Dockerfile` (multi-stage, `node:24-bookworm-slim`, non-root, `node server.js` on port 3000). `docker build -t chupa-storefront .`; the build needs network for `next/font`. `IMAGE_REMOTE_HOSTS` and `SERVER_ACTIONS_ALLOWED_ORIGINS` are build arguments; every other variable is runtime.
 - **Liveness**: `GET /healthz` answers `200 ok` (`no-store`) without calling Magento or the scraper API, so a Magento outage never makes the orchestrator recycle every task.
 - **ECS Fargate**: task definition, environment variables, logs/metrics and shutdown in [`docs/deploy/ecs-fargate.md`](docs/deploy/ecs-fargate.md).
-- **Routing** (nginx / CloudFront, phase 1): [`docs/routing/phase-1.md`](docs/routing/phase-1.md). Phase summary: [`docs/phase-1-report.md`](docs/phase-1-report.md).
+- **Routing** (nginx / CloudFront): [phase 1](docs/routing/phase-1.md) (products, CMS), [phase 2](docs/routing/phase-2.md) (home, categories). Phase summaries: [phase 1](docs/phase-1-report.md), [phase 2](docs/phase-2-report.md).
 
 ## Observability
 

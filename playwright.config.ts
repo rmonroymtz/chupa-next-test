@@ -7,6 +7,8 @@ import { defineConfig, devices } from '@playwright/test';
  * - `pwa-checkout`: Next PDP → add to cart → PWA Studio `/checkout` on a real
  *   environment. Runs only when `E2E_BASE_URL` is set (it creates a real cart);
  *   the local stack is then not started.
+ * - `phase-2-smoke`: read-only home/category checks (`e2e/phase-2-smoke.spec.ts`),
+ *   also only with `E2E_BASE_URL`.
  */
 const remoteBaseUrl = process.env.E2E_BASE_URL?.trim() || undefined;
 
@@ -25,7 +27,18 @@ export default defineConfig({
   },
   ...(remoteBaseUrl ? {} : { globalSetup: './e2e/support/local-stack.ts' }),
   projects: remoteBaseUrl
-    ? [{ name: 'pwa-checkout', testMatch: 'pwa-checkout.spec.ts', use: { baseURL: remoteBaseUrl } }]
+    ? [
+        {
+          name: 'pwa-checkout',
+          testMatch: 'pwa-checkout.spec.ts',
+          use: { baseURL: remoteBaseUrl },
+        },
+        {
+          name: 'phase-2-smoke',
+          testMatch: 'phase-2-smoke.spec.ts',
+          use: { baseURL: remoteBaseUrl },
+        },
+      ]
     : [
         { name: 'local', testMatch: 'local/**/*.spec.ts' },
         { name: 'pwa-checkout', testMatch: 'pwa-checkout.spec.ts' },

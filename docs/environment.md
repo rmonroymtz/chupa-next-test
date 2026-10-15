@@ -87,11 +87,16 @@ METRICS_NAMESPACE=ChupaStorefront
 # NEXT_TELEMETRY_DISABLED=1
 
 # === E2E (Playwright; not used by the app) ===================================
-# Optional. Base URL of a real environment. When set, only the `pwa-checkout` project runs
-# against it (it creates a real guest cart). Do not commit a real value.
+# Optional. Base URL of a real environment. When set, only the `pwa-checkout` (it creates a real
+# guest cart) and `phase-2-smoke` (read-only) projects run against it. Do not commit a real value.
 # E2E_BASE_URL=https://staging.example.com
 # Optional. Path of an in-stock product served by Next, used with E2E_BASE_URL.
 # E2E_PRODUCT_PATH=/amazon-B0XXXXXXX-some-product.html
+# Optional. phase-2-smoke: a category with products, the home CMS page's own url, and a .html url
+# Magento does not know. Defaults are staging examples (production categories are empty today).
+# E2E_CATEGORY_PATH=/herramientas.html
+# E2E_HOME_CMS_PATH=/venia-new-home
+# E2E_UNKNOWN_HTML_PATH=/e2e-no-such-page.html
 # Optional. CI flag: when truthy, Playwright fails on test.only.
 # CI=
 # E2E_LOCAL_BASE_URL is set automatically by e2e/support/local-stack.ts; do not set it by hand.

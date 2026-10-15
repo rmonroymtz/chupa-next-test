@@ -2,6 +2,8 @@
 
 Phase 1 is a strangler migration on one domain: the edge (nginx or CloudFront) sends **product pages, the listed CMS pages, `robots.txt` and the Next.js assets** to the Next.js storefront. **Everything else keeps its current origin** (PWA Studio or Magento). Rolling back means removing the Next rules.
 
+> Phase 2 moves `/` (home) and category urls to Next on top of these rules: see [phase 2 routing](phase-2.md).
+
 The configs below are **examples to adapt** to the current edge configuration, not drop-in files.
 
 ## Quick path
@@ -64,7 +66,7 @@ Leave out:
 
 - `home` (`/`). **Home stays on PWA in phase 1.** Since phase 2 (T1) Next resolves `/` through Magento `route()`
   (the configured `cms_home_page`, canonical `/`, its own url `/{cms_home_page}` → 308 `/`), but the edge must not
-  route `/` or `/{cms_home_page}` to Next until the phase 2 routing change (T8).
+  route `/` or `/{cms_home_page}` to Next until the [phase 2 routing change](phase-2.md).
 - `no-route` (Magento's 404 page) and any page that only makes sense inside PWA.
 
 Keep the list in one file (nginx `include`) so adding a page is a one-line change. A new CMS page stays on PWA until it is added.
@@ -94,7 +96,7 @@ Next accepts an action only when the browser `Origin` host equals `X-Forwarded-H
 
 ## Stays on PWA Studio
 
-- `/` (home), `/search.html`, `*-search.html`, category urls.
+- `/` (home), `/search.html`, `*-search.html`, category urls. Phase 2 moves home and category urls to Next: see [phase 2 routing](phase-2.md).
 - `/cart`, `/checkout`, `/sign-in`, `/create-account`, `/forgot-password`, `/customer/account/createPassword`.
 - Account: `/my-account`, `/my-account/*` (billing address, invoices), `/account-information`, `/address-book`, `/order-history`, `/saved-payments`, `/communications`, `/wishlist`, `/quotes`, `/social-accounts`.
 - Other PWA pages: `/contact-us`, `/facturacion`, `/kueski`, `/chupachoice`.
@@ -109,7 +111,7 @@ The route list comes from Venia `defaultRoutes.json` and the project intercepts 
 
 ## Prerender service
 
-Remove the prerender service **only for the routes now served by Next** (rules 1–3, 6, 7): Next renders complete HTML with metadata, canonical and JSON-LD for every user agent. Keep it for everything that stays on PWA, including home, search, categories and `*-search.html`.
+Remove the prerender service **only for the routes now served by Next** (rules 1–3, 6, 7): Next renders complete HTML with metadata, canonical and JSON-LD for every user agent. Keep it for everything that stays on PWA, including home, search, categories and `*-search.html` (phase 2 removes it for home and categories: see [phase 2 routing](phase-2.md#prerender-service)).
 
 ## Caching
 
@@ -210,7 +212,7 @@ Every migrated route still exists on PWA, and the cart lives in the same browser
 
 - [ ] `/ebay-<sku>|<variant>-<slug>.html` and the `%7C` form both reach Next (response has `<link rel="canonical">` with a literal `|`).
 - [ ] `/amazon-<sku>-search.html` reaches PWA.
-- [ ] `/` reaches PWA; `/search.html?query=x` reaches PWA.
+- [ ] `/` reaches PWA (until [phase 2](phase-2.md)); `/search.html?query=x` reaches PWA.
 - [ ] Each listed CMS path reaches Next; an unlisted one stays on PWA.
 - [ ] `/robots.txt` comes from Next and lists `Sitemap: https://<domain>/sitemap.xml`; `/sitemap.xml` still comes from Magento.
 - [ ] Add to cart on a product page succeeds (Server Action `POST` + origin check).
