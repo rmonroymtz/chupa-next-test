@@ -33,6 +33,15 @@ describe('mapStoreConfig', () => {
           walmart: 'direct',
           homedepot: 'direct',
         },
+        // Search engine values recorded from staging (2026-10-15).
+        searchEngineSettings: {
+          acme: 'direct',
+          amazon: 'direct',
+          ebay: 'api',
+          homedepot: 'bigbox',
+          target: 'direct',
+          walmart: 'direct',
+        },
         serviceFallback: {
           amazon: 'amazon',
           ebay: 'ebay',
@@ -54,8 +63,32 @@ describe('mapStoreConfig', () => {
     });
 
     expect(config.productUrlSuffix).toBe('.html');
-    expect(config.engineRouting).toEqual({ engineSettings: {}, serviceFallback: {} });
+    expect(config.engineRouting).toEqual({
+      engineSettings: {},
+      searchEngineSettings: {},
+      serviceFallback: {},
+    });
     expect(config.storeName).toBeNull();
+  });
+
+  it('maps search engines separately so *_search_engine never becomes a product engine', () => {
+    const config = mapStoreConfig({
+      engine_settings: {
+        amazon_engine: 'direct',
+        amazon_search_engine: 'rainforest',
+        ebay_engine: 'api',
+        ebay_search_engine: null,
+        homedepot_search_engine: 'bigbox',
+        unrelated_setting: 'x',
+      },
+    });
+
+    expect(config.engineRouting.engineSettings).toEqual({ amazon: 'direct', ebay: 'api' });
+    expect(config.engineRouting.searchEngineSettings).toEqual({
+      amazon: 'rainforest',
+      ebay: null,
+      homedepot: 'bigbox',
+    });
   });
 
   it('prefers the secure media url', () => {

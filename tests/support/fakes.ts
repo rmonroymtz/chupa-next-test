@@ -112,6 +112,7 @@ export const FAKE_STORE_CONFIG: StoreConfig = {
   gridPerPage: 12,
   engineRouting: {
     engineSettings: { amazon: 'direct', ebay: 'api', acme: 'direct', target: 'direct' },
+    searchEngineSettings: { amazon: 'direct', ebay: 'api', acme: 'direct', target: 'direct' },
     serviceFallback: { amazon: 'amazon', ebay: 'ebay', acme: 'acme', target: 'target' },
   },
 };

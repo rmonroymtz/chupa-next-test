@@ -25,6 +25,12 @@ export const STORE_CONFIG_QUERY = /* GraphQL */ `
         homedepot_engine
         target_engine
         walmart_engine
+        acme_search_engine
+        amazon_search_engine
+        ebay_search_engine
+        homedepot_search_engine
+        target_search_engine
+        walmart_search_engine
       }
       service_fallback {
         acme

@@ -111,7 +111,7 @@ Next (reusable / missing):
 Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first with Vitest + MSW. Forecast well over 400
 authored lines in total: one stacked PR per task.
 
-- [ ] T1 Search config: `*_search_engine` in the store config query/mapper (without colliding with `*_engine`, e.g.
+- [x] T1 Search config (staging fields verified; `searchEngineSettings` separate from `engineSettings`; `resolveSearchEngineId(store, routing)`; fixture has staging search engines; test 735, integration 56): `*_search_engine` in the store config query/mapper (without colliding with `*_engine`, e.g.
   `amazon_search_engine` must not become `amazon_search`), `resolveSearchEngineId(store)` using `service_fallback`,
   env `CHAPI_SEARCH_TIMEOUT_MS` (default 8000). Check: unit tests.
 - [ ] T2 CHAPI search adapter: port + gateway for `POST /api/v1/search/` and `/api/v1/search/sort_by` (timeout,
@@ -149,6 +149,13 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   `chupachoice`; search term redirects = Magento first, CHAPI only without redirect. Decision 9 = notice + GTM +
   sliders in, autocomplete out. Decision 10 = own 8 s timeout, 200 error page with retry. All decisions taken;
   tasks T1–T7 finalized.
+- 2026-10-15: T1 implemented (delegated writer, uncommitted). Staging schema verified with one read-only query: all six
+  `{acme,amazon,ebay,homedepot,target,walmart}_search_engine` fields exist (staging: direct, direct, api, bigbox,
+  direct, direct). Domain `EngineRouting.searchEngineSettings` is a separate map from `engineSettings`;
+  `resolveSearchEngineId(store, routing)` returns null for no fallback / no search engine (callers decide). Env
+  `CHAPI_SEARCH_TIMEOUT_MS` (default 8000) documented in `docs/environment.md`; `.env.example` still needs the
+  same three lines (user edit). RED: 14 failed / 29 passed in 4 store-config + env test files; GREEN: 43 passed.
+  Checks: typecheck, lint, unit (735), integration (56), build all pass; dev server 200 on `/`.
 
 ## Next step
 

@@ -28,6 +28,7 @@ export interface StoreConfigDto {
 }
 
 const ENGINE_KEY_SUFFIX = '_engine';
+const SEARCH_ENGINE_KEY_SUFFIX = '_search_engine';
 
 export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
   return {
@@ -46,16 +47,33 @@ export function mapStoreConfig(dto: StoreConfigDto): StoreConfig {
     cmsHomePage: toCmsHomeIdentifier(dto.cms_home_page),
     gridPerPage: toGridPerPage(dto.grid_per_page),
     engineRouting: {
-      engineSettings: Object.fromEntries(
-        Object.entries(dto.engine_settings ?? {})
-          .filter(([key]) => key.endsWith(ENGINE_KEY_SUFFIX))
-          .map(([key, value]) => [key.slice(0, -ENGINE_KEY_SUFFIX.length), value ?? null]),
+      engineSettings: pickEngines(
+        dto.engine_settings,
+        ENGINE_KEY_SUFFIX,
+        (key) => !key.endsWith(SEARCH_ENGINE_KEY_SUFFIX),
       ),
+      searchEngineSettings: pickEngines(dto.engine_settings, SEARCH_ENGINE_KEY_SUFFIX),
       serviceFallback: Object.fromEntries(
         Object.entries(dto.service_fallback ?? {}).map(([key, value]) => [key, value ?? null]),
       ),
     },
   };
+}
+
+/**
+ * Engines keyed by store, from the `engine_settings` keys ending in `suffix`
+ * (the suffix is stripped: `ebay_search_engine` → `ebay`).
+ */
+function pickEngines(
+  settings: StoreConfigDto['engine_settings'],
+  suffix: string,
+  accept: (key: string) => boolean = () => true,
+): Record<string, string | null> {
+  return Object.fromEntries(
+    Object.entries(settings ?? {})
+      .filter(([key]) => key.endsWith(suffix) && accept(key))
+      .map(([key, value]) => [key.slice(0, -suffix.length), value ?? null]),
+  );
 }
 
 /**
