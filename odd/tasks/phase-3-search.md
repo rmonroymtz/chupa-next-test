@@ -122,7 +122,7 @@ authored lines in total: one stacked PR per task.
 - [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
-- [x] T5 (sku jump, uncommitted, branch `feat/phase-3-05-sku-search`; test 905, integration 75) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
+- [x] T5 (sku jump committed 44ad0f1; general placeholder fix + review fixes uncommitted on `feat/phase-3-05-sku-search`; test 921, integration 79) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
   product); resolve the product from CHAPI, render it on that URL with canonical = product canonical URL and `noindex`;
   bots → no CHAPI (phase 1 missing-product rule). Fixes the "Carmina Earrings" bug. Check: unit + integration.
 - [ ] T6 Extras: GTM `SEARCH_REQUEST`/`SEARCH_RESPONSE` dataLayer events; recommendation sliders
@@ -277,8 +277,37 @@ Parent: review and commit T3, then T4 (search UI). The user still has to add `CH
   (905), integration (75), build pass. Dev server (staging): `/amazon-B00IJ0ALYS-search.html` 200, DEWALT, no Carmina,
   `noindex, follow`, canonical `…/amazon-B00IJ0ALYS-dewalt-kit-de-combo-de-perforaci-n-inal-mbrico-de-20v-max-2-herramienta-dck240c2-.html`,
   ~1.0 s warm; Googlebot → 404 `noindex`; `/search.html?query=taladro&store=amazon` 200 `noindex, follow`.
-  **New finding (open):** staging Magento `route()` answers the same Carmina placeholder (`VA11-GO-NA`) for **every**
+  **New finding (resolved below, same day):** staging Magento `route()` answers the same Carmina placeholder (`VA11-GO-NA`) for **every**
   unknown vendor product url (e.g. `/amazon-B0ZZZZZZZZ-foo.html`, `/ebay-1-foo.html`, and the canonical url above);
   `/no-existe-xyz.html` is a 404. So on staging the phase 1 missing-product flow never runs and the T5 canonical url
   renders Carmina `index, follow`. Not fixed in T5 (outside its scope): needs a decision (check production; detect the
   placeholder by sku/url mismatch like the legacy PWA does?).
+
+- 2026-10-15: T5 general fix (user approved, same branch). Production evidence (parent, read-only GraphQL): Magento
+  `route()` answers a placeholder PRODUCT for **any** vendor-shaped url it does not have — production
+  `sku: urllocator-external-placeholder, name: External URL Placeholder`, staging `sku: VA11-GO-NA, name: Carmina
+  Earrings` (`amazon-B0ZZZZZZZZ-foo.html`, `ebay-1-foo.html`, `amazon-B00IJ0ALYS-search.html`); `no-existe-xyz.html`
+  → `route: null`; a real vendor product answers its own sku. Production serves these urls from the PWA today, so no
+  live impact yet. Fix (phase 1 service): when Magento answers a PRODUCT for a vendor product url (vendor in
+  `PRODUCT_VENDORS`, suffix, no `/`) and `matchesProductUrlSku` is false, the product is ignored and the phase 1
+  missing-product flow runs (bots 404 without CHAPI; users CHAPI, `noindex`); metric `MagentoPlaceholderIgnored` + log
+  `magento placeholder ignored` (`magentoSku`, `magentoUrl`). Never matches on placeholder names or skus. Match rule:
+  normalized, case-insensitive Magento sku equals the decoded join of the first 1..n url key segments after the vendor
+  (covers skus with `-` and acme base64url encodings with `-`, e.g. `~~~` → `fn5-`), or its eBay `?var=` form. Urls
+  that are not vendor product urls keep trusting Magento. Review fixes: R3-double-decode — the service now passes
+  the raw pathname to `matchSkuSearchUrl`/`parseProductUrl`/`matchesProductUrlSku` (each decodes once); before, the
+  already-decoded route url was decoded again (also in the phase 1 missing branch), so `A%25B` lost its sku;
+  R3-sku-hyphen-fallthrough — `/amazon-ABC-123-search.html` stays **out** of the sku jump because `parseProductUrl`
+  reads only `ABC` (legacy split) and would not round-trip `ABC-123`; the legacy header never builds such urls (ASIN,
+  eBay and Target regexes have no `-`); it goes through Magento, whose placeholder is now ignored (missing flow,
+  lookup `ABC`, legacy parity); R3-canonical-to-placeholder — integration asserts the canonical url of a found sku
+  search page renders the CHAPI product as a missing product, never the placeholder; suggestion — integration for a
+  slow CHAPI on a `-search.html` url (`CHAPI_TIMEOUT_MS` 1 s): 200, self canonical, `noindex`, unavailable. RED: unit
+  12 failed; integration 3 failed against 44ad0f1 (placeholder `index, follow`, bot 200; the timeout test was green
+  already, coverage only); GREEN. Checks: typecheck, lint, unit (921), integration (79), build pass. Dev server
+  (staging): `/amazon-B0ZZZZZZZZ-foo.html` user 200 `noindex, follow` "Producto no disponible", no Carmina; Googlebot
+  404; the DeWalt canonical url 200 DEWALT from CHAPI, `noindex, follow`, self canonical (staging Magento has no
+  product at that url: its answer was a placeholder or null); `/amazon-B00IJ0ALYS-search.html` 200 DEWALT `noindex`;
+  search page 200. **Open:** the staging Magento DeWalt copy (sku `B00IJ0ALYS`) lives at a url key other than the slug
+  built from the current CHAPI title, so the sku jump canonical points to a `noindex` missing-product url instead of the
+  indexable Magento page (assumption, not verified: the url key was built from an older or different title).

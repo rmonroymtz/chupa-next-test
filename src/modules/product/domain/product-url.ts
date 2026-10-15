@@ -101,6 +101,48 @@ export function parseProductUrl(
   return { vendor, sku, urlKey, routeUrl };
 }
 
+/**
+ * Whether a Magento product sku belongs to a vendor product url. Magento
+ * `route()` answers a placeholder product for any vendor-shaped url it does
+ * not have (production `urllocator-external-placeholder`, staging
+ * `VA11-GO-NA`), so the caller compares skus instead of trusting the type.
+ *
+ * Candidates are every prefix of the url key segments after the vendor joined
+ * back with `-` (so skus containing `-`, and acme base64url segments
+ * containing `-`, still match), each decoded like the sku segment, plus the
+ * eBay `?var=` form. Comparison is case-insensitive on normalized skus.
+ * Returns null when the path is not a vendor product url (Magento is trusted).
+ */
+export function matchesProductUrlSku(
+  pathname: string,
+  sku: string,
+  options: ParseProductUrlOptions,
+): boolean | null {
+  const suffix = options.suffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
+  const routeUrl = toRouteUrl(pathname);
+  if (routeUrl === null || !routeUrl.endsWith(suffix)) return null;
+
+  const urlKey = routeUrl.slice(0, routeUrl.length - suffix.length);
+  if (urlKey.includes('/')) return null;
+
+  const [vendorSegment = '', ...segments] = urlKey.split('-');
+  const vendor = vendorSegment.toLowerCase();
+  if (!options.vendors.includes(vendor)) return null;
+
+  const wanted = normalizeSku(sku).toLowerCase();
+  if (wanted === '') return false;
+  for (let length = 1; length <= segments.length; length += 1) {
+    const decoded = decodeSkuSegment(segments.slice(0, length).join('-'), vendor);
+    if (decoded === null) continue;
+    const forms =
+      vendor === VARIANT_VENDOR
+        ? [decoded, applyVariant(decoded, options.searchParams)]
+        : [decoded];
+    if (forms.some((form) => normalizeSku(form).toLowerCase() === wanted)) return true;
+  }
+  return false;
+}
+
 /** Last url key segment of the header sku jump (`{vendor}-{sku}-search.html`). */
 const SKU_SEARCH_SEGMENT = 'search';
 

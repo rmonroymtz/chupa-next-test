@@ -293,6 +293,154 @@ describe('product page service', () => {
     });
   });
 
+  describe('Magento placeholder product for vendor urls it does not have', () => {
+    // Verified live: route() answers a placeholder PRODUCT for any vendor-shaped url it does
+    // not have (production `urllocator-external-placeholder`, staging `VA11-GO-NA`).
+    const placeholder = {
+      ...PRODUCT,
+      sku: 'urllocator-external-placeholder',
+      name: 'External URL Placeholder',
+    };
+
+    function withProducts(products: Record<string, MagentoProduct>) {
+      const repository = new FakeMagentoProductRepository(products);
+      const observability = createCapturingObservability();
+      const service = createProductPageService({
+        products: repository,
+        vendors: VENDORS,
+        publicBaseUrl: BASE,
+        logger: observability.logger,
+        metrics: observability.metrics,
+      });
+      const resolve = (pathname: string, isBot: boolean, search = '') =>
+        service.resolve({ pathname, searchParams: new URLSearchParams(search), isBot });
+      return { repository, observability, resolve };
+    }
+
+    it('ignores a product whose sku is not the url sku and runs the missing-product flow', async () => {
+      const { resolve, repository, observability } = withProducts({
+        'amazon-B0ZZZZZZZZ-foo.html': placeholder,
+      });
+
+      const decision = await resolve('/amazon-B0ZZZZZZZZ-foo.html', false);
+
+      expect(decision).toEqual({
+        kind: 'missing_product',
+        case: 'missing_user',
+        robots: { index: false, follow: true },
+        canonicalUrl: `${BASE}/amazon-B0ZZZZZZZZ-foo.html`,
+        lookup: { sku: 'B0ZZZZZZZZ', vendor: 'amazon' },
+        vendor: 'amazon',
+        searchUrl: '/search.html?query=foo&store=amazon',
+        origin: 'product_url',
+      });
+      expect(repository.calls).toEqual(['amazon-B0ZZZZZZZZ-foo.html']);
+      expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toHaveLength(1);
+      expect(observability.metricsNamed('PdpOutcome').map((m) => m.dimensions)).toEqual([
+        { Case: 'missing_user' },
+      ]);
+    });
+
+    it('is the missing-product 404 for bots', async () => {
+      const { resolve, observability } = withProducts({ 'ebay-1-foo.html': placeholder });
+
+      expect(await resolve('/ebay-1-foo.html', true)).toEqual({
+        kind: 'not_found',
+        case: 'missing_bot',
+      });
+      expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toHaveLength(1);
+    });
+
+    it('keeps a product whose sku matches the url sku case-insensitively', async () => {
+      const real = { ...PRODUCT, sku: 'B00IJ0ALYS', relativeUrl: 'amazon-b00ij0alys-dewalt.html' };
+      const { resolve, observability } = withProducts({ 'amazon-b00ij0alys-dewalt.html': real });
+
+      const decision = await resolve('/amazon-b00ij0alys-dewalt.html', false);
+
+      expect(decision).toMatchObject({ kind: 'magento_product', product: real });
+      expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toEqual([]);
+    });
+
+    it('keeps an eBay variant product requested with ?var=', async () => {
+      const { resolve } = withProducts({ 'ebay-126981644035-gildan.html': PRODUCT });
+
+      const decision = await resolve('/ebay-126981644035-gildan.html', false, 'var=428130345038');
+
+      expect(decision.kind).toBe('magento_product');
+    });
+
+    it('keeps acme products, also when the base64url sku segment contains "-"', async () => {
+      const acme = { ...PRODUCT, sku: '~~~', relativeUrl: 'acme-fn5--tilde.html' };
+      const { resolve } = withProducts({
+        'acme-fn5--tilde.html': acme,
+        'acme-QUJD-x.html': placeholder,
+      });
+
+      expect((await resolve('/acme-fn5--tilde.html', false)).kind).toBe('magento_product');
+      expect(await resolve('/acme-QUJD-x.html', false)).toMatchObject({
+        kind: 'missing_product',
+        lookup: { sku: 'ABC', vendor: 'acme' },
+      });
+    });
+
+    it('keeps a Magento sku containing "-"', async () => {
+      const real = { ...PRODUCT, sku: 'ABC-123', relativeUrl: 'amazon-ABC-123-drill.html' };
+      const { resolve } = withProducts({ 'amazon-ABC-123-drill.html': real });
+
+      expect((await resolve('/amazon-ABC-123-drill.html', false)).kind).toBe('magento_product');
+    });
+
+    it('trusts Magento for urls that are not vendor product urls', async () => {
+      const { resolve } = withProducts({ 'house-brand-mug.html': placeholder });
+
+      expect((await resolve('/house-brand-mug.html', false)).kind).toBe('magento_product');
+    });
+
+    it('sends a -search.html url whose sku contains "-" through Magento and ignores its placeholder', async () => {
+      // Not the sku jump: parseProductUrl reads only `ABC` (legacy split), so the
+      // jump could not look up `ABC-123`; the legacy header never builds such urls.
+      const { resolve, repository } = withProducts({ 'amazon-ABC-123-search.html': placeholder });
+
+      const decision = await resolve('/amazon-ABC-123-search.html', false);
+
+      expect(decision).toMatchObject({
+        kind: 'missing_product',
+        lookup: { sku: 'ABC', vendor: 'amazon' },
+        origin: 'product_url',
+      });
+      expect(repository.calls).toEqual(['amazon-ABC-123-search.html']);
+    });
+  });
+
+  describe('path decoding', () => {
+    it('decodes a sku jump path exactly once (encoded %)', async () => {
+      const { resolve, repository } = setup();
+
+      const decision = await resolve('/amazon-A%25B-search.html', false);
+
+      expect(decision).toMatchObject({
+        kind: 'missing_product',
+        lookup: { sku: 'A%B', vendor: 'amazon' },
+        canonicalUrl: `${BASE}/amazon-A%B-search.html`,
+        searchUrl: '/search.html?query=A%25B&store=amazon',
+        origin: 'sku_search',
+      });
+      expect(repository.calls).toEqual([]);
+    });
+
+    it('decodes a missing product path exactly once (encoded %)', async () => {
+      const { resolve, repository } = setup();
+
+      const decision = await resolve('/ebay-A%25B-shirt.html', false);
+
+      expect(decision).toMatchObject({
+        kind: 'missing_product',
+        lookup: { sku: 'A%B', vendor: 'ebay' },
+      });
+      expect(repository.calls).toEqual(['ebay-A%B-shirt.html']);
+    });
+  });
+
   describe('resolveSkuSearchCanonicalUrl', () => {
     const found = parseSearchProductResult(amazonFound);
     const product = found.status === 'found' ? found.product : null;

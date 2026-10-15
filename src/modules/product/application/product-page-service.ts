@@ -6,9 +6,11 @@ import {
   buildCanonicalUrl,
   decodeSkuSegment,
   DEFAULT_PRODUCT_URL_SUFFIX,
+  matchesProductUrlSku,
   matchSkuSearchUrl,
   parseProductUrl,
   toRouteUrl,
+  type SkuSearchUrl,
 } from '@/modules/product/domain/product-url';
 import { HOME_PATHNAME } from '@/modules/routing/domain/request-path';
 import { buildSearchItemUrlKey } from '@/modules/search/domain/search-item-url';
@@ -117,17 +119,14 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     const routeUrl = pathname === HOME_PATHNAME ? HOME_PATHNAME : toRouteUrl(pathname);
     if (routeUrl === null) return { kind: 'not_found', case: null };
 
-    // Staging Magento answers a placeholder product for every `*-search.html`
-    // url, so the sku jump never asks Magento (decision 7 of phase 3).
-    const skuSearch = matchSkuSearchUrl(routeUrl, { vendors: deps.vendors, suffix });
-    if (skuSearch)
-      return skuSearchProduct(
-        routeUrl,
-        skuSearch.vendor,
-        skuSearch.skuSegment,
-        searchParams,
-        isBot,
-      );
+    // The url helpers below take the raw pathname and decode it once
+    // themselves; `routeUrl` is already decoded and must not be parsed again.
+    // The sku jump never asks Magento, which answers a placeholder product for
+    // it (decision 7 of phase 3).
+    const skuSearch = matchSkuSearchUrl(pathname, { vendors: deps.vendors, suffix });
+    if (skuSearch) {
+      return skuSearchProduct(pathname, routeUrl, skuSearch, searchParams, isBot);
+    }
 
     const lookup = await deps.products.findByRouteUrl(routeUrl);
     switch (lookup.kind) {
@@ -142,9 +141,12 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
       case 'category':
         return { kind: 'category', uid: lookup.uid, relativeUrl: lookup.relativeUrl };
       case 'product':
+        if (isPlaceholder(pathname, lookup.product, searchParams)) {
+          return missing(pathname, routeUrl, searchParams, isBot);
+        }
         return existing(lookup.product, isBot);
       case 'not_found':
-        return missing(routeUrl, searchParams, isBot);
+        return missing(pathname, routeUrl, searchParams, isBot);
     }
   }
 
@@ -161,7 +163,34 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     };
   }
 
+  /**
+   * Magento `route()` answers a placeholder PRODUCT for any vendor-shaped url
+   * it does not have (production `urllocator-external-placeholder`, staging
+   * `VA11-GO-NA`). A product whose sku is not the url's sku is that
+   * placeholder: the url is treated as missing from Magento. Urls that are not
+   * vendor product urls keep whatever Magento answers.
+   */
+  function isPlaceholder(
+    pathname: string,
+    product: MagentoProduct,
+    searchParams: URLSearchParams,
+  ): boolean {
+    const matches = matchesProductUrlSku(pathname, product.sku, {
+      vendors: deps.vendors,
+      suffix,
+      searchParams,
+    });
+    if (matches !== false) return false;
+    deps.metrics.emitMetric({ name: 'MagentoPlaceholderIgnored', value: 1 });
+    deps.logger.info(
+      { path: pathname, magentoSku: product.sku, magentoUrl: product.relativeUrl },
+      'magento placeholder ignored',
+    );
+    return true;
+  }
+
   function missing(
+    pathname: string,
     routeUrl: string,
     searchParams: URLSearchParams,
     isBot: boolean,
@@ -170,7 +199,7 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     if (urlKey === null) return { kind: 'not_found', case: null };
     if (isBot) return { kind: 'not_found', case: 'missing_bot' };
 
-    const parsed = parseProductUrl(routeUrl, { vendors: deps.vendors, suffix, searchParams });
+    const parsed = parseProductUrl(pathname, { vendors: deps.vendors, suffix, searchParams });
     return {
       kind: 'missing_product',
       case: 'missing_user',
@@ -185,15 +214,15 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
 
   /** Same outcomes as a product missing from Magento, without the Magento lookup. */
   function skuSearchProduct(
+    pathname: string,
     routeUrl: string,
-    vendor: string,
-    skuSegment: string,
+    { vendor, skuSegment }: SkuSearchUrl,
     searchParams: URLSearchParams,
     isBot: boolean,
   ): ProductPageDecision {
     if (isBot) return { kind: 'not_found', case: 'missing_bot' };
 
-    const parsed = parseProductUrl(routeUrl, { vendors: deps.vendors, suffix, searchParams });
+    const parsed = parseProductUrl(pathname, { vendors: deps.vendors, suffix, searchParams });
     const typedSku = decodeSkuSegment(skuSegment, vendor) ?? '';
     return {
       kind: 'missing_product',
