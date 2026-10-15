@@ -390,6 +390,68 @@ describe('product page service', () => {
       expect((await resolve('/amazon-ABC-123-drill.html', false)).kind).toBe('magento_product');
     });
 
+    it('keeps a product whose url key + suffix is the requested url, even without its sku in it', async () => {
+      // Requested path differs only in case; Magento's own sku is not in the url.
+      const real = {
+        ...PRODUCT,
+        sku: 'MAGENTO-OWN-SKU',
+        urlKey: 'amazon-B00IJ0ALYS-dewalt-kit',
+        urlSuffix: '.html',
+        relativeUrl: 'amazon-b00ij0alys-dewalt-kit.html',
+      };
+      const { resolve, observability } = withProducts({
+        'amazon-b00ij0alys-dewalt-kit.html': real,
+      });
+
+      const user = await resolve('/amazon-b00ij0alys-dewalt-kit.html', false);
+      const bot = await resolve('/amazon-b00ij0alys-dewalt-kit.html', true);
+
+      expect(user).toMatchObject({ kind: 'magento_product', product: real });
+      expect(bot).toMatchObject({
+        kind: 'magento_product',
+        case: 'exists_bot',
+        robots: { index: true, follow: true },
+      });
+      expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toEqual([]);
+    });
+
+    it('keeps a product whose sku is in the url even when its url key differs', async () => {
+      const real = {
+        ...PRODUCT,
+        sku: 'B0ABC12345',
+        urlKey: 'amazon-B0ABC12345-renamed-title',
+        urlSuffix: '.html',
+      };
+      const { resolve } = withProducts({ 'amazon-B0ABC12345-old-title.html': real });
+
+      expect((await resolve('/amazon-B0ABC12345-old-title.html', false)).kind).toBe(
+        'magento_product',
+      );
+    });
+
+    it.each([
+      ['production (no url key)', { urlKey: '', urlSuffix: '.html' }],
+      ['staging (`carmina-earrings`)', { urlKey: 'carmina-earrings', urlSuffix: '.html' }],
+      ['without a url suffix', { urlKey: 'carmina-earrings' }],
+    ])(
+      'ignores a %s placeholder: users get the missing flow, bots the 404',
+      async (_label, fields) => {
+        const { urlSuffix: _ignored, ...withoutSuffix } = placeholder;
+        const fake = { ...withoutSuffix, sku: 'VA11-GO-NA', ...fields };
+        const { resolve, observability } = withProducts({ 'amazon-B0ZZZZZZZZ-foo.html': fake });
+
+        expect(await resolve('/amazon-B0ZZZZZZZZ-foo.html', false)).toMatchObject({
+          kind: 'missing_product',
+          lookup: { sku: 'B0ZZZZZZZZ', vendor: 'amazon' },
+        });
+        expect(await resolve('/amazon-B0ZZZZZZZZ-foo.html', true)).toEqual({
+          kind: 'not_found',
+          case: 'missing_bot',
+        });
+        expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toHaveLength(2);
+      },
+    );
+
     it('trusts Magento for urls that are not vendor product urls', async () => {
       const { resolve } = withProducts({ 'house-brand-mug.html': placeholder });
 

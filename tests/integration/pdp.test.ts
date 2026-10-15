@@ -31,7 +31,8 @@ const SKU_SEARCH_FAILURE = 'amazon-B0FAILURE1-search.html';
 const placeholderFor = (url: string) => ({
   ...productRoute.data.route,
   relative_url: url,
-  url_key: url.replace('.html', ''),
+  url_key: 'carmina-earrings',
+  url_suffix: '.html',
   sku: 'VA11-GO-NA',
   name: 'Carmina Earrings',
 });
@@ -41,9 +42,14 @@ const SKU_SEARCH_HYPHEN = 'amazon-ABC-123-search.html';
 /** Production Magento answers this placeholder for vendor urls it does not have. */
 const productionPlaceholderFor = (url: string) => ({
   ...placeholderFor(url),
+  url_key: null,
   sku: 'urllocator-external-placeholder',
   name: 'External URL Placeholder',
 });
+
+/** Real Magento product whose own sku is not in its url (url key + suffix is the url). */
+const OWN_URL_KEY = 'amazon-B0OWNKEY01-Own-Key-Lamp';
+const OWN_URL = `${OWN_URL_KEY.toLowerCase()}.html`;
 
 const CHAPI_TIMEOUT_MS = 1_000;
 const CHAPI_DELAY_MS = 600;
@@ -106,6 +112,14 @@ beforeAll(async () => {
       [SKU_SEARCH_SLOW]: placeholderFor(SKU_SEARCH_SLOW),
       [SKU_SEARCH_HYPHEN]: productionPlaceholderFor(SKU_SEARCH_HYPHEN),
       [SKU_SEARCH_PRODUCT_URL]: productionPlaceholderFor(SKU_SEARCH_PRODUCT_URL),
+      [OWN_URL]: {
+        ...productRoute.data.route,
+        relative_url: OWN_URL,
+        url_key: OWN_URL_KEY,
+        url_suffix: '.html',
+        sku: 'MAGENTO-OWN-SKU',
+        name: 'Own Key Lamp',
+      },
       [OUTAGE]: 'outage',
     },
     storeConfig: storeConfig.data.storeConfig,
@@ -529,6 +543,25 @@ describe('PDP — Magento placeholder product for a vendor url it does not have'
     expect(chapiCalls()).toEqual([]);
     expect(mutations()).toEqual([]);
   });
+});
+
+describe('PDP — Magento product whose sku is not in its url', () => {
+  it.each([
+    ['user', BROWSER_UA],
+    ['bot', BOT_UA],
+  ])(
+    '%s: its url key + suffix is the url, so it stays an indexable Magento product',
+    async (_who, ua) => {
+      const page = await get(`/${OWN_URL}`, ua);
+
+      expect(page.status).toBe(200);
+      expect(robots(page.html)).toBe('index, follow');
+      expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${OWN_URL}`);
+      expect(page.html).toContain('Own Key Lamp');
+      expect(ofType(page.html, 'Product')).toHaveLength(1);
+      expect(chapiCalls()).toEqual([]);
+    },
+  );
 });
 
 describe('PDP — add to cart (shared cart with PWA Studio)', () => {

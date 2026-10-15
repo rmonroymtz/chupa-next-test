@@ -78,6 +78,7 @@ describe('mapProductRoute', () => {
         name: 'Gildan (6-pack) Black Solid Heavy Cotton Short Sleeve Blank T-Shirt S-3XL',
         urlKey:
           'ebay-126981644035|428130345038-gildan-6-pack-black-solid-heavy-cotton-short-sleeve-blank-t-shirt-s-3xl',
+        urlSuffix: '.html',
         relativeUrl: URL,
         descriptionHtml: '',
         shortDescriptionHtml: expect.stringContaining('Choose your favourite colors') as string,
@@ -104,6 +105,16 @@ describe('mapProductRoute', () => {
         related: [],
       },
     });
+  });
+
+  it('maps a missing url key to empty and omits a missing url suffix (production placeholder)', () => {
+    const result = mapProductRoute(
+      { ...recorded, url_key: null, url_suffix: null } as ProductRouteDto,
+      URL,
+    );
+
+    expect(result.kind === 'product' && result.product.urlKey).toBe('');
+    expect(result.kind === 'product' && result.product).not.toHaveProperty('urlSuffix');
   });
 
   it('keeps enabled images sorted by position and blank labels as null', () => {

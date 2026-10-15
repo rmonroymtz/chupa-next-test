@@ -122,7 +122,7 @@ authored lines in total: one stacked PR per task.
 - [x] T4 (search UI, uncommitted, branch `feat/phase-3-04-search-ui`; test 859, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
-- [x] T5 (sku jump committed 44ad0f1; general placeholder fix + review fixes uncommitted on `feat/phase-3-05-sku-search`; test 921, integration 79) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
+- [x] T5 (sku jump 44ad0f1; general placeholder fix + review fixes 90d7e4f; url-key hardening uncommitted on `feat/phase-3-05-sku-search`; test 927, integration 81) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
   product); resolve the product from CHAPI, render it on that URL with canonical = product canonical URL and `noindex`;
   bots → no CHAPI (phase 1 missing-product rule). Fixes the "Carmina Earrings" bug. Check: unit + integration.
 - [ ] T6 Extras: GTM `SEARCH_REQUEST`/`SEARCH_RESPONSE` dataLayer events; recommendation sliders
@@ -311,3 +311,27 @@ Parent: review and commit T3, then T4 (search UI). The user still has to add `CH
   search page 200. **Open:** the staging Magento DeWalt copy (sku `B00IJ0ALYS`) lives at a url key other than the slug
   built from the current CHAPI title, so the sku jump canonical points to a `noindex` missing-product url instead of the
   indexable Magento page (assumption, not verified: the url key was built from an older or different title).
+
+- 2026-10-15: T5 hardening (review WARNING R3-placeholder-false-positive-bot-404 on 90d7e4f: the sku-only rule could
+  downgrade a real Magento product whose url does not carry its sku; RED confirmed it: user `noindex`, bot 404).
+  Evidence (parent, read-only GraphQL): production placeholder `relative_url` = requested path, `url_key: null`,
+  `url_suffix: .html`, `sku: urllocator-external-placeholder`; staging placeholder `url_key: carmina-earrings`,
+  `sku: VA11-GO-NA`; both `uid: MQ==`. Real DeWalt (both envs): `sku: B00IJ0ALYS`, `url_key`
+  `amazon-B00IJ0ALYS-dewalt-kit-de-combo-de-perforacin-inalmbrico-de-20v-max-2-herramienta-dck240c2`, `url_suffix: .html`
+  (url key + suffix equals the requested path case-insensitively). Renamed keys answer `redirect_code` > 0, not a
+  product. **Rule (conservative):** Magento's product for a vendor product url is ignored as a placeholder only when
+  BOTH (a) its `url_key + url_suffix` (suffix falls back to the configured `.html`; an empty url key never matches) is
+  not the requested url key path, case-insensitively, path decoded once, AND (b) its sku is not in the url
+  (`matchesProductUrlSku`). No `uid`, placeholder names or placeholder skus are used. `url_key`/`url_suffix` were
+  already selected by `ProductByRoute`; the mapper now keeps `url_suffix` as optional `MagentoProduct.urlSuffix`.
+  Integration placeholder mocks now mirror the evidence (staging `url_key: carmina-earrings`, production `url_key:
+  null`); new integration case: a Magento product whose sku is not in its url but whose url key matches stays 200
+  `index, follow` with Product JSON-LD for users and bots, no CHAPI. RED: unit 2 failed (mapper suffix, url-key match),
+  integration 2 failed against 90d7e4f; GREEN. Checks: typecheck, lint, unit (927), integration (81), build pass. Dev
+  server (staging): `/amazon-B0ZZZZZZZZ-foo.html` user 200 `noindex` unavailable, no Carmina; Googlebot 404; the real
+  DeWalt url `/amazon-b00ij0alys-…-dck240c2.html` user and Googlebot 200 `index, follow`, Product JSON-LD, Magento
+  title; `/amazon-B00IJ0ALYS-search.html` 200 DEWALT `noindex`; search page 200. **Open (explains the earlier
+  DeWalt canonical question):** the sku jump canonical uses the legacy search slug (non-ascii → `-`, e.g.
+  `perforaci-n-inal-mbrico-…-dck240c2-`), while Magento url keys drop non-ascii characters (`perforacin-inalmbrico-…-
+  dck240c2`), so for a product Magento already has, the canonical points to a `noindex` missing-product url, not the
+  indexable Magento page. Search result card links share the same slug.

@@ -141,7 +141,7 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
       case 'category':
         return { kind: 'category', uid: lookup.uid, relativeUrl: lookup.relativeUrl };
       case 'product':
-        if (isPlaceholder(pathname, lookup.product, searchParams)) {
+        if (isPlaceholder(pathname, routeUrl, lookup.product, searchParams)) {
           return missing(pathname, routeUrl, searchParams, isBot);
         }
         return existing(lookup.product, isBot);
@@ -165,28 +165,38 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
 
   /**
    * Magento `route()` answers a placeholder PRODUCT for any vendor-shaped url
-   * it does not have (production `urllocator-external-placeholder`, staging
-   * `VA11-GO-NA`). A product whose sku is not the url's sku is that
-   * placeholder: the url is treated as missing from Magento. Urls that are not
-   * vendor product urls keep whatever Magento answers.
+   * it does not have (production: `url_key` null, `relative_url` echoing the
+   * request; staging: `url_key: carmina-earrings`), with a sku that is not the
+   * url's. Conservative rule: the product is ignored (the url is treated as
+   * missing from Magento) only when its sku is not in the url AND its own
+   * `url_key + url_suffix` is not the requested url (case-insensitive, path
+   * decoded once). Urls that are not vendor product urls trust Magento.
    */
   function isPlaceholder(
     pathname: string,
+    routeUrl: string,
     product: MagentoProduct,
     searchParams: URLSearchParams,
   ): boolean {
-    const matches = matchesProductUrlSku(pathname, product.sku, {
+    const skuMatches = matchesProductUrlSku(pathname, product.sku, {
       vendors: deps.vendors,
       suffix,
       searchParams,
     });
-    if (matches !== false) return false;
+    if (skuMatches !== false || isOwnUrl(product, routeUrl)) return false;
     deps.metrics.emitMetric({ name: 'MagentoPlaceholderIgnored', value: 1 });
     deps.logger.info(
       { path: pathname, magentoSku: product.sku, magentoUrl: product.relativeUrl },
       'magento placeholder ignored',
     );
     return true;
+  }
+
+  /** Whether the product's own `url_key + url_suffix` is the requested url. */
+  function isOwnUrl(product: MagentoProduct, routeUrl: string): boolean {
+    if (product.urlKey === '') return false;
+    const ownUrl = `${product.urlKey}${product.urlSuffix ?? suffix}`;
+    return ownUrl.toLowerCase() === routeUrl.toLowerCase();
   }
 
   function missing(

@@ -159,6 +159,7 @@ export function mapProductRoute(
       sku: route.sku,
       name: route.name ?? route.sku,
       urlKey: route.url_key ?? '',
+      ...(route.url_suffix ? { urlSuffix: route.url_suffix } : {}),
       relativeUrl,
       descriptionHtml: route.description?.html ?? '',
       shortDescriptionHtml: route.short_description?.html ?? '',
