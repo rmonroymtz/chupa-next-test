@@ -67,12 +67,17 @@ beforeAll(async () => {
       'borrada.html': categoryRoute('borrada.html', 'Qk9S'),
       'caida.html': categoryRoute('caida.html', 'Q0FJ'),
       'productos-caidos.html': categoryRoute('productos-caidos.html', 'UENB'),
+      'monitores.html': categoryRoute('monitores.html', 'TU9O'),
     },
     categories: {
       [LAPTOPS.uid]: LAPTOPS,
       VEFC: category('VEFC', 'Tabletas', 'tabletas'),
       Q0FJ: 'outage',
       UENB: category('UENB', 'Productos caídos', 'productos-caidos'),
+      TU9O: {
+        ...category('TU9O', 'Monitores', 'monitores'),
+        meta_title: 'Monitores | Chupaprecios',
+      },
     },
     categoryProducts: {
       [LAPTOPS.uid]: LAPTOP_PRODUCTS,
@@ -122,6 +127,16 @@ const pagination = (html: string) =>
   /<nav aria-label="Paginación"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? null;
 
 describe('category pages', () => {
+  it('a meta title that already ends in the site name gets the site name only once', async () => {
+    const page = await get('/monitores.html');
+
+    expect(page.status).toBe(200);
+    expect([...page.html.matchAll(/<title>([^<]*)<\/title>/g)].map((match) => match[1])).toEqual([
+      'Monitores | Chupaprecios',
+    ]);
+    expect(page.html).toContain('<meta property="og:title" content="Monitores"/>');
+  });
+
   it('category with products: 200, h1, first page of cards, canonical and index', async () => {
     const page = await get(LAPTOPS_URL);
 
