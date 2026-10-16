@@ -190,4 +190,4 @@ E2E_BASE_URL=$B E2E_PHASE2_SMOKE=1 pnpm test:e2e --project phase-2-smoke
 
 ## Next step
 
-Phase 3 serves `/search.html` and `*-search.html` from Next (CHAPI search). Once it is live, delete the temporary rules 5 and 6; until then they must stay above `*.html`.
+Phase 3 serves `/search.html` and `*-search.html` from Next (CHAPI search). Once it is live, delete the temporary rules 5 and 6 as described in [phase 3 routing](phase-3.md); until then they must stay above `*.html`.

@@ -1,23 +1,33 @@
 # Phase 3 storefront — search
 
-Status (2026-10-16): T1–T5 merged to `main` (PRs #15–#20; T5 native review approved, one non-blocking warning =
-decision 11). T6 split into T6a–T6c (decision 12); T6a merged (PR #21, `afe7c6f`); T6b on
-`feat/phase-3-06b-search-events` (PR #22 open, review approved with one warning); T6c committed on
-`feat/phase-3-06c-search-sliders` (stacked on T6b, no PR yet); T7 not started.
+Status (2026-10-16): **phase 3 complete pending the T7 PR.** T1–T6c merged to `main` (PRs #15–#23, last merge
+`6fa689f`); T7 (ops and docs) committed on `feat/phase-3-07-ops-docs`, PR not opened yet. Go-live is the edge change in
+`docs/routing/phase-3.md` (after phase 2's), see `docs/phase-3-report.md`.
 
-## Resume here (2026-10-16)
+## Resume here (2026-10-16, phase 4 hand-off)
 
-1. `git fetch origin && pnpm install`; `.env.local` needs `MAGENTO_GRAPHQL_URL` (staging:
-   `https://staging.chupaprecios.com.mx/graphql`), `CHAPI_BASE_URL`, `PUBLIC_BASE_URL`, and optionally `GTM_ID` (T6a).
-   Check: `pnpm typecheck && pnpm lint && pnpm test` and `pnpm test:integration`.
-2. Continue with the next unfinished task in "Tasks" (T6a → T6b → T6c → T7). `gh` is installed and authenticated on
-   this machine; tell the user to merge only after the last push (#14 and #18 were merged before follow-up commits).
+1. Open the T7 PR from `feat/phase-3-07-ops-docs` (one work-unit commit: docs, e2e smoke, this file, the user's
+   `.env.example` line). Tell the user to merge only after the last push. Then phase 3 is done.
+2. Go-live (ops, not code): phase 2 edge change first, then `docs/routing/phase-3.md` (delete rules 5 and 6, remove
+   prerender for search), `GTM_ID` in the task definition, run `E2E_BASE_URL=… E2E_PHASE3_SMOKE=1 pnpm test:e2e
+   --project phase-3-smoke` against staging behind the edge.
+3. Phase 4 starts from a new feature document (`odd/tasks/phase-4-….md`): the pages still on PWA are cart, checkout
+   and account. Before planning, read `docs/phase-3-report.md` (differences from the legacy PWA, follow-ups) and pick
+   which follow-ups below go into phase 4. Setup: `git fetch origin && pnpm install`; `.env.local` needs
+   `MAGENTO_GRAPHQL_URL`, `CHAPI_BASE_URL`, `PUBLIC_BASE_URL`, optionally `GTM_ID`. Check: `pnpm typecheck && pnpm lint
+   && pnpm test`, `pnpm test:integration`, `pnpm build`.
 
-Open follow-ups (no decision needed now): acme base64url `-` SKU limitation (count affected Magento SKUs before any
-format change); `useSearchParams` in the header without Suspense relies on every route being dynamic; header
-integration assertions depend on HTML attribute order; prev link clamped to page 1 label; search item slug keeps a
-trailing `-`; canonical with a literal `%` for missing products (phase 1); the product module imports
-`buildSearchItemUrlKey` from `search/domain` (move it to the product domain); SEO slug gap (decision 11).
+Open follow-ups (no decision needed now; all listed in `docs/phase-3-report.md`): acme base64url `-` SKU limitation
+(count affected Magento SKUs before any format change); `useSearchParams` in the header without Suspense relies on every
+route being dynamic; header integration assertions depend on HTML attribute order; prev link clamped to page 1 label;
+search item slug keeps a trailing `-`; canonical with a literal `%` for missing products (phase 1); the product module
+imports `buildSearchItemUrlKey` from `search/domain` (move it to the product domain); SEO slug gap (decision 11);
+analytics dispatcher isolates only native Promise rejections (T6a review); cross-store `storeParams` pinning test (T6b
+review); slider load promise created inline per render and untested rating cap (T6c review); stale
+`.next/dev/types/validator.ts` (T6a, not reproduced since T6b). **New in T7 (needs a decision):** Magento placeholder
+products render `index, follow` for non-vendor `/{x}-….html` urls (`/walmart-123456-search.html`,
+`/walmart-123456-foo.html` → 200 "External URL Placeholder" on the dev server), because the placeholder check only
+covers `PRODUCT_VENDORS`; reachable since phase 2 rule 9 (`*.html` → Next).
 
 Working notes for the next session: the user writes in Spanish; commits use
 `git -c user.name="Ricardo Monroy" -c user.email="ricardo@chupaprecios.com.mx"` (no git identity configured), no
@@ -180,10 +190,15 @@ authored lines in total: one stacked PR per task.
   `search/ui/search-page.tsx` + `showsRecommendations`, `page-builder/ui/product-cards.tsx` (`showRating`), env
   `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS`, route; 3 recorded staging fixtures `tests/fixtures/magento/random-products.*`;
   work-unit commit `feat(search): show the recommendation sliders under the search results`; test 1019,
-  integration 96) Recommendation sliders (Crossell/Upsell/Recommender) from Magento `randomProducts` under
+  integration 96; merged in PR #23 (`6fa689f`); native review approved with two suggestions: the slider load promise
+  is created inline on every render, and the rating cap is untested) Recommendation sliders (Crossell/Upsell/Recommender) from Magento `randomProducts` under
   single-store results; recorded staging fixture. Check: unit + integration.
-- [ ] T7 Ops and docs: phase 3 routing doc (delete the temporary search rules 5 and 6 of phase 2; prerender
-  exclusions), env vars, phase 3 report, e2e smoke for search. Check: full suite + build.
+- [x] T7 (route: delegated, writer trigger 2+ non-trivial files; `docs/routing/phase-3.md`, `docs/phase-3-report.md`,
+  `docs/environment.md`, `docs/deploy/ecs-fargate.md`, `docs/routing/phase-2.md` link, `e2e/phase-3-smoke.spec.ts`,
+  `playwright.config.ts`; work-unit commit `docs: add the phase 3 routing doc, report, env vars and search smoke`;
+  test 1019, integration 96, e2e smoke 6 passed against the dev server) Ops and docs: phase 3 routing doc (delete the
+  temporary search rules 5 and 6 of phase 2; prerender exclusions), env vars, phase 3 report, e2e smoke for search.
+  Check: full suite + build.
 
 ## Delivery strategy
 
@@ -388,6 +403,26 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   slower than the timeout → only the third slider, page 200 with its results; all failing → no sliders; not run against
   the base build. Checks: typecheck, lint (0 errors, 1 pre-existing warning), unit (1019), integration (96), build
   pass, with `.next/dev` in place.
+
+- 2026-10-16: T7 implemented (delegated writer, branch `feat/phase-3-07-ops-docs`). `docs/routing/phase-3.md`: with
+  the phase 2 rules live, phase 3 only deletes rules 5 (`/search.html` → PWA) and 6 (`*-search.html` → PWA); both
+  urls then match rule 9 (`*.html`) or the product rule 8, so the only `.html` ordering constraint left is Magento
+  paths (rule 7) above `*.html`; a short variant for an edge still on phase 1 only; prerender removed for both (no
+  `.html` url goes to prerender any more; a prerender renderer would bypass the bot rule and call CHAPI); no caching
+  (content and status depend on the UA); rollback = add both PWA rules back above `*.html`; checklist with curl and the
+  smoke. Phase 2's "Next step" links to it. Env docs: `GTM_ID` and `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS` added to
+  `docs/environment.md` (`CHAPI_SEARCH_TIMEOUT_MS` was already there), all three added to the ECS table, plus the e2e
+  variables `E2E_PHASE3_SMOKE`, `E2E_SEARCH_QUERY`, `E2E_SKU_SEARCH_PATH`. `e2e/phase-3-smoke.spec.ts` (project
+  `phase-3-smoke`, only with `E2E_BASE_URL` and `E2E_PHASE3_SMOKE=1`): amazon results with `Vary: rsc` and `noindex,
+  follow`, ChupaChoice 4 sections in order, walmart 307, blank query, sku jump canonical prefix, Googlebot 200 without
+  results and 404 on `*-search.html`; 6 passed against the dev server; `pnpm test:e2e --list` without the variables lists
+  only `local` and `pwa-checkout`. Dev server findings: Magento there answers the production placeholder
+  ("External URL Placeholder") for non-vendor urls (`/walmart-123456-search.html`, `/walmart-123456-foo.html`) with
+  200 `index, follow` (follow-up above); the Next header search bar never builds `*-search.html` (legacy SKU jump not
+  replicated; documented). Checks: typecheck, lint (0 errors, 1 pre-existing warning), unit (1019), integration (96),
+  build pass; `pnpm format:check` fails only on pre-existing `docs/phase-1-report.md` and
+  `tests/fixtures/page-builder/venia-new-home.json` (changed files pass `prettier --check`). `.env.example`: the user
+  staged `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS`; `GTM_ID` (if missing) and the three e2e lines are the user's edit.
 
 ## Next step
 

@@ -1,7 +1,7 @@
 # Environment variables
 
 Full reference for the storefront environment, generated from the zod schema in `src/shared/config/env.ts`, the
-build-time config in `next.config.ts`, `playwright.config.ts`, the e2e specs and the `Dockerfile` (2026-10-13).
+build-time config in `next.config.ts`, `playwright.config.ts`, the e2e specs and the `Dockerfile` (2026-10-16).
 Copy the block into `.env.local` for local work. The block is identical to the committed `.env.example`.
 
 ```dotenv
@@ -40,6 +40,10 @@ MAGENTO_TIMEOUT_MS=5000
 # Optional. Timeout for the header category menu query, in ms. Kept short: the menu
 # streams in its own Suspense boundary and the header renders without it. Default: 1500
 MAGENTO_MENU_TIMEOUT_MS=1500
+# Optional. Timeout for the recommendation sliders under the search results (Magento
+# `randomProducts`), in ms. They stream after the results and are hidden on timeout.
+# Positive integer. Default when unset: 3000 (recommendations module default)
+MAGENTO_RECOMMENDATIONS_TIMEOUT_MS=
 # Optional. Timeout for the background "copy product to Magento" mutation, in ms.
 # It never blocks the response. Default: 10000
 COPY_MUTATION_TIMEOUT_MS=10000
@@ -61,6 +65,12 @@ ORGANIZATION_LOGO_URL=
 # Optional. Official social profile URLs for Organization `sameAs`.
 # Comma-separated absolute http(s) URLs; any invalid entry fails validation. Default: empty.
 ORGANIZATION_SAME_AS=
+
+# === Analytics ===============================================================
+# Optional. Google Tag Manager container id. When set, the root layout loads GTM and the
+# storefront pushes its events (add_to_cart, search, view_item_list) to `window.dataLayer`.
+# Must match ^GTM-[A-Z0-9]+$ (it is inlined in the loader script). Default: unset (no GTM).
+GTM_ID=
 
 # === Images (BUILD TIME) =====================================================
 # Optional, BUILD TIME (next.config.ts -> images.remotePatterns, also inlined for the UI).
@@ -103,6 +113,13 @@ METRICS_NAMESPACE=ChupaStorefront
 # E2E_CATEGORY_PATH=/herramientas.html
 # E2E_HOME_CMS_PATH=/venia-new-home
 # E2E_UNKNOWN_HTML_PATH=/e2e-no-such-page.html
+# Optional. Set to 1 (with E2E_BASE_URL) to also run the read-only `phase-3-smoke` project
+# (search pages). Staging or a dev server: it calls CHAPI through the search page.
+# E2E_PHASE3_SMOKE=
+# Optional. phase-3-smoke: a query with results on amazon and in ChupaChoice, and a
+# /{store}-{sku}-search.html url whose sku CHAPI knows. Defaults are staging examples.
+# E2E_SEARCH_QUERY=taladro
+# E2E_SKU_SEARCH_PATH=/amazon-B00IJ0ALYS-search.html
 # Optional. CI flag: when truthy, Playwright fails on test.only.
 # CI=
 # E2E_LOCAL_BASE_URL is set automatically by e2e/support/local-stack.ts; do not set it by hand.
