@@ -58,6 +58,14 @@ export interface MockBackendsConfig {
    * at runtime with `MockBackends.setMenu`.
    */
   readonly menu?: Record<string, unknown> | 'outage';
+  /**
+   * `GetRandomProducts` answers by the `type` variable (`tendency`,
+   * `also_bought`, `recently`): `body` is the whole GraphQL payload. Unset (or
+   * an unknown type) answers HTTP 400 like any unknown operation, so the
+   * recommendation sliders stay hidden. Changeable with
+   * `MockBackends.setRandomProducts`.
+   */
+  readonly randomProducts?: Readonly<Record<string, ChapiScenario>>;
   /** Delay before answering `HeaderMenu`; changeable with `MockBackends.setMenuDelay`. */
   readonly menuDelayMs?: number;
   /** CHAPI answers by `${store}:${sku}`; unknown keys answer an empty `data`. */
@@ -93,6 +101,8 @@ export interface MockBackends {
   setMenuDelay(ms: number): void;
   /** Replaces the `StoreConfig` answer for the following requests. */
   setStoreConfig(storeConfig: MockBackendsConfig['storeConfig']): void;
+  /** Replaces the `GetRandomProducts` answers for the following requests. */
+  setRandomProducts(randomProducts: MockBackendsConfig['randomProducts']): void;
   /** Cart ids the mock Magento knows, with their items (see the cart operations). */
   readonly carts: ReadonlyMap<string, MockCartItem[]>;
   reset(): void;
@@ -112,6 +122,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   const nextSeq = () => ++seq;
   let menu = config.menu;
   let storeConfig = config.storeConfig;
+  let randomProducts = config.randomProducts;
   let menuDelayMs = config.menuDelayMs ?? 0;
   const carts = new Map<string, MockCartItem[]>();
 
@@ -121,6 +132,8 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
       const call = record('magento', operation, body, res, req.headers.authorization);
       const variables = (body.variables ?? {}) as Record<string, unknown>;
       let response: { status: number; body: unknown };
+      const randomScenario =
+        operation === 'GetRandomProducts' ? randomProducts?.[String(variables.type)] : undefined;
       if (operation === 'ProductByRoute') {
         const route = config.routes[String(variables.url)];
         response =
@@ -178,6 +191,9 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
           menu === 'outage'
             ? { status: 503, body: { message: 'Service Unavailable' } }
             : { status: 200, body: { data: menu } };
+      } else if (randomScenario !== undefined) {
+        await delay(randomScenario.delayMs ?? 0);
+        response = { status: randomScenario.status ?? 200, body: randomScenario.body ?? {} };
       } else if (CART_OPERATIONS.has(operation)) {
         response = { status: 200, body: answerCart(operation, variables, carts) };
       } else if (operation === 'StoreConfig') {
@@ -275,6 +291,9 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     },
     setStoreConfig: (next) => {
       storeConfig = next;
+    },
+    setRandomProducts: (next) => {
+      randomProducts = next;
     },
     carts,
     reset: () => {

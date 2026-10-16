@@ -1,0 +1,169 @@
+{
+  "data": {
+    "randomProducts": {
+      "products": [
+        {
+          "sku": "B0H4YQK5SX",
+          "image": "https://m.media-amazon.com/images/I/71CnvakCFBL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire interior 16 en 1, probador inteligente de calidad del aire multiparámetro de alta precisión con pantalla HD en tiempo real a color, monitor portátil de calidad del aire",
+          "price": 4247.56,
+          "regular_price": 0,
+          "review_stars": 4.9,
+          "store": "amazon",
+          "link": "amazon-B0H4YQK5SX-monitor-de-calidad-del-aire-interior-16-en-1-probador-inteligente-de-calidad-del-aire-multiparmetro-de-alta-precisin-con-pantalla-hd-en-tiempo-real-a-color-monitor-porttil-de-calidad-del-aire.html"
+        },
+        {
+          "sku": "B0HJTVT4MZ",
+          "image": "https://m.media-amazon.com/images/I/71YFukShWYL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire",
+          "price": 1082.88,
+          "regular_price": 0,
+          "review_stars": 4.8,
+          "store": "amazon",
+          "link": "amazon-B0HJTVT4MZ-monitor-de-calidad-del-aire.html"
+        },
+        {
+          "sku": "B0H2LFC64T",
+          "image": "https://m.media-amazon.com/images/I/711OXaJLftL._AC_UY218_.jpg",
+          "name": "Temtop W100 Smart Weather Station & Indoor Air Quality Monitor",
+          "price": 6666.63,
+          "regular_price": 0,
+          "review_stars": 4.2,
+          "store": "amazon",
+          "link": "amazon-B0H2LFC64T-temtop-w100-smart-weather-station-indoor-air-quality-monitor.html"
+        },
+        {
+          "sku": "B0H2D9JC8F",
+          "image": "https://m.media-amazon.com/images/I/61wUu6bB7LL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire 16 en 1 Monitor de CO2 para interiores 9",
+          "price": 1763.68,
+          "regular_price": 1985.89,
+          "review_stars": 4.2,
+          "store": "amazon",
+          "link": "amazon-B0H2D9JC8F-monitor-de-calidad-del-aire-16-en-1-monitor-de-co2-para-interiores-9.html"
+        },
+        {
+          "sku": "B0FCDCWKJV",
+          "image": "https://m.media-amazon.com/images/I/61SV6QW0egL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire 16 en 1 Monitor de CO2 de alta precisión en",
+          "price": 2729.1,
+          "regular_price": 0,
+          "review_stars": 4.2,
+          "store": "amazon",
+          "link": "amazon-B0FCDCWKJV-monitor-de-calidad-del-aire-16-en-1-monitor-de-co2-de-alta-precisin-en.html"
+        },
+        {
+          "sku": "B097YW5Q72",
+          "image": "https://m.media-amazon.com/images/I/61cGOt0cE3L._AC_UY218_.jpg",
+          "name": "Airthings 2960 View Plus - Monitor de calidad del aire y radón alimentado por batería (PM, CO2, VOC, humedad, temperatura, presión)",
+          "price": 9443.59,
+          "regular_price": 0,
+          "review_stars": 4,
+          "store": "amazon",
+          "link": "amazon-B097YW5Q72-airthings-2960-view-plus-monitor-de-calidad-del-aire-y-radn-alimentado-por-batera-pm-co2-voc-humedad-temperatura-presin.html"
+        },
+        {
+          "sku": "B0CLYRBRSB",
+          "image": "https://m.media-amazon.com/images/I/81XdqaQJALL._AC_UY218_.jpg",
+          "name": "Breathe Airmonitor Plus Gen 2 Monitor de calidad del aire interior, CO2, PM2.5, TVOC",
+          "price": 3056.8,
+          "regular_price": 3632.11,
+          "review_stars": 4,
+          "store": "amazon",
+          "link": "amazon-B0CLYRBRSB-breathe-airmonitor-plus-gen-2-monitor-de-calidad-del-aire-interior-co2-pm25-tvoc.html"
+        },
+        {
+          "sku": "B0HBXB9RWK",
+          "image": "https://m.media-amazon.com/images/I/61M5MclkYnL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire para interiores, detector de CO2 en tiempo real",
+          "price": 1079.01,
+          "regular_price": 0,
+          "review_stars": 5,
+          "store": "amazon",
+          "link": "amazon-B0HBXB9RWK-monitor-de-calidad-del-aire-para-interiores-detector-de-co2-en-tiempo-real.html"
+        },
+        {
+          "sku": "B0HCJ1D899",
+          "image": "https://m.media-amazon.com/images/I/61BWbYOvYwL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire, detector multifuncional de calidad del aire de doble chip para pruebas AQI, CO2, PM2.5, HCHO y TVOC, adecuado para monitoreo del aire en el hogar, la oficina y en",
+          "price": 1082.88,
+          "regular_price": 2193.55,
+          "review_stars": 3.9,
+          "store": "amazon",
+          "link": "amazon-B0HCJ1D899-monitor-de-calidad-del-aire-detector-multifuncional-de-calidad-del-aire-de-doble-chip-para-pruebas-aqi-co2-pm25-hcho-y-tvoc-adecuado-para-monitoreo-del-aire-en-el-hogar-la-oficina-y-en.html"
+        },
+        {
+          "sku": "B08W8KS8D3",
+          "image": "https://m.media-amazon.com/images/I/61P8JXLVonL._AC_UY218_.jpg",
+          "name": "Monitor inteligente de calidad del aire Amazon: detecta temperatura, CO, PM 2.5 y COV, proporciona notificaciones cuando la calidad del aire baja y es compatible con Alexa",
+          "price": 2193.55,
+          "regular_price": 0,
+          "review_stars": 4.2,
+          "store": "amazon",
+          "link": "amazon-B08W8KS8D3-monitor-inteligente-de-calidad-del-aire-amazon-detecta-temperatura-co-pm-25-y-cov-proporciona-notificaciones-cuando-la-calidad-del-aire-baja-y-es-compatible-con-alexa.html"
+        },
+        {
+          "sku": "B0BZV1XG6Y",
+          "image": "https://m.media-amazon.com/images/I/61gcKLBfGZL._AC_UY218_.jpg",
+          "name": "GoveeLife Monitor elegante de la calidad del aire con PM2.5 H5106, pantalla",
+          "price": 1290.54,
+          "regular_price": 1535.21,
+          "review_stars": 4.3,
+          "store": "amazon",
+          "link": "amazon-B0BZV1XG6Y-goveelife-monitor-elegante-de-la-calidad-del-aire-con-pm25-h5106-pantalla.html"
+        },
+        {
+          "sku": "B0HKFCLP57",
+          "image": "https://m.media-amazon.com/images/I/71fQ69HeTcL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire interior, detector de CO2 en tiempo real",
+          "price": 1082.88,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B0HKFCLP57-monitor-de-calidad-del-aire-interior-detector-de-co2-en-tiempo-real.html"
+        },
+        {
+          "sku": "B0FPGSCBT8",
+          "image": "https://m.media-amazon.com/images/I/41Ry7EdbhCL._AC_UY218_.jpg",
+          "name": "Sensores Ring - Monitor de calidad del aire: notificaciones instantáneas, sugerencias inteligentes, con Amazon Sidewalk, no necesita estación base",
+          "price": 2193.55,
+          "regular_price": 0,
+          "review_stars": 4.2,
+          "store": "amazon",
+          "link": "amazon-B0FPGSCBT8-sensores-ring-monitor-de-calidad-del-aire-notificaciones-instantneas-sugerencias-inteligentes-con-amazon-sidewalk-no-necesita-estacin-base.html"
+        },
+        {
+          "sku": "B0H9L7695L",
+          "image": "https://m.media-amazon.com/images/I/71SoplkfqFL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire 16 en 1 Monitor de CO2 en tiempo real para",
+          "price": 2193.55,
+          "regular_price": 2297.57,
+          "review_stars": 4.9,
+          "store": "amazon",
+          "link": "amazon-B0H9L7695L-monitor-de-calidad-del-aire-16-en-1-monitor-de-co2-en-tiempo-real-para.html"
+        },
+        {
+          "sku": "B0HKW51G3Y",
+          "image": "https://m.media-amazon.com/images/I/710phhUCmpL._AC_UY218_.jpg",
+          "name": "Monitor de calidad del aire interior, detector de CO2 en tiempo real",
+          "price": 1082.88,
+          "regular_price": 0,
+          "review_stars": 4.8,
+          "store": "amazon",
+          "link": "amazon-B0HKW51G3Y-monitor-de-calidad-del-aire-interior-detector-de-co2-en-tiempo-real.html"
+        },
+        {
+          "sku": "B0FY5C5CPL",
+          "image": "https://m.media-amazon.com/images/I/616Idk2euVL._AC_UY218_.jpg",
+          "name": "AirKnight Premium Indoor Air Quality Monitor Indoor & Air Quality Sensor. VOC Detector, CO2 Monitor, Formaldehyde Detector HCHO, AQI, PM2.5, PM10 Temperature Humidity Air AQI CO2 Meter",
+          "price": 2729.1,
+          "regular_price": 0,
+          "review_stars": 4.3,
+          "store": "amazon",
+          "link": "amazon-B0FY5C5CPL-airknight-premium-indoor-air-quality-monitor-indoor-air-quality-sensor-voc-detector-co2-monitor-formaldehyde-detector-hcho-aqi-pm25-pm10-temperature-humidity-air-aqi-co2-meter.html"
+        }
+      ],
+      "totalProducts": 16
+    }
+  }
+}

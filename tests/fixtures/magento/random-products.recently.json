@@ -1,0 +1,159 @@
+{
+  "data": {
+    "randomProducts": {
+      "products": [
+        {
+          "sku": "B0G8MTMWG6",
+          "image": "https://m.media-amazon.com/images/I/81MFPLtg7mL._AC_UY218_.jpg",
+          "name": "Cuisinart Parrilla eléctrica para exteriores, freidora de aire 8 en 1",
+          "price": 10481.37,
+          "regular_price": 0,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B0G8MTMWG6-cuisinart-parrilla-elctrica-para-exteriores-freidora-de-aire-8-en-1.html"
+        },
+        {
+          "sku": "B07GLK1NC2",
+          "image": "https://m.media-amazon.com/images/I/71js9v7bqUL._AC_UY218_.jpg",
+          "name": "Traeger Grills Pro 22 Parrilla de Pellets de Madera y Ahumador, Combo de Parrilla Ahumadora de Pellets Eléctrica, Versatilidad BBQ 6 en 1, Capacidad de Parrillada de 572 pulgadas cuadradas, Sonda para",
+          "price": 15062.88,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B07GLK1NC2-traeger-grills-pro-22-parrilla-de-pellets-de-madera-y-ahumador-combo-de-parrilla-ahumadora-de-pellets-elctrica-versatilidad-bbq-6-en-1-capacidad-de-parrillada-de-572-pulgadas-cuadradas-sonda-para.html"
+        },
+        {
+          "sku": "B08GTTMZ41",
+          "image": "https://m.media-amazon.com/images/I/61wc3HRXhyL._AC_UY218_.jpg",
+          "name": "Char-Griller E86714 AKORN Jr. Parrilla a carbón portátil tipo Kamado",
+          "price": 5347.92,
+          "regular_price": 5693.66,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B08GTTMZ41-char-griller-e86714-akorn-jr-parrilla-a-carbn-porttil-tipo-kamado.html"
+        },
+        {
+          "sku": "B0DQTBRS3M",
+          "image": "https://m.media-amazon.com/images/I/812QzifPNlL._AC_UY218_.jpg",
+          "name": "Traeger Woodridge - Parrilla de pellets de madera y ahumador, 860 pies cuadrados, WiFi",
+          "price": 23932.08,
+          "regular_price": 0,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B0DQTBRS3M-traeger-woodridge-parrilla-de-pellets-de-madera-y-ahumador-860-pies-cuadrados-wifi.html"
+        },
+        {
+          "sku": "B09KVHWCFP",
+          "image": "https://m.media-amazon.com/images/I/81iHHqzbXCL._AC_UY218_.jpg",
+          "name": "Cuisinart Parrilla y Ahumador de Pellets de Madera Portátil 8 en 1, Compacta para Casas Rodantes, Fiestas en el Estacionamiento, Campamento y Cocina en el Patio Trasero, Sabor Ahumado, Ahumador de",
+          "price": 8865.34,
+          "regular_price": 9859.11,
+          "review_stars": 4.3,
+          "store": "amazon",
+          "link": "amazon-B09KVHWCFP-cuisinart-parrilla-y-ahumador-de-pellets-de-madera-porttil-8-en-1-compacta-para-casas-rodantes-fiestas-en-el-estacionamiento-campamento-y-cocina-en-el-patio-trasero-sabor-ahumado-ahumador-de.html"
+        },
+        {
+          "sku": "B0CB1QX1Q2",
+          "image": "https://m.media-amazon.com/images/I/71V-FZF2cyL._AC_UY218_.jpg",
+          "name": "Ninja Woodfire ProConnect Premium XL - Parrilla para barbacoa, 7 en 1",
+          "price": 11247.41,
+          "regular_price": 13824.44,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B0CB1QX1Q2-ninja-woodfire-proconnect-premium-xl-parrilla-para-barbacoa-7-en-1.html"
+        },
+        {
+          "sku": "B082N6BV3X",
+          "image": "https://m.media-amazon.com/images/I/81KPwTLAO-L._AC_UY218_.jpg",
+          "name": "Traeger Grills TFB30KLF Tailgater 20 Parrilla Eléctrica Portátil de Pellets de Madera y Ahumador – Patas Plegables, Versatilidad 6 en 1, 300 Pulgadas Cuadradas de Espacio de Cocción para Tailgating",
+          "price": 13823.52,
+          "regular_price": 0,
+          "review_stars": 4.4,
+          "store": "amazon",
+          "link": "amazon-B082N6BV3X-traeger-grills-tfb30klf-tailgater-20-parrilla-elctrica-porttil-de-pellets-de-madera-y-ahumador-patas-plegables-versatilidad-6-en-1-300-pulgadas-cuadradas-de-espacio-de-coccin-para-tailgating.html"
+        },
+        {
+          "sku": "B0GSCXGFDJ",
+          "image": "https://m.media-amazon.com/images/I/81aP0CV4HpL._AC_UY218_.jpg",
+          "name": "Traeger Trailhead - Parrilla de pellets de madera portátil y ahumador +",
+          "price": 11662.92,
+          "regular_price": 0,
+          "review_stars": 3.3,
+          "store": "amazon",
+          "link": "amazon-B0GSCXGFDJ-traeger-trailhead-parrilla-de-pellets-de-madera-porttil-y-ahumador.html"
+        },
+        {
+          "sku": "B0D7D9PJZ7",
+          "image": "https://m.media-amazon.com/images/I/61t2ZzRgjUL._AC_UY218_.jpg",
+          "name": "Pit Boss Parrilla y ahumador de pellets de madera serie 500 FB2 con asador de llama y controlador digital LCD, espacio de cocción de 518 pies cuadrados, rango de temperatura de 180 °F a 500 °F",
+          "price": 10010.81,
+          "regular_price": 11247.41,
+          "review_stars": 4.3,
+          "store": "amazon",
+          "link": "amazon-B0D7D9PJZ7-pit-boss-parrilla-y-ahumador-de-pellets-de-madera-serie-500-fb2-con-asador-de-llama-y-controlador-digital-lcd-espacio-de-coccin-de-518-pies-cuadrados-rango-de-temperatura-de-180-f-a-500-f.html"
+        },
+        {
+          "sku": "B09BJY71S8",
+          "image": "https://m.media-amazon.com/images/I/41ZrCAW661L._AC_UY218_.jpg",
+          "name": "Paquete de Traeger Grills TFB30KLF Tailgater 20 Parrilla eléctrica portátil de pellets de madera y ahumador + Traeger Grills BAC374 accesorio de parrilla de longitud completa - Tailgater",
+          "price": 15950.98,
+          "regular_price": 16101.2,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B09BJY71S8-paquete-de-traeger-grills-tfb30klf-tailgater-20-parrilla-elctrica-porttil-de-pellets-de-madera-y-ahumador-traeger-grills-bac374-accesorio-de-parrilla-de-longitud-completa-tailgater.html"
+        },
+        {
+          "sku": "B0D7DJHWDP",
+          "image": "https://m.media-amazon.com/images/I/614L8X6vNFL._AC_UY218_.jpg",
+          "name": "Pit Boss Parrilla de pellets de madera 150 y ahumador con asador de llama",
+          "price": 5922.13,
+          "regular_price": 9443.59,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B0D7DJHWDP-pit-boss-parrilla-de-pellets-de-madera-150-y-ahumador-con-asador-de-llama.html"
+        },
+        {
+          "sku": "B08Y66479M",
+          "image": "https://m.media-amazon.com/images/I/71EATm+utGL._AC_UY218_.jpg",
+          "name": "Pit Boss Parrilla y ahumador de pellets de madera serie caoba 150 con asador de llama de 256 pulgadas cuadradas. Espacio de cocción, rango de temperatura de 180 °F a 500 °F, tolva de pellets de 5 libras, para portón trasero, campamento o viajes, marrón",
+          "price": 9838.49,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B08Y66479M-pit-boss-parrilla-y-ahumador-de-pellets-de-madera-serie-caoba-150-con-asador-de-llama-de-256-pulgadas-cuadradas-espacio-de-coccin-rango-de-temperatura-de-180-f-a-500-f-tolva-de-pellets-de-5-libras-para-portn-trasero-campamento-o-viajes-marrn.html"
+        },
+        {
+          "sku": "B08DTXMP58",
+          "image": "https://m.media-amazon.com/images/I/31QtLDC+WkL._AC_UY218_.jpg",
+          "name": "Traeger Grills Ranger - Parrilla portátil de pellets de madera y ahumador, color negro, cubierta pequeña y completa - Ranger/Scout",
+          "price": 14653.26,
+          "regular_price": 0,
+          "review_stars": 4.8,
+          "store": "amazon",
+          "link": "amazon-B08DTXMP58-traeger-grills-ranger-parrilla-porttil-de-pellets-de-madera-y-ahumador-color-negro-cubierta-pequea-y-completa-rangerscout.html"
+        },
+        {
+          "sku": "B0977HHZ93",
+          "image": "https://m.media-amazon.com/images/I/71+PEe-6-6L._AC_UY218_.jpg",
+          "name": "Traeger Grills BAC637 Envase de almacenamiento de pellets Stay Dry con tapa de cierre, contenedor de pellets de madera con capacidad de 22lb, etiquetas de sabor, diseño apilable, almacenamiento",
+          "price": 1290.54,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B0977HHZ93-traeger-grills-bac637-envase-de-almacenamiento-de-pellets-stay-dry-con-tapa-de-cierre-contenedor-de-pellets-de-madera-con-capacidad-de-22lb-etiquetas-de-sabor-diseo-apilable-almacenamiento.html"
+        },
+        {
+          "sku": "B07CT4FPG6",
+          "image": "https://m.media-amazon.com/images/I/81-pb9cJb1L._AC_UY218_.jpg",
+          "name": "Traeger Grills TFT18KLD Ranger, parrilla portátil de pellets de madera y ahumador - Ahumador eléctrico de pellets de mesa con Controlador Digital Arc, plancha de hierro fundido, para tailgating y",
+          "price": 13259.07,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B07CT4FPG6-traeger-grills-tft18kld-ranger-parrilla-porttil-de-pellets-de-madera-y-ahumador-ahumador-elctrico-de-pellets-de-mesa-con-controlador-digital-arc-plancha-de-hierro-fundido-para-tailgating-y.html"
+        }
+      ],
+      "totalProducts": 15
+    }
+  }
+}

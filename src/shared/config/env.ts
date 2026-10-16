@@ -125,6 +125,15 @@ const serverEnvSchema = z.object({
    * Suspense boundary and the header renders without it on timeout.
    */
   MAGENTO_MENU_TIMEOUT_MS: timeoutMs(1500),
+  /**
+   * Recommendation sliders under the search results (`randomProducts`). They
+   * stream after the results and are hidden on timeout. Optional: unset uses
+   * the recommendations module default (3000 ms).
+   */
+  MAGENTO_RECOMMENDATIONS_TIMEOUT_MS: z.preprocess(
+    blankAsUndefined,
+    z.coerce.number().int().positive().optional(),
+  ),
   /** Sent as the `Store` header on every Magento GraphQL request. */
   MAGENTO_STORE_CODE: z.preprocess(blankAsUndefined, z.string().trim().min(1).default('default')),
   /** Sent as the `Content-Currency` header so Magento prices come back in it. */

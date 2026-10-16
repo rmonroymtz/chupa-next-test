@@ -2,8 +2,16 @@ import { Suspense } from 'react';
 import { TrackEvent } from '@/modules/analytics/ui/track-event.client';
 import { SEARCH_STORES } from '@/modules/layout/domain/search';
 import { ProductCards } from '@/modules/page-builder/ui/product-cards';
+import {
+  RecommendationSliders,
+  type RecommendationsLoader,
+} from '@/modules/recommendations/ui/recommendation-sliders';
 import { searchPageEvents } from '@/modules/search/application/search-analytics';
-import type { SearchPageView, StoreListing } from '@/modules/search/application/search-page';
+import {
+  showsRecommendations,
+  type SearchPageView,
+  type StoreListing,
+} from '@/modules/search/application/search-page';
 import type { SearchLocation } from '@/modules/search/domain/search-links';
 import type { SearchResult, SearchSortOption } from '@/modules/search/domain/search-result';
 import { ChupaChoiceSection } from './chupachoice-section';
@@ -26,6 +34,8 @@ interface SearchPageProps {
   /** The current url (path and query), linked by "Reintentar". */
   readonly retryUrl: string;
   readonly loadSortOptions: SortOptionsLoader;
+  /** Recommendation sliders (`getRecommendations`); none without it. */
+  readonly loadRecommendations?: RecommendationsLoader | undefined;
 }
 
 /**
@@ -33,10 +43,17 @@ interface SearchPageProps {
  * either one store (filters, sort, grid, pagination) or the ChupaChoice view
  * (one legacy-styled list per store, `ChupaChoiceSection`). Bots and blank queries get
  * only the heading. The sort selector streams in its own Suspense boundary,
- * so the results never wait for the `sort_by` call. Analytics events are
- * the only client islands (`searchPageEvents`; single store only).
+ * so the results never wait for the `sort_by` call. The recommendation
+ * sliders (`showsRecommendations`) stream after the results the same way.
+ * Analytics events are the only client islands (`searchPageEvents`; single
+ * store only).
  */
-export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps) {
+export function SearchPage({
+  view,
+  retryUrl,
+  loadSortOptions,
+  loadRecommendations,
+}: SearchPageProps) {
   const { query, results } = view;
   if (results.kind === 'multi') {
     // Legacy ChupaChoice page: site column, uppercase light/bold title, one list per store.
@@ -73,6 +90,9 @@ export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps)
           retryUrl={retryUrl}
           loadSortOptions={loadSortOptions}
         />
+      ) : null}
+      {loadRecommendations && showsRecommendations(view) ? (
+        <RecommendationSliders load={loadRecommendations} />
       ) : null}
       <SearchEvents view={view} />
     </div>

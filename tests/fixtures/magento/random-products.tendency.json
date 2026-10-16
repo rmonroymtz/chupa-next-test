@@ -1,0 +1,169 @@
+{
+  "data": {
+    "randomProducts": {
+      "products": [
+        {
+          "sku": "B08JZHG6KT",
+          "image": "https://m.media-amazon.com/images/I/71-hVm1SUrL._AC_UL320_.jpg",
+          "name": "iSpring CRO1000 Sistema de Filtración de Agua por Ósmosis Inversa sin Tanque de 4 Etapas Comercial, para Casa, Restaurante, Pequeña Empresa y Uso Industrial Ligero, 1000 GPD de Alto Flujo, Filtros de",
+          "price": 32081.82,
+          "regular_price": 0,
+          "review_stars": 4.4,
+          "store": "amazon",
+          "link": "amazon-B08JZHG6KT-ispring-cro1000-sistema-de-filtracin-de-agua-por-smosis-inversa-sin-tanque-de-4-etapas-comercial-para-casa-restaurante-pequea-empresa-y-uso-industrial-ligero-1000-gpd-de-alto-flujo-filtros-de.html"
+        },
+        {
+          "sku": "B0D4K1LQ14",
+          "image": "https://m.media-amazon.com/images/I/71Y+ammoJJL._AC_UL320_.jpg",
+          "name": "WF3-01 Sistema de filtración de agua de 3 etapas para toda la casa, reduce los metales pesados (plomo, mercurio, arsénico, cadmio, cromo), cloro, sedimento, olor y compuestos orgánicos volátiles",
+          "price": 9859.11,
+          "regular_price": 0,
+          "review_stars": 4.4,
+          "store": "amazon",
+          "link": "amazon-B0D4K1LQ14-wf3-01-sistema-de-filtracin-de-agua-de-3-etapas-para-toda-la-casa-reduce-los-metales-pesados-plomo-mercurio-arsnico-cadmio-cromo-cloro-sedimento-olor-y-compuestos-orgnicos-voltiles.html"
+        },
+        {
+          "sku": "B09FFQN924",
+          "image": "https://m.media-amazon.com/images/I/71pCSig8A5L._AC_UL320_.jpg",
+          "name": "Aquatabs Tabletas de purificación de agua, paquete de 100 unidades de 397",
+          "price": 1228.32,
+          "regular_price": 0,
+          "review_stars": 4.7,
+          "store": "amazon",
+          "link": "amazon-B09FFQN924-aquatabs-tabletas-de-purificacin-de-agua-paquete-de-100-unidades-de-397.html"
+        },
+        {
+          "sku": "B0BBZ8VZH1",
+          "image": "https://m.media-amazon.com/images/I/81pIb3OjfIL._AC_UL320_.jpg",
+          "name": "Sistema de filtro de agua Express Water para toda la casa, máxima protección, 3 etapas",
+          "price": 13616.77,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B0BBZ8VZH1-sistema-de-filtro-de-agua-express-water-para-toda-la-casa-mxima-proteccin-3-etapas.html"
+        },
+        {
+          "sku": "B002PG14UM",
+          "image": "https://m.media-amazon.com/images/I/51aW432YPSL._AC_UL320_.jpg",
+          "name": "Everpure Insurice Twin-I2000 (2)",
+          "price": 15313.99,
+          "regular_price": 0,
+          "review_stars": 4.1,
+          "store": "amazon",
+          "link": "amazon-B002PG14UM-everpure-insurice-twin-i2000-2.html"
+        },
+        {
+          "sku": "B00PCRSD7I",
+          "image": "https://m.media-amazon.com/images/I/81L4LNZtbjL._AC_UL320_.jpg",
+          "name": "iSpring - Sistema de filtro de agua por ósmosis inversa sin tanque, de grado comercial con proporción de drenaje 1:1. 500 galones por día. RCS5T",
+          "price": 16101.39,
+          "regular_price": 0,
+          "review_stars": 4.4,
+          "store": "amazon",
+          "link": "amazon-B00PCRSD7I-ispring-sistema-de-filtro-de-agua-por-smosis-inversa-sin-tanque-de-grado-comercial-con-proporcin-de-drenaje-11-500-galones-por-da-rcs5t.html"
+        },
+        {
+          "sku": "B0D4K1Z5GK",
+          "image": "https://m.media-amazon.com/images/I/71dxgTreEdL._AC_UL320_.jpg",
+          "name": "WF3-03 - Sistema de filtración de agua de 3 etapas para toda la casa, filtro UV incluido, reduce los metales pesados (plomo, mercurio, arsénico, cadmio, cromo), PFAS, cloro, sedimento, olor y compuestos orgánicos volátiles (COV)",
+          "price": 16101.39,
+          "regular_price": 0,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B0D4K1Z5GK-wf3-03-sistema-de-filtracin-de-agua-de-3-etapas-para-toda-la-casa-filtro-uv-incluido-reduce-los-metales-pesados-plomo-mercurio-arsnico-cadmio-cromo-pfas-cloro-sedimento-olor-y-compuestos-orgnicos-voltiles-cov.html"
+        },
+        {
+          "sku": "B08NDWW4DH",
+          "image": "https://m.media-amazon.com/images/I/71wbb0U9TuL._AC_UL320_.jpg",
+          "name": "ICEPURE Sistema de filtro de agua para debajo del fregadero, Certificado NSF/ANSI 42 de 3 años o 22000 galones de vida ultra alta, elimina metales pesados, cloro, sistema de agua potable con conexión",
+          "price": 1618.24,
+          "regular_price": 1985.89,
+          "review_stars": 4.5,
+          "store": "amazon",
+          "link": "amazon-B08NDWW4DH-icepure-sistema-de-filtro-de-agua-para-debajo-del-fregadero-certificado-nsfansi-42-de-3-aos-o-22000-galones-de-vida-ultra-alta-elimina-metales-pesados-cloro-sistema-de-agua-potable-con-conexin.html"
+        },
+        {
+          "sku": "B008GNRMYK",
+          "image": "https://m.media-amazon.com/images/I/81d9uCB3zzL._AC_UL320_.jpg",
+          "name": "iSpring Sistema de filtro de agua para toda la casa de grado comercial",
+          "price": 11663.1,
+          "regular_price": 14177.54,
+          "review_stars": 4.7,
+          "store": "amazon",
+          "link": "amazon-B008GNRMYK-ispring-sistema-de-filtro-de-agua-para-toda-la-casa-de-grado-comercial.html"
+        },
+        {
+          "sku": "B09B2TVKGB",
+          "image": "https://m.media-amazon.com/images/I/712Kog5vzbL._AC_UL320_.jpg",
+          "name": "Aquatabs Tabletas de purificación de agua de 49 mg (paquete de 100). Sistema de filtración de agua para senderismo, mochileros, camping, emergencias, supervivencia y uso doméstico. Tratamiento de agua",
+          "price": 859.01,
+          "regular_price": 0,
+          "review_stars": 4.8,
+          "store": "amazon",
+          "link": "amazon-B09B2TVKGB-aquatabs-tabletas-de-purificacin-de-agua-de-49-mg-paquete-de-100-sistema-de-filtracin-de-agua-para-senderismo-mochileros-camping-emergencias-supervivencia-y-uso-domstico-tratamiento-de-agua.html"
+        },
+        {
+          "sku": "B09C59M3YY",
+          "image": "https://m.media-amazon.com/images/I/71bFhIQId1L._AC_UL320_.jpg",
+          "name": "Purewell - Sistema de filtro de agua por gravedad de ultrafiltración de 3 etapas de 0.01μm, certificación NSF/ANSI 42 y 372, sistema de sobremesa de acero inoxidable 304 con 2 filtros y soporte",
+          "price": 3243.66,
+          "regular_price": 4226.75,
+          "review_stars": 4.4,
+          "store": "amazon",
+          "link": "amazon-B09C59M3YY-purewell-sistema-de-filtro-de-agua-por-gravedad-de-ultrafiltracin-de-3-etapas-de-001m-certificacin-nsfansi-42-y-372-sistema-de-sobremesa-de-acero-inoxidable-304-con-2-filtros-y-soporte.html"
+        },
+        {
+          "sku": "B09FRBSKC7",
+          "image": "https://m.media-amazon.com/images/I/71A7lmFiGzL._AC_UL320_.jpg",
+          "name": "Aquatabs Tabletas de purificación de agua de 49 mg (paquete de 50). Sistema de filtración de agua para senderismo, mochileros, campamentos, emergencias, supervivencia y uso doméstico. Tratamiento y",
+          "price": 713.57,
+          "regular_price": 0,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B09FRBSKC7-aquatabs-tabletas-de-purificacin-de-agua-de-49-mg-paquete-de-50-sistema-de-filtracin-de-agua-para-senderismo-mochileros-campamentos-emergencias-supervivencia-y-uso-domstico-tratamiento-y.html"
+        },
+        {
+          "sku": "B007W5D13O",
+          "image": "https://m.media-amazon.com/images/I/71aoGSXlCfL._AC_UL320_.jpg",
+          "name": "Aquatabs - Tabletas de purificación de agua de 49 mg (paquete de 30). Sistema de filtración de agua para senderismo, mochileros, camping, emergencias, supervivencia y uso doméstico. Tratamiento de",
+          "price": 509.04,
+          "regular_price": 0,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B007W5D13O-aquatabs-tabletas-de-purificacin-de-agua-de-49-mg-paquete-de-30-sistema-de-filtracin-de-agua-para-senderismo-mochileros-camping-emergencias-supervivencia-y-uso-domstico-tratamiento-de.html"
+        },
+        {
+          "sku": "B000ESB8WW",
+          "image": "https://m.media-amazon.com/images/I/61pBi4AxMhL._AC_UL320_.jpg",
+          "name": "Coghlan's Tabletas germicidas de agua potable",
+          "price": 392.87,
+          "regular_price": 0,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B000ESB8WW-coghlans-tabletas-germicidas-de-agua-potable.html"
+        },
+        {
+          "sku": "B005LJ8EXU",
+          "image": "https://m.media-amazon.com/images/I/81B4Tbfd1mL._AC_UL320_.jpg",
+          "name": "iSpring RCC7AK-BN Certificado NSF, 75 GPD, sistema alcalino de ósmosis",
+          "price": 5932.44,
+          "regular_price": 6770.65,
+          "review_stars": 4.6,
+          "store": "amazon",
+          "link": "amazon-B005LJ8EXU-ispring-rcc7ak-bn-certificado-nsf-75-gpd-sistema-alcalino-de-smosis.html"
+        },
+        {
+          "sku": "B0D1D8C3JK",
+          "image": "https://m.media-amazon.com/images/I/71aiZQqxWQL._AC_UL320_.jpg",
+          "name": "iSpring CRO2000 Sistema de filtración de agua potable de ósmosis inversa comercial de 4 etapas sin tanque con bombas duales, medidores de presión y soporte de acero inoxidable independiente, 2000 GPD",
+          "price": 94326.4,
+          "regular_price": 101126.68,
+          "review_stars": 4.4,
+          "store": "amazon",
+          "link": "amazon-B0D1D8C3JK-ispring-cro2000-sistema-de-filtracin-de-agua-potable-de-smosis-inversa-comercial-de-4-etapas-sin-tanque-con-bombas-duales-medidores-de-presin-y-soporte-de-acero-inoxidable-independiente-2000-gpd.html"
+        }
+      ],
+      "totalProducts": 16
+    }
+  }
+}
