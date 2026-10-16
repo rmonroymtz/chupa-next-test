@@ -95,7 +95,7 @@ Also decided during the tasks: sort options are requested after the search, only
 - [ ] **Phase 2 edge change live first** ([phase 2 routing](routing/phase-2.md)); otherwise follow [Without the phase 2 rules](routing/phase-3.md#without-the-phase-2-rules).
 - [ ] **Edge change** ([phase 3 routing](routing/phase-3.md)): delete rules 5 and 6, remove prerender for `/search.html` and `*-search.html`, run its checklist.
 - [ ] **`GTM_ID`** set in the task definition with the production container (GTM is not loaded without it); confirm the `search`, `view_item_list` and `add_to_cart` tags in GTM.
-- [ ] **`.env.example` lines** for `GTM_ID`, `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS` and the phase 3 e2e variables (`E2E_PHASE3_SMOKE`, `E2E_SEARCH_QUERY`, `E2E_SKU_SEARCH_PATH`), as in [`docs/environment.md`](environment.md).
+- [x] **`.env.example` lines** for `GTM_ID`, `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS` and the phase 3 e2e variables (`E2E_PHASE3_SMOKE`, `E2E_SEARCH_QUERY`, `E2E_SKU_SEARCH_PATH`), as in [`docs/environment.md`](environment.md).
 - [ ] Run `e2e/phase-3-smoke.spec.ts` against staging behind the edge (`E2E_PHASE3_SMOKE=1`).
 
 ## Known limitations and follow-ups
