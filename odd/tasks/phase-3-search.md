@@ -1,8 +1,8 @@
 # Phase 3 storefront — search
 
 Status (2026-10-16): T1–T5 merged to `main` (PRs #15–#20; T5 native review approved, one non-blocking warning =
-decision 11). T6 split into T6a–T6c (decision 12); T6a committed on `feat/phase-3-06-search-extras` (no PR yet);
-T6b next; T7 not started.
+decision 11). T6 split into T6a–T6c (decision 12); T6a merged (PR #21, `afe7c6f`); T6b committed on
+`feat/phase-3-06b-search-events` (no PR yet); T6c next; T7 not started.
 
 ## Resume here (2026-10-16)
 
@@ -165,10 +165,13 @@ authored lines in total: one stacked PR per task.
 - [x] T5 (sku jump 44ad0f1; general placeholder fix + review fixes 90d7e4f; url-key hardening 7e801e0, PR #20 merged; test 927, integration 81) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
   product); resolve the product from CHAPI, render it on that URL with canonical = product canonical URL and `noindex`;
   bots → no CHAPI (phase 1 missing-product rule). Fixes the "Carmina Earrings" bug. Check: unit + integration.
-- [x] T6a (route: delegated, writer trigger 2+ non-trivial files; `src/modules/analytics/**`, env `GTM_ID`, root layout, cart migrated; work-unit commit `feat(analytics): …`; test 951, integration 83) Analytics module + GTM loader (decision 12):
+- [x] T6a (route: delegated, writer trigger 2+ non-trivial files; `src/modules/analytics/**`, env `GTM_ID`, root layout, cart migrated; work-unit commit `feat(analytics): …`; test 951, integration 83; merged in PR #21 (`afe7c6f`); native review approved with one suggestion, R3-001: the dispatcher isolates only native Promise rejections) Analytics module + GTM loader (decision 12):
   `src/modules/analytics/**`, `<GtmScript>` in the root layout behind `GTM_ID`, `<AnalyticsProvider>`, migrate the
   cart add-to-cart event to it (same dataLayer payload). Check: unit + integration + build.
-- [ ] T6b (route: delegated) Search events: `search` and `view_item_list` via the analytics module from the search
+- [x] T6b (route: delegated, writer trigger 2+ non-trivial files; `search/application/search-analytics.ts`,
+  `search/ui/search-requested-event.client.tsx`, `search/ui/search-page.tsx`, `analytics/ui/track-event.client.tsx`
+  (`shouldTrack`); work-unit commit `feat(search): send the search and view_item_list analytics events`; test 983,
+  integration 88) Search events: `search` and `view_item_list` via the analytics module from the search
   page (single store only, not bots/empty query), real price and brand. Check: unit + integration.
 - [ ] T6c (route: delegated) Recommendation sliders (Crossell/Upsell/Recommender) from Magento `randomProducts` under
   single-store results; recorded staging fixture. Check: unit + integration.
@@ -315,6 +318,30 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   typecheck, lint (0 errors, 1 pre-existing warning), unit (951), integration (83), build pass — with the stale
   dev-server types `.next/dev/types` (2026-10-13, reference removed routes `[...path]`, `page`) moved aside during the
   checks and restored afterwards; with them in place `pnpm typecheck` and `pnpm build` fail on those files only.
+
+- 2026-10-16: T6b implemented (delegated writer, branch `feat/phase-3-06b-search-events`). Application
+  `searchPageEvents(view)` (`search/application/search-analytics.ts`, depends on the analytics domain events only):
+  single-store pages only (nothing for ChupaChoice, bots, blank query); `requested` = `SearchRequested` {query,
+  requested store} keyed `${store}:${query}`, also for a failed or empty search; `resultsViewed` =
+  `SearchResultsViewed` only for a non-empty answer, keyed by `[store, query, page, storeParams]`, items in the
+  rendered order (sku, name, `getDisplayPrice` amount = the card price or null, brand or null, 1-based index), store =
+  `result.vendor` when `servedByFallback` (the store the fallback notice names), else the requested store.
+  `<SearchPage>` stays a server component and renders two islands with serializable props: `<SearchRequestedEvent>`
+  (search ui client, wraps `<TrackEvent shouldTrack>`) and `<TrackEvent>`. **Navigation finding:** every search
+  navigation is a full document load (plain `<a>` pagination/sort/filter links, GET search form; no `next/link`), so
+  the islands mount on every page and React keys cannot dedupe (keys only matter for an in-place re-render; kept for
+  that case and verified by a TrackEvent unit test). The search event is therefore skipped in the browser when
+  `isSameSearchNavigation(document.referrer, location)`: same-origin `/search.html` referrer with the same trimmed
+  query and the same store, or any CHAPI link (`storeParams`, covers fallback links that carry the answering store).
+  Store tabs, "Ver MÁS productos", a new query, another site or no referrer → reported. Limits: a reload of a
+  refinement page or a repeated search-bar submit of the same pair is not reported (legacy SPA also did not on
+  in-page changes); a stripped referrer over-reports. `TrackEvent` gains optional `shouldTrack` (asked once on mount,
+  StrictMode-safe); GTM payloads unchanged. RED: 2 new test files failed at import, 5 tests failed (TrackEvent
+  `shouldTrack`, view islands); GREEN: 187 focused tests. Integration `search.test.ts` (+5): parses the inlined RSC
+  flight data for the TrackEvent props (results: search + list with the recorded first item's ASIN, price 1082.88,
+  brand null; failure/empty: search only; ChupaChoice, blank query, bot: none); green on the first run (not run
+  against the base build). Checks: typecheck, lint (0 errors, 1 pre-existing warning), unit (983), integration (88),
+  build pass, with `.next/dev/types` in place (it no longer breaks typecheck or build).
 
 ## Next step
 

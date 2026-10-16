@@ -91,4 +91,45 @@ describe('TrackEvent', () => {
 
     expect(dataLayer()).toEqual([{ event: 'search', search_term: 'taladro', store: 'amazon' }]);
   });
+
+  it('asks shouldTrack once on mount and dispatches nothing when it says no', () => {
+    const dispatch = vi.fn();
+    const shouldTrack = vi.fn(() => false);
+    render(
+      <StrictMode>
+        <AnalyticsProvider dispatcher={{ dispatch }}>
+          <TrackEvent event={SEARCH} shouldTrack={shouldTrack} />
+        </AnalyticsProvider>
+      </StrictMode>,
+    );
+
+    expect(shouldTrack).toHaveBeenCalledTimes(1);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('dispatches when shouldTrack says yes', () => {
+    const dispatch = vi.fn();
+    render(
+      <AnalyticsProvider dispatcher={{ dispatch }}>
+        <TrackEvent event={SEARCH} shouldTrack={() => true} />
+      </AnalyticsProvider>,
+    );
+
+    expect(dispatch).toHaveBeenCalledWith(SEARCH);
+  });
+
+  it('a new key mounts it again and reports again; the same key does not', () => {
+    const dispatch = vi.fn();
+    const other: AnalyticsEvent = { ...SEARCH, query: 'sierra' };
+    const tree = (event: AnalyticsEvent) => (
+      <AnalyticsProvider dispatcher={{ dispatch }}>
+        <TrackEvent key={`${event.type}:${'query' in event ? event.query : ''}`} event={event} />
+      </AnalyticsProvider>
+    );
+    const { rerender } = render(tree(SEARCH));
+    rerender(tree({ ...SEARCH }));
+    rerender(tree(other));
+
+    expect(dispatch.mock.calls).toEqual([[SEARCH], [other]]);
+  });
 });
