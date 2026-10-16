@@ -1,15 +1,16 @@
 import { Suspense } from 'react';
+import { TrackEvent } from '@/modules/analytics/ui/track-event.client';
 import { SEARCH_STORES } from '@/modules/layout/domain/search';
 import { ProductCards } from '@/modules/page-builder/ui/product-cards';
-import type { SearchPageDecision, StoreListing } from '@/modules/search/application/search-page';
+import { searchPageEvents } from '@/modules/search/application/search-analytics';
+import type { SearchPageView, StoreListing } from '@/modules/search/application/search-page';
 import type { SearchLocation } from '@/modules/search/domain/search-links';
 import type { SearchResult, SearchSortOption } from '@/modules/search/domain/search-result';
 import { ChupaChoiceSection } from './chupachoice-section';
 import { SearchFiltersDisclosure, SearchFiltersSidebar } from './search-filters';
 import { SearchPagination } from './search-pagination';
+import { SearchRequestedEvent } from './search-requested-event.client';
 import { SearchSort, SearchSortPlaceholder } from './search-sort';
-
-type SearchPageView = Extract<SearchPageDecision, { kind: 'page' }>;
 
 /** A listing whose search answered. */
 export type AnsweredListing = StoreListing & { readonly result: SearchResult };
@@ -32,7 +33,8 @@ interface SearchPageProps {
  * either one store (filters, sort, grid, pagination) or the ChupaChoice view
  * (one legacy-styled list per store, `ChupaChoiceSection`). Bots and blank queries get
  * only the heading. The sort selector streams in its own Suspense boundary,
- * so the results never wait for the `sort_by` call.
+ * so the results never wait for the `sort_by` call. Analytics events are
+ * the only client islands (`searchPageEvents`; single store only).
  */
 export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps) {
   const { query, results } = view;
@@ -72,7 +74,23 @@ export function SearchPage({ view, retryUrl, loadSortOptions }: SearchPageProps)
           loadSortOptions={loadSortOptions}
         />
       ) : null}
+      <SearchEvents view={view} />
     </div>
+  );
+}
+
+/**
+ * The search (keyed by store and query) and the result list (keyed by the
+ * response). Keys only matter if a navigation re-renders the page in place;
+ * search links are full page loads, so the search event also checks the referrer.
+ */
+function SearchEvents({ view }: { readonly view: SearchPageView }) {
+  const { requested, resultsViewed } = searchPageEvents(view);
+  return (
+    <>
+      {requested ? <SearchRequestedEvent key={requested.key} event={requested.event} /> : null}
+      {resultsViewed ? <TrackEvent key={resultsViewed.key} event={resultsViewed.event} /> : null}
+    </>
   );
 }
 

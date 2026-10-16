@@ -95,6 +95,38 @@ const searchLinks = (html: string) =>
       ),
     }),
   );
+/** The RSC payload (flight data) inlined in the html, unescaped. */
+const flightData = (html: string) =>
+  [...html.matchAll(/self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g)]
+    .map(([, chunk]) => JSON.parse(chunk ?? '""') as string)
+    .join('');
+/** The search analytics events the page hands to its `TrackEvent` islands (their props). */
+const searchEvents = (html: string) => {
+  const flight = flightData(html);
+  return [...flight.matchAll(/\{"type":"Search(?:Requested|ResultsViewed)"/g)].map(
+    ({ index }) =>
+      JSON.parse(balancedObject(flight, index)) as {
+        type: string;
+        store: string;
+        items?: unknown[];
+      },
+  );
+};
+/** The JSON object starting at `start` (string-aware brace matching). */
+function balancedObject(text: string, start: number): string {
+  let depth = 0;
+  let inString = false;
+  for (let at = start; at < text.length; at += 1) {
+    const char = text[at];
+    if (inString) {
+      if (char === '\\') at += 1;
+      else if (char === '"') inString = false;
+    } else if (char === '"') inString = true;
+    else if (char === '{') depth += 1;
+    else if (char === '}' && --depth === 0) return text.slice(start, at + 1);
+  }
+  throw new Error('unterminated object in the flight data');
+}
 /** Magento calls other than the store config and the layout's header menu. */
 const otherMagentoCalls = () =>
   backends
@@ -303,5 +335,49 @@ describe('search page', () => {
       { query: 'taladro', store: 'ebay', page: '1' },
     ]);
     expect(sortCalls()).toHaveLength(0);
+  });
+});
+
+describe('search page: analytics events', () => {
+  it('single store with results: the search and the result list with the real price and brand', async () => {
+    const page = await get('/search.html?query=taladro&store=amazon');
+
+    const [requested, viewed, ...rest] = searchEvents(page.html);
+    expect(rest).toEqual([]);
+    expect(requested).toEqual({ type: 'SearchRequested', query: 'taladro', store: 'amazon' });
+    const first = amazonTaladro.data.products[0]!;
+    expect(viewed).toMatchObject({
+      type: 'SearchResultsViewed',
+      query: 'taladro',
+      store: 'amazon',
+    });
+    expect(viewed?.items).toHaveLength(cardLinks(page.html).length);
+    expect(viewed?.items?.[0]).toEqual({
+      sku: first.asin,
+      name: expect.any(String),
+      price: first.price.current_price,
+      brand: first.brand || null,
+      index: 1,
+    });
+  });
+
+  it('failed search or no results: the search only', async () => {
+    for (const query of ['roto', 'nada']) {
+      const page = await get(`/search.html?query=${query}&store=amazon`);
+
+      expect(searchEvents(page.html)).toEqual([
+        { type: 'SearchRequested', query, store: 'amazon' },
+      ]);
+    }
+  });
+
+  it.each([
+    ['chupachoice', '/search.html?query=taladro', BROWSER_UA],
+    ['a blank query', '/search.html?query=%20&store=amazon', BROWSER_UA],
+    ['a bot', '/search.html?query=taladro&store=amazon', BOT_UA],
+  ])('none for %s', async (_, path, userAgent) => {
+    const page = await get(path, userAgent);
+
+    expect(searchEvents(page.html)).toEqual([]);
   });
 });

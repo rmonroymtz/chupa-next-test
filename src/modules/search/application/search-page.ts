@@ -50,6 +50,9 @@ export type SearchPageDecision =
       readonly results: SearchResults;
     };
 
+/** The page state the search page renders. */
+export type SearchPageView = Extract<SearchPageDecision, { kind: 'page' }>;
+
 export interface SearchPageRequest {
   /** Request query string, without the leading `?`. */
   readonly search: string;
