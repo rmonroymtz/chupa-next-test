@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCanonicalUrl,
   decodeSkuSegment,
+  matchSkuSearchUrl,
+  matchesProductUrlSku,
   normalizeSku,
   parseProductUrl,
   toRouteUrl,
@@ -292,6 +294,117 @@ describe('parseProductUrl', () => {
       expect(parseProductUrl('', { vendors })).toBeNull();
       expect(parseProductUrl('/amazon-B0%E0%A4%A-x.html', { vendors })).toBeNull();
     });
+  });
+});
+
+describe('matchSkuSearchUrl', () => {
+  it('matches the header sku jump /{vendor}-{sku}-search.html', () => {
+    expect(matchSkuSearchUrl('/amazon-B00IJ0ALYS-search.html', { vendors })).toEqual({
+      vendor: 'amazon',
+      skuSegment: 'B00IJ0ALYS',
+    });
+    expect(matchSkuSearchUrl('/ebay-405512345678-search.html', { vendors })).toEqual({
+      vendor: 'ebay',
+      skuSegment: '405512345678',
+    });
+  });
+
+  it('matches the vendor case-insensitively and keeps the sku segment as typed', () => {
+    expect(matchSkuSearchUrl('/AMAZON-b00ij0alys-search.html', { vendors })).toEqual({
+      vendor: 'amazon',
+      skuSegment: 'b00ij0alys',
+    });
+  });
+
+  it('decodes the path once (an encoded variant pipe becomes literal) and ignores the query', () => {
+    expect(matchSkuSearchUrl('/ebay-1%7C2-search.html?var=3', { vendors })).toEqual({
+      vendor: 'ebay',
+      skuSegment: '1|2',
+    });
+  });
+
+  it('matches an empty sku segment (the page decides it is unusable)', () => {
+    expect(matchSkuSearchUrl('/amazon--search.html', { vendors })).toEqual({
+      vendor: 'amazon',
+      skuSegment: '',
+    });
+  });
+
+  it.each([
+    '/amazon-B00X-other.html',
+    '/amazon-B00X-best-search.html',
+    '/amazon-B00X-SEARCH.html',
+    '/amazon-B00X-search.htm',
+    '/amazon-B00X-search',
+    '/amazon-search.html',
+    '/walmart-B00X-search.html',
+    '/search.html',
+    '/es/amazon-B00X-search.html',
+    '/amazon-B0%E0%A4%A-search.html',
+    '',
+  ])('does not match %s', (pathname) => {
+    expect(matchSkuSearchUrl(pathname, { vendors })).toBeNull();
+  });
+
+  it('honors a custom suffix', () => {
+    expect(matchSkuSearchUrl('/amazon-B00X-search', { vendors, suffix: '' })).toEqual({
+      vendor: 'amazon',
+      skuSegment: 'B00X',
+    });
+  });
+});
+
+describe('matchesProductUrlSku', () => {
+  it('is null for urls that are not vendor product urls', () => {
+    expect(matchesProductUrlSku('/house-brand-mug.html', 'X', { vendors })).toBeNull();
+    expect(matchesProductUrlSku('/walmart-1-x.html', '1', { vendors })).toBeNull();
+    expect(matchesProductUrlSku('/es/amazon-B0ABC-x.html', 'B0ABC', { vendors })).toBeNull();
+    expect(matchesProductUrlSku('/amazon-B0ABC-x', 'B0ABC', { vendors })).toBeNull();
+  });
+
+  it('matches the sku segment case-insensitively', () => {
+    expect(matchesProductUrlSku('/amazon-B0ABC12345-x.html', 'B0ABC12345', { vendors })).toBe(true);
+    expect(matchesProductUrlSku('/amazon-b0abc12345-x.html', 'B0ABC12345', { vendors })).toBe(true);
+    expect(matchesProductUrlSku('/AMAZON-B0ABC12345.html', 'b0abc12345', { vendors })).toBe(true);
+  });
+
+  it('does not match another sku (a Magento placeholder product)', () => {
+    expect(matchesProductUrlSku('/amazon-B0ZZZZZZZZ-foo.html', 'VA11-GO-NA', { vendors })).toBe(
+      false,
+    );
+    expect(
+      matchesProductUrlSku('/ebay-1-foo.html', 'urllocator-external-placeholder', { vendors }),
+    ).toBe(false);
+    expect(matchesProductUrlSku('/amazon--foo.html', 'VA11-GO-NA', { vendors })).toBe(false);
+    expect(matchesProductUrlSku('/amazon-B0ABC-x.html', '', { vendors })).toBe(false);
+  });
+
+  it('matches skus containing "-" (any prefix of the segments after the vendor)', () => {
+    expect(matchesProductUrlSku('/amazon-ABC-123-drill.html', 'ABC-123', { vendors })).toBe(true);
+    expect(matchesProductUrlSku('/amazon-ABC-123-drill.html', 'ABC-12', { vendors })).toBe(false);
+  });
+
+  it('matches literal and encoded variant pipes and the eBay ?var= form', () => {
+    expect(matchesProductUrlSku('/ebay-1%7C2-x.html', '1|2', { vendors })).toBe(true);
+    expect(
+      matchesProductUrlSku('/ebay-1-x.html', '1|2', {
+        vendors,
+        searchParams: new URLSearchParams('var=2'),
+      }),
+    ).toBe(true);
+    expect(matchesProductUrlSku('/ebay-1-x.html', '1', { vendors })).toBe(true);
+    expect(matchesProductUrlSku('/ebay-1-x.html', '1|2', { vendors })).toBe(false);
+  });
+
+  it('decodes acme base64url segments, including encodings containing "-"', () => {
+    expect(matchesProductUrlSku(`/acme-${encodeAcme('ABC')}-x.html`, 'ABC', { vendors })).toBe(
+      true,
+    );
+    expect(encodeAcme('~~~')).toBe('fn5-');
+    expect(matchesProductUrlSku('/acme-fn5--x.html', '~~~', { vendors })).toBe(true);
+    expect(matchesProductUrlSku(`/acme-${encodeAcme('ABC')}-x.html`, 'XYZ', { vendors })).toBe(
+      false,
+    );
   });
 });
 

@@ -4,12 +4,16 @@ import { createBotDetector, type BotDetector } from '@/modules/bot-detection/bot
 import type { ProductCopyTrigger } from '@/modules/product/application/ports';
 import {
   createProductPageService,
+  resolveSkuSearchCanonicalUrl,
+  type MissingProductDecision,
   type ProductPageDecision,
   type ProductPageService,
+  type VendorProductRef,
 } from '@/modules/product/application/product-page-service';
 import {
   createScrapedProductLoader,
   type ScrapedProductLoader,
+  type ScrapedProductOutcome,
 } from '@/modules/product/application/scraped-product-loader';
 import { getChapiGateway } from '@/modules/product/infrastructure/chapi-gateway';
 import { getMagentoCopyTrigger } from '@/modules/product/infrastructure/magento-copy-trigger';
@@ -64,6 +68,35 @@ export function getScrapedProductLoader(): ScrapedProductLoader {
     ...defaultObservability('pdp-scraped'),
   });
   return loader;
+}
+
+/**
+ * Scraper lookup for the current request. React `cache()` shares one CHAPI
+ * call between `generateMetadata` (sku search canonical) and the streamed
+ * product section; nothing is shared across requests.
+ */
+const loadScrapedProductCached = cache(
+  (vendor: string | null, sku: string | null): Promise<ScrapedProductOutcome> =>
+    getScrapedProductLoader().load(vendor !== null && sku !== null ? { vendor, sku } : null),
+);
+
+export function loadScrapedProduct(
+  lookup: VendorProductRef | null,
+): Promise<ScrapedProductOutcome> {
+  return loadScrapedProductCached(lookup?.vendor ?? null, lookup?.sku ?? null);
+}
+
+/**
+ * Canonical url for a `missing_product` page. A sku search page waits for the
+ * (cached) scraper lookup to point at the product url; every other missing
+ * product keeps its own url without waiting.
+ */
+export async function getMissingProductCanonicalUrl(
+  decision: MissingProductDecision,
+): Promise<string> {
+  if (decision.origin !== 'sku_search') return decision.canonicalUrl;
+  const outcome = await loadScrapedProduct(decision.lookup);
+  return resolveSkuSearchCanonicalUrl(getServerEnv().PUBLIC_BASE_URL, decision, outcome);
 }
 
 export function getCopyTrigger(): ProductCopyTrigger {

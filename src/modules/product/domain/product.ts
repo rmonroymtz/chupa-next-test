@@ -90,6 +90,8 @@ export interface MagentoProduct {
   readonly sku: string;
   readonly name: string;
   readonly urlKey: string;
+  /** Magento `url_suffix`; absent when Magento sent none. */
+  readonly urlSuffix?: string;
   /** Url path relative to the site root, with a literal `|`. */
   readonly relativeUrl: string;
   readonly descriptionHtml: string;

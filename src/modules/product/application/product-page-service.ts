@@ -1,13 +1,19 @@
 import type { MagentoProductRepository } from '@/modules/product/application/ports';
+import type { ScrapedProductOutcome } from '@/modules/product/application/scraped-product-loader';
 import { getProductRobots, type ProductRobots } from '@/modules/product/domain/indexability';
 import type { MagentoProduct } from '@/modules/product/domain/product';
 import {
   buildCanonicalUrl,
+  decodeSkuSegment,
   DEFAULT_PRODUCT_URL_SUFFIX,
+  matchesProductUrlSku,
+  matchSkuSearchUrl,
   parseProductUrl,
   toRouteUrl,
+  type SkuSearchUrl,
 } from '@/modules/product/domain/product-url';
 import { HOME_PATHNAME } from '@/modules/routing/domain/request-path';
+import { buildSearchItemUrlKey } from '@/modules/search/domain/search-item-url';
 import type { MetricsEmitter } from '@/shared/observability/metrics';
 
 /** PDP case reported in the `PdpOutcome` metric. */
@@ -52,7 +58,17 @@ export type ProductPageDecision =
       readonly vendor: string;
       /** Legacy search page for alternatives. */
       readonly searchUrl: string;
+      /**
+       * `product_url`: Magento has no product for this product url.
+       * `sku_search`: header sku jump (`{vendor}-{sku}-search.html`), never
+       * looked up in Magento; once the scraper finds the product, the
+       * canonical becomes the product url (`resolveSkuSearchCanonicalUrl`).
+       */
+      readonly origin: 'product_url' | 'sku_search';
     };
+
+/** The `missing_product` decision. */
+export type MissingProductDecision = Extract<ProductPageDecision, { kind: 'missing_product' }>;
 
 export interface ProductPageRequest {
   /** Request pathname; may be percent-encoded. */
@@ -103,6 +119,15 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     const routeUrl = pathname === HOME_PATHNAME ? HOME_PATHNAME : toRouteUrl(pathname);
     if (routeUrl === null) return { kind: 'not_found', case: null };
 
+    // The url helpers below take the raw pathname and decode it once
+    // themselves; `routeUrl` is already decoded and must not be parsed again.
+    // The sku jump never asks Magento, which answers a placeholder product for
+    // it (decision 7 of phase 3).
+    const skuSearch = matchSkuSearchUrl(pathname, { vendors: deps.vendors, suffix });
+    if (skuSearch) {
+      return skuSearchProduct(pathname, routeUrl, skuSearch, searchParams, isBot);
+    }
+
     const lookup = await deps.products.findByRouteUrl(routeUrl);
     switch (lookup.kind) {
       case 'redirect':
@@ -116,9 +141,12 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
       case 'category':
         return { kind: 'category', uid: lookup.uid, relativeUrl: lookup.relativeUrl };
       case 'product':
+        if (isPlaceholder(pathname, routeUrl, lookup.product, searchParams)) {
+          return missing(pathname, routeUrl, searchParams, isBot);
+        }
         return existing(lookup.product, isBot);
       case 'not_found':
-        return missing(routeUrl, searchParams, isBot);
+        return missing(pathname, routeUrl, searchParams, isBot);
     }
   }
 
@@ -135,7 +163,44 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     };
   }
 
+  /**
+   * Magento `route()` answers a placeholder PRODUCT for any vendor-shaped url
+   * it does not have (production: `url_key` null, `relative_url` echoing the
+   * request; staging: `url_key: carmina-earrings`), with a sku that is not the
+   * url's. Conservative rule: the product is ignored (the url is treated as
+   * missing from Magento) only when its sku is not in the url AND its own
+   * `url_key + url_suffix` is not the requested url (case-insensitive, path
+   * decoded once). Urls that are not vendor product urls trust Magento.
+   */
+  function isPlaceholder(
+    pathname: string,
+    routeUrl: string,
+    product: MagentoProduct,
+    searchParams: URLSearchParams,
+  ): boolean {
+    const skuMatches = matchesProductUrlSku(pathname, product.sku, {
+      vendors: deps.vendors,
+      suffix,
+      searchParams,
+    });
+    if (skuMatches !== false || isOwnUrl(product, routeUrl)) return false;
+    deps.metrics.emitMetric({ name: 'MagentoPlaceholderIgnored', value: 1 });
+    deps.logger.info(
+      { path: pathname, magentoSku: product.sku, magentoUrl: product.relativeUrl },
+      'magento placeholder ignored',
+    );
+    return true;
+  }
+
+  /** Whether the product's own `url_key + url_suffix` is the requested url. */
+  function isOwnUrl(product: MagentoProduct, routeUrl: string): boolean {
+    if (product.urlKey === '') return false;
+    const ownUrl = `${product.urlKey}${product.urlSuffix ?? suffix}`;
+    return ownUrl.toLowerCase() === routeUrl.toLowerCase();
+  }
+
   function missing(
+    pathname: string,
     routeUrl: string,
     searchParams: URLSearchParams,
     isBot: boolean,
@@ -144,7 +209,7 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     if (urlKey === null) return { kind: 'not_found', case: null };
     if (isBot) return { kind: 'not_found', case: 'missing_bot' };
 
-    const parsed = parseProductUrl(routeUrl, { vendors: deps.vendors, suffix, searchParams });
+    const parsed = parseProductUrl(pathname, { vendors: deps.vendors, suffix, searchParams });
     return {
       kind: 'missing_product',
       case: 'missing_user',
@@ -153,6 +218,31 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
       lookup: parsed ? { sku: parsed.sku, vendor: parsed.vendor } : null,
       vendor: urlKey.vendor,
       searchUrl: buildSearchUrl(urlKey.words, urlKey.vendor),
+      origin: 'product_url',
+    };
+  }
+
+  /** Same outcomes as a product missing from Magento, without the Magento lookup. */
+  function skuSearchProduct(
+    pathname: string,
+    routeUrl: string,
+    { vendor, skuSegment }: SkuSearchUrl,
+    searchParams: URLSearchParams,
+    isBot: boolean,
+  ): ProductPageDecision {
+    if (isBot) return { kind: 'not_found', case: 'missing_bot' };
+
+    const parsed = parseProductUrl(pathname, { vendors: deps.vendors, suffix, searchParams });
+    const typedSku = decodeSkuSegment(skuSegment, vendor) ?? '';
+    return {
+      kind: 'missing_product',
+      case: 'missing_user',
+      robots: getProductRobots({ existsInMagento: false }),
+      canonicalUrl: buildCanonicalUrl(deps.publicBaseUrl, routeUrl),
+      lookup: parsed ? { sku: parsed.sku, vendor: parsed.vendor } : null,
+      vendor,
+      searchUrl: buildSkuSearchUrl(typedSku, vendor),
+      origin: 'sku_search',
     };
   }
 
@@ -210,6 +300,32 @@ function page(decision: ProductPageDecision): string {
 function toLocation(relativeUrl: string): string {
   if (/^https?:\/\//i.test(relativeUrl)) return relativeUrl;
   return `/${relativeUrl.replace(/^\/+/, '')}`;
+}
+
+/** Search for the typed sku; without a usable sku, the store's search page. */
+function buildSkuSearchUrl(sku: string, vendor: string): string {
+  const query = new URLSearchParams(sku === '' ? { store: vendor } : { query: sku, store: vendor });
+  return `${SEARCH_PATH}?${query.toString()}`;
+}
+
+/**
+ * Canonical url of a sku search page: once the scraper found the product, the
+ * product url search results link to (`/{vendor}-{sku}-{slug}.html`, same
+ * builder as search items); otherwise, or when the title gives no slug, the
+ * decision's own canonical url.
+ */
+export function resolveSkuSearchCanonicalUrl(
+  publicBaseUrl: string,
+  decision: MissingProductDecision,
+  outcome: ScrapedProductOutcome,
+  suffix: string = DEFAULT_PRODUCT_URL_SUFFIX,
+): string {
+  if (outcome.kind !== 'found') return decision.canonicalUrl;
+  const { product } = outcome;
+  // The slug keeps only the ascii letters and digits of the title.
+  if (!/[a-z0-9]/i.test(product.title)) return decision.canonicalUrl;
+  const urlKey = buildSearchItemUrlKey(decision.vendor, product.sku, product.title);
+  return buildCanonicalUrl(publicBaseUrl, `${urlKey}${suffix}`);
 }
 
 function buildSearchUrl(words: readonly string[], vendor: string): string {

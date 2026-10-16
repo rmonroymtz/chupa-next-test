@@ -1,0 +1,47 @@
+{
+  "vendor": "amazon",
+  "status": "ok",
+  "data": {
+    "asin": "B00IJ0ALYS",
+    "parent_product_id": "",
+    "has_variants": false,
+    "has_combinations": false,
+    "vendor": "amazon",
+    "title": "DEWALT Kit de combo de perforación inalámbrico de 20V MAX (DCK240C2)",
+    "brand": "DEWALT",
+    "categories": ["Clothing, Shoes & Accessories", "Men", "Men's Clothing", "Shirts", "T-Shirts"],
+    "breadcrumbs": "Clothing, Shoes & Accessories > Men > Men's Clothing > Shirts > T-Shirts",
+    "main_image": "https://i.ebayimg.com/images/g/4zUAAOSwMlxny9uc/s-l1600.jpg",
+    "release_date": "",
+    "image": "https://i.ebayimg.com/images/g/4zUAAOSwMlxny9uc/s-l1600.jpg",
+    "item_available": true,
+    "price": {
+      "current_price": 4434.6,
+      "currency": "MXN",
+      "before_price": 0.0
+    },
+    "stock": 10,
+    "stock_status": "in_stock",
+    "rating": 4.975,
+    "short_description": "Choose your favourite colors and create a set that fits your style. The crew neck design provides a nonrestrictive fit, long sleeves allow for a wider range of motion, and tear away label gives added comfort.",
+    "description": "<ul class=\"a-unordered-list a-vertical a-spacing-small\"></ul>",
+    "status": "New with tags",
+    "delivery_to": false,
+    "thumbnails": [
+      {
+        "link": "https://i.ebayimg.com/images/g/4zUAAOSwMlxny9uc/s-l1600.jpg"
+      },
+      {
+        "link": "https://i.ebayimg.com/images/g/EhcAAOSwVq1oL6Uy/s-l1600.jpg"
+      },
+      {
+        "link": "https://i.ebayimg.com/images/g/yqAAAOSwUYZoLpf5/s-l1600.jpg"
+      }
+    ],
+    "variants": [],
+    "combinations": []
+  },
+  "search_time": 0.6985487937927246,
+  "cache_hit": false,
+  "debug_html": null
+}

@@ -102,6 +102,85 @@ export function parseProductUrl(
 }
 
 /**
+ * Whether a Magento product sku belongs to a vendor product url. Magento
+ * `route()` answers a placeholder product for any vendor-shaped url it does
+ * not have (production `urllocator-external-placeholder`, staging
+ * `VA11-GO-NA`), so the caller compares skus instead of trusting the type.
+ *
+ * Candidates are every prefix of the url key segments after the vendor joined
+ * back with `-` (so skus containing `-`, and acme base64url segments
+ * containing `-`, still match), each decoded like the sku segment, plus the
+ * eBay `?var=` form. Comparison is case-insensitive on normalized skus.
+ * Returns null when the path is not a vendor product url (Magento is trusted).
+ */
+export function matchesProductUrlSku(
+  pathname: string,
+  sku: string,
+  options: ParseProductUrlOptions,
+): boolean | null {
+  const suffix = options.suffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
+  const routeUrl = toRouteUrl(pathname);
+  if (routeUrl === null || !routeUrl.endsWith(suffix)) return null;
+
+  const urlKey = routeUrl.slice(0, routeUrl.length - suffix.length);
+  if (urlKey.includes('/')) return null;
+
+  const [vendorSegment = '', ...segments] = urlKey.split('-');
+  const vendor = vendorSegment.toLowerCase();
+  if (!options.vendors.includes(vendor)) return null;
+
+  const wanted = normalizeSku(sku).toLowerCase();
+  if (wanted === '') return false;
+  for (let length = 1; length <= segments.length; length += 1) {
+    const decoded = decodeSkuSegment(segments.slice(0, length).join('-'), vendor);
+    if (decoded === null) continue;
+    const forms =
+      vendor === VARIANT_VENDOR
+        ? [decoded, applyVariant(decoded, options.searchParams)]
+        : [decoded];
+    if (forms.some((form) => normalizeSku(form).toLowerCase() === wanted)) return true;
+  }
+  return false;
+}
+
+/** Last url key segment of the header sku jump (`{vendor}-{sku}-search.html`). */
+const SKU_SEARCH_SEGMENT = 'search';
+
+export interface SkuSearchUrl {
+  /** Lowercase vendor from the allow-list. */
+  readonly vendor: string;
+  /** Sku segment as typed (raw, or base64url for acme); may be empty. */
+  readonly skuSegment: string;
+}
+
+/**
+ * Matches the legacy header sku jump `/{vendor}-{sku}-search{suffix}`
+ * (`useSearchBar.js` pushes `${store}-${query}-search.html` for a query that
+ * looks like a sku). After decoding the path once, the url key must split on
+ * `-` into exactly three segments: an allow-listed vendor (case-insensitive,
+ * as for product urls), the sku segment (possibly empty; the caller decides
+ * whether it is usable) and the literal lowercase `search`. Anything else,
+ * such as a real product slug ending in `-search`, returns null.
+ */
+export function matchSkuSearchUrl(
+  pathname: string,
+  options: Pick<ParseProductUrlOptions, 'suffix' | 'vendors'>,
+): SkuSearchUrl | null {
+  const suffix = options.suffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
+  const routeUrl = toRouteUrl(pathname);
+  if (routeUrl === null || !routeUrl.endsWith(suffix)) return null;
+
+  const urlKey = routeUrl.slice(0, routeUrl.length - suffix.length);
+  if (urlKey.includes('/')) return null;
+
+  const segments = urlKey.split('-');
+  if (segments.length !== 3 || segments[2] !== SKU_SEARCH_SEGMENT) return null;
+  const [vendorSegment = '', skuSegment = ''] = segments;
+  const vendor = vendorSegment.toLowerCase();
+  return options.vendors.includes(vendor) ? { vendor, skuSegment } : null;
+}
+
+/**
  * Builds an absolute canonical URL. The result keeps a literal `|` (string
  * concatenation, not URL serialization, and `%7C` is normalized to `|`),
  * has no query string or fragment, and exactly one slash between the base

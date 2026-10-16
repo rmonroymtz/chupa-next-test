@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import chapiAmazon from '../fixtures/chapi/product.amazon.synthetic.json';
 import chapiFound from '../fixtures/chapi/product.ebay.found.json';
 import productRoute from '../fixtures/magento/product-by-route.simple.json';
 import storeConfig from '../fixtures/magento/store-config.json';
@@ -21,6 +22,34 @@ const UNKNOWN = 'ebay-500000000002-gone-product.html';
 const OUTAGE = 'amazon-B0OUTAGE01-any-product.html';
 const DISCOUNTED = 'amazon-B0DISCOUNT-desk-lamp.html';
 const HOSTILE_NAME = 'Lamp </script><script>window.pwned=1</script>';
+const SKU_SEARCH = 'amazon-B00IJ0ALYS-search.html';
+const SKU_SEARCH_PRODUCT_URL =
+  'amazon-B00IJ0ALYS-dewalt-kit-de-combo-de-perforaci-n-inal-mbrico-de-20v-max-dck240c2-.html';
+const SKU_SEARCH_MISS = 'amazon-B0NOTFOUND-search.html';
+const SKU_SEARCH_FAILURE = 'amazon-B0FAILURE1-search.html';
+/** Staging Magento answers this placeholder product for every vendor url it does not have. */
+const placeholderFor = (url: string) => ({
+  ...productRoute.data.route,
+  relative_url: url,
+  url_key: 'carmina-earrings',
+  url_suffix: '.html',
+  sku: 'VA11-GO-NA',
+  name: 'Carmina Earrings',
+});
+
+const SKU_SEARCH_SLOW = 'amazon-B0SLOWSKU1-search.html';
+const SKU_SEARCH_HYPHEN = 'amazon-ABC-123-search.html';
+/** Production Magento answers this placeholder for vendor urls it does not have. */
+const productionPlaceholderFor = (url: string) => ({
+  ...placeholderFor(url),
+  url_key: null,
+  sku: 'urllocator-external-placeholder',
+  name: 'External URL Placeholder',
+});
+
+/** Real Magento product whose own sku is not in its url (url key + suffix is the url). */
+const OWN_URL_KEY = 'amazon-B0OWNKEY01-Own-Key-Lamp';
+const OWN_URL = `${OWN_URL_KEY.toLowerCase()}.html`;
 
 const CHAPI_TIMEOUT_MS = 1_000;
 const CHAPI_DELAY_MS = 600;
@@ -77,12 +106,29 @@ beforeAll(async () => {
         },
       },
       'old-product.html': { type: 'PRODUCT', redirect_code: 301, relative_url: EXISTING },
+      [SKU_SEARCH]: placeholderFor(SKU_SEARCH),
+      [SKU_SEARCH_MISS]: placeholderFor(SKU_SEARCH_MISS),
+      [SKU_SEARCH_FAILURE]: placeholderFor(SKU_SEARCH_FAILURE),
+      [SKU_SEARCH_SLOW]: placeholderFor(SKU_SEARCH_SLOW),
+      [SKU_SEARCH_HYPHEN]: productionPlaceholderFor(SKU_SEARCH_HYPHEN),
+      [SKU_SEARCH_PRODUCT_URL]: productionPlaceholderFor(SKU_SEARCH_PRODUCT_URL),
+      [OWN_URL]: {
+        ...productRoute.data.route,
+        relative_url: OWN_URL,
+        url_key: OWN_URL_KEY,
+        url_suffix: '.html',
+        sku: 'MAGENTO-OWN-SKU',
+        name: 'Own Key Lamp',
+      },
       [OUTAGE]: 'outage',
     },
     storeConfig: storeConfig.data.storeConfig,
     chapi: {
       [`ebay:${MISSING_SKU}`]: { body: chapiFound },
       'ebay:500000000001': { body: chapiFound, delayMs: CHAPI_TIMEOUT_MS * 3 },
+      'amazon:B00IJ0ALYS': { body: chapiAmazon },
+      'amazon:B0FAILURE1': { status: 500, body: { detail: 'boom' } },
+      'amazon:B0SLOWSKU1': { body: chapiAmazon, delayMs: CHAPI_TIMEOUT_MS * 3 },
     },
     chapiDefaultDelayMs: CHAPI_DELAY_MS,
   });
@@ -370,6 +416,152 @@ describe('PDP — product missing from Magento', () => {
     await settle();
     expect(mutations()).toEqual([]);
   });
+});
+
+describe('PDP — sku search jump /{vendor}-{sku}-search.html', () => {
+  const productByRoute = () => backends.callsTo('magento', 'ProductByRoute');
+
+  it('user: 200 with the scraped product (not the Magento placeholder), noindex, canonical to the product url', async () => {
+    const page = await get(`/${SKU_SEARCH}`, BROWSER_UA);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('noindex, follow');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${SKU_SEARCH_PRODUCT_URL}`);
+    expect(page.html).toContain('DEWALT Kit de combo');
+    expect(page.html).toContain('$4,434.60');
+    expect(page.html).not.toContain('Carmina Earrings');
+
+    // Missing-product rules: no product claims in structured data or the title.
+    expect(ofType(page.html, 'Product')).toEqual([]);
+    expect(page.html).not.toContain(`<title>${chapiAmazon.data.title}`);
+
+    // Magento route() is never asked; one CHAPI call shared by the head and the body.
+    expect(productByRoute()).toEqual([]);
+    expect(chapiCalls().map((c) => c.body)).toEqual([
+      { sku: 'B00IJ0ALYS', store: 'amazon', engine_id: 'direct' },
+    ]);
+
+    // Same copy request as any scraped product, after the response.
+    const [mutation] = await waitForCalls(mutations, 1);
+    expect(mutation?.body.variables).toEqual({ sku: 'B00IJ0ALYS', vendor: 'amazon' });
+    expect(mutation!.receivedSeq).toBeGreaterThan(page.serverDoneSeq);
+  });
+
+  it('bot: 404 like a missing product, without Magento route, scraper or mutation', async () => {
+    const page = await get(`/${SKU_SEARCH}`, BOT_UA);
+
+    expect(page.status).toBe(404);
+    expect(robots(page.html)).toContain('noindex');
+    expect(page.html).not.toContain('Carmina Earrings');
+    await settle();
+    expect(productByRoute()).toEqual([]);
+    expect(chapiCalls()).toEqual([]);
+    expect(mutations()).toEqual([]);
+  });
+
+  it('scraper not found: 200 noindex with the unavailable state, canonical to itself, no mutation', async () => {
+    const page = await get(`/${SKU_SEARCH_MISS}`, BROWSER_UA);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('noindex, follow');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${SKU_SEARCH_MISS}`);
+    expect(page.html).toContain('Producto no disponible');
+    expect(page.html).toContain('/search.html?query=B0NOTFOUND&amp;store=amazon');
+    expect(page.html).not.toContain('Carmina Earrings');
+    expect(productByRoute()).toEqual([]);
+    expect(chapiCalls()).toHaveLength(1);
+    await settle();
+    expect(mutations()).toEqual([]);
+  });
+
+  it('scraper failure: 200 noindex with the unavailable state and no mutation', async () => {
+    const page = await get(`/${SKU_SEARCH_FAILURE}`, BROWSER_UA);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('noindex, follow');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${SKU_SEARCH_FAILURE}`);
+    expect(page.html).toContain('Producto no disponible');
+    expect(page.html).not.toContain('Carmina Earrings');
+    expect(productByRoute()).toEqual([]);
+    expect(chapiCalls()).toHaveLength(1);
+    await settle();
+    expect(mutations()).toEqual([]);
+  });
+});
+
+describe('PDP — sku search jump: timeouts and odd skus', () => {
+  it('scraper timeout: 200 noindex, canonical to itself, unavailable state, no mutation', async () => {
+    const page = await get(`/${SKU_SEARCH_SLOW}`, BROWSER_UA);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('noindex, follow');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${SKU_SEARCH_SLOW}`);
+    expect(page.html).toContain('Producto no disponible');
+    expect(page.html).not.toContain('Carmina Earrings');
+    expect(chapiCalls()).toHaveLength(1);
+    await settle();
+    expect(mutations()).toEqual([]);
+  });
+
+  it('a sku containing "-" goes through Magento, whose placeholder is ignored', async () => {
+    const page = await get(`/${SKU_SEARCH_HYPHEN}`, BROWSER_UA);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('noindex, follow');
+    expect(page.html).not.toContain('External URL Placeholder');
+    expect(backends.callsTo('magento', 'ProductByRoute')).toHaveLength(1);
+    // Legacy split: the scraper is asked for the first segment only.
+    expect(chapiCalls().map((c) => c.body.sku)).toEqual(['ABC']);
+  });
+});
+
+describe('PDP — Magento placeholder product for a vendor url it does not have', () => {
+  it('user: renders the scraped product as a missing product, never the placeholder', async () => {
+    // The canonical url of a found sku search page: Magento has no copy yet.
+    const page = await get(`/${SKU_SEARCH_PRODUCT_URL}`, BROWSER_UA);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('noindex, follow');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${SKU_SEARCH_PRODUCT_URL}`);
+    expect(page.html).toContain('DEWALT Kit de combo');
+    expect(page.html).not.toContain('External URL Placeholder');
+    expect(ofType(page.html, 'Product')).toEqual([]);
+    expect(backends.callsTo('magento', 'ProductByRoute')).toHaveLength(1);
+    expect(chapiCalls().map((c) => c.body)).toEqual([
+      { sku: 'B00IJ0ALYS', store: 'amazon', engine_id: 'direct' },
+    ]);
+    const [mutation] = await waitForCalls(mutations, 1);
+    expect(mutation?.body.variables).toEqual({ sku: 'B00IJ0ALYS', vendor: 'amazon' });
+  });
+
+  it('bot: 404 like a missing product, no scraper and no mutation', async () => {
+    const page = await get(`/${SKU_SEARCH_PRODUCT_URL}`, BOT_UA);
+
+    expect(page.status).toBe(404);
+    expect(page.html).not.toContain('External URL Placeholder');
+    await settle();
+    expect(chapiCalls()).toEqual([]);
+    expect(mutations()).toEqual([]);
+  });
+});
+
+describe('PDP — Magento product whose sku is not in its url', () => {
+  it.each([
+    ['user', BROWSER_UA],
+    ['bot', BOT_UA],
+  ])(
+    '%s: its url key + suffix is the url, so it stays an indexable Magento product',
+    async (_who, ua) => {
+      const page = await get(`/${OWN_URL}`, ua);
+
+      expect(page.status).toBe(200);
+      expect(robots(page.html)).toBe('index, follow');
+      expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${OWN_URL}`);
+      expect(page.html).toContain('Own Key Lamp');
+      expect(ofType(page.html, 'Product')).toHaveLength(1);
+      expect(chapiCalls()).toEqual([]);
+    },
+  );
 });
 
 describe('PDP — add to cart (shared cart with PWA Studio)', () => {

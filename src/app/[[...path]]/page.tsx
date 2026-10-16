@@ -19,6 +19,7 @@ import { CmsPage } from '@/modules/cms/ui/cms-page';
 import { buildCmsPageMetadata } from '@/modules/cms/ui/cms-page-metadata';
 import {
   getCopyTrigger,
+  getMissingProductCanonicalUrl,
   resolveProductPage,
 } from '@/modules/product/infrastructure/product-page.composition';
 import { MagentoProductView } from '@/modules/product/ui/magento-product-view';
@@ -71,6 +72,12 @@ export async function generateMetadata(props: CatchAllProps): Promise<Metadata> 
           indexable: view.indexable,
         })
       : {};
+  }
+  if (decision.kind === 'missing_product') {
+    // A sku search page (`{vendor}-{sku}-search.html`) points its canonical at
+    // the product url, so its head waits for the (cached) scraper lookup.
+    const canonicalUrl = await getMissingProductCanonicalUrl(decision);
+    return buildProductPageMetadata({ ...decision, canonicalUrl });
   }
   return buildProductPageMetadata(decision);
 }
