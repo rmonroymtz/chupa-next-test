@@ -1,8 +1,9 @@
 # Phase 3 storefront — search
 
 Status (2026-10-16): T1–T5 merged to `main` (PRs #15–#20; T5 native review approved, one non-blocking warning =
-decision 11). T6 split into T6a–T6c (decision 12); T6a merged (PR #21, `afe7c6f`); T6b committed on
-`feat/phase-3-06b-search-events` (no PR yet); T6c next; T7 not started.
+decision 11). T6 split into T6a–T6c (decision 12); T6a merged (PR #21, `afe7c6f`); T6b on
+`feat/phase-3-06b-search-events` (PR #22 open, review approved with one warning); T6c committed on
+`feat/phase-3-06c-search-sliders` (stacked on T6b, no PR yet); T7 not started.
 
 ## Resume here (2026-10-16)
 
@@ -171,9 +172,15 @@ authored lines in total: one stacked PR per task.
 - [x] T6b (route: delegated, writer trigger 2+ non-trivial files; `search/application/search-analytics.ts`,
   `search/ui/search-requested-event.client.tsx`, `search/ui/search-page.tsx`, `analytics/ui/track-event.client.tsx`
   (`shouldTrack`); work-unit commit `feat(search): send the search and view_item_list analytics events`; test 983,
-  integration 88) Search events: `search` and `view_item_list` via the analytics module from the search
-  page (single store only, not bots/empty query), real price and brand. Check: unit + integration.
-- [ ] T6c (route: delegated) Recommendation sliders (Crossell/Upsell/Recommender) from Magento `randomProducts` under
+  integration 88; PR #22; native review approved with one warning, R3-001: a cross-store `storeParams` link
+  would suppress the `search` event (no such in-app link today; a pinning test is a follow-up)) Search events:
+  `search` and `view_item_list` via the analytics module from the search page (single store only, not bots/empty
+  query), real price and brand. Check: unit + integration.
+- [x] T6c (route: delegated, writer trigger 2+ non-trivial files; new module `src/modules/recommendations/**`,
+  `search/ui/search-page.tsx` + `showsRecommendations`, `page-builder/ui/product-cards.tsx` (`showRating`), env
+  `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS`, route; 3 recorded staging fixtures `tests/fixtures/magento/random-products.*`;
+  work-unit commit `feat(search): show the recommendation sliders under the search results`; test 1019,
+  integration 96) Recommendation sliders (Crossell/Upsell/Recommender) from Magento `randomProducts` under
   single-store results; recorded staging fixture. Check: unit + integration.
 - [ ] T7 Ops and docs: phase 3 routing doc (delete the temporary search rules 5 and 6 of phase 2; prerender
   exclusions), env vars, phase 3 report, e2e smoke for search. Check: full suite + build.
@@ -342,6 +349,45 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   brand null; failure/empty: search only; ChupaChoice, blank query, bot: none); green on the first run (not run
   against the base build). Checks: typecheck, lint (0 errors, 1 pre-existing warning), unit (983), integration (88),
   build pass, with `.next/dev/types` in place (it no longer breaks typecheck or build).
+
+- 2026-10-16: T6c implemented (delegated writer, branch `feat/phase-3-06c-search-sliders`, stacked on T6b).
+  Staging evidence (parent, read-only GraphQL): `ProductCarouselType` = recommended, tendency, also_bought, recently;
+  `randomProducts(limit: 30)` answered 16/16/15 products (tendency/also_bought/recently), all `store: "amazon"`, no
+  null fields, `regular_price: 0` without a discount (5–6 per list higher than `price`), `link` = url key + `.html`
+  without a leading slash, images on `m.media-amazon.com`; recorded as `tests/fixtures/magento/random-products.{tendency,
+  also-bought,recently}.json` (pretty-printed, nothing trimmed). Design: new screaming module
+  `src/modules/recommendations/` (domain `RecommendedProduct` = `ProductCard` + `rating`, `RECOMMENDATION_TYPES`,
+  limit 30; application port + `loadRecommendations` (never rejects, warn `recommendations unavailable`);
+  infrastructure `GetRandomProducts` query (no keywords/order), mapper (relative url = link without leading slashes,
+  url key = link minus `.html`, uid `{store}-{sku}`, price copied with the regular price only when higher, MXN from
+  `MAGENTO_CURRENCY`, rating only > 0, skips items without sku/name/link/positive price and repeated skus), repository
+  with its own timeout, composition `getRecommendations` (React `cache()` per request only: the phase constraint forbids
+  cross-request caching, same as the header menu and store config); ui `<RecommendationSliders>`). Not a product
+  submodule: recommendations are their own capability (Magento carousels), reusable outside search. Rendering:
+  `showsRecommendations(view)` = single store whose search answered (also 0 items and fallback answers); never a
+  failed search, ChupaChoice, bots or a blank query (no Magento call for those). `<SearchPage>` takes an optional
+  `loadRecommendations` (the route passes `getRecommendations`); the three loads start in the same render (parallel),
+  each slider streams in its own Suspense boundary after the results (legacy title + accent and 5 skeleton cards
+  meanwhile) and renders nothing when empty or failed. Cards reuse `ProductCards` carousel (CSS scroll-snap, no client
+  JS) with a new `showRating` prop: legacy stars (grey row + amber row clipped to the rating, `role="img"`, "Calificación:
+  4.4 de 5 estrellas"); off for CMS and search grids. Struck regular price via the existing `ProductPrice`. Images:
+  `m.media-amazon.com` is already a default `IMAGE_REMOTE_HOSTS` entry, so `next/image` optimizes them (verified in the
+  integration html); `next.config.ts` unchanged. Timeout: new optional env `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS`
+  (module default 3000 ms when unset; optional instead of a schema default because `tests/unit/shared/config/env.test.ts`
+  pins the full defaults object and was outside the edit surface) — T7 must add it to `.env.example`,
+  `docs/environment.md` and `docs/deploy/ecs-fargate.md`. Magento failures are logged and metered by the client
+  (`MagentoError`, Operation `GetRandomProducts`) plus the module warn. Mock Magento: `GetRandomProducts` by `type`
+  (`randomProducts` config + `setRandomProducts`), unset → HTTP 400 like any unknown operation (sliders hidden), so other
+  suites are unchanged. Integration helpers: `cardLinks` now reads only the html before the sliders; `otherMagentoCalls`
+  ignores `GetRandomProducts` (asserted with `sliderCalls`); slider assertions read only the `<section>` opening tags
+  and all links after the results, because React outlines parts of a large streamed boundary (`<template id="P:…">`)
+  and a slider's cards are not always inside its section in the raw html (found when the first per-section assertion
+  failed). RED: 4 new unit files failed at import, 8 tests failed (ProductCards rating, search page sliders); GREEN:
+  focused 423. Integration (+8): sliders with the recorded links and titles for a single-store result and for 0
+  items; none and no Magento call for a failed search, ChupaChoice, a blank query and a bot; one slider 503 + one
+  slower than the timeout → only the third slider, page 200 with its results; all failing → no sliders; not run against
+  the base build. Checks: typecheck, lint (0 errors, 1 pre-existing warning), unit (1019), integration (96), build
+  pass, with `.next/dev` in place.
 
 ## Next step
 

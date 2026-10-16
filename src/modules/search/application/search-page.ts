@@ -53,6 +53,18 @@ export type SearchPageDecision =
 /** The page state the search page renders. */
 export type SearchPageView = Extract<SearchPageDecision, { kind: 'page' }>;
 
+/**
+ * Recommendation sliders go under single-store pages whose search answered,
+ * with or without items (legacy `showRecommendations`): never for a failed
+ * search, ChupaChoice, bots or a blank query (the last two run no search).
+ */
+export function showsRecommendations(view: SearchPageView): boolean {
+  const { results } = view;
+  return (
+    results.kind === 'single' && results.listing.failure === null && results.listing.result !== null
+  );
+}
+
 export interface SearchPageRequest {
   /** Request query string, without the leading `?`. */
   readonly search: string;
