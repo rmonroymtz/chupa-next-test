@@ -6,6 +6,7 @@
  *
  * Pure domain code: no framework imports and no I/O.
  */
+import type { ProductAddedToCart } from '@/modules/analytics/domain/analytics-event';
 import type {
   Availability,
   MagentoProduct,
@@ -196,44 +197,22 @@ export function buildCartItem(input: {
     : item;
 }
 
-export interface AddToCartDataLayerEvent {
-  readonly event: 'add_to_cart';
-  readonly ecommerce: {
-    readonly currency: string;
-    readonly value: number;
-    readonly items: readonly {
-      readonly item_id: string;
-      readonly item_name: string;
-      readonly price?: number;
-      readonly quantity: number;
-    }[];
-  };
-}
-
 /**
- * GA4 event the legacy GTM handler pushes for `CART_ADD_ITEM`
- * (`@chupaprecios/google-tag-manager` `handlers/addToCart.js`). Null without a
- * price: the legacy payload would carry no currency and a NaN value.
+ * The analytics event for a successful add (legacy `CART_ADD_ITEM`); the GTM
+ * provider maps it to the GA4 `add_to_cart` payload. Null without a price:
+ * the legacy payload would carry no currency and a NaN value.
  */
-export function buildAddToCartDataLayerEvent(
+export function buildProductAddedToCartEvent(
   product: PurchasableProduct,
   unitPrice: Money | null,
   quantity: number,
-): AddToCartDataLayerEvent | null {
+): ProductAddedToCart | null {
   if (!unitPrice) return null;
   return {
-    event: 'add_to_cart',
-    ecommerce: {
-      currency: unitPrice.currency,
-      value: unitPrice.amount * quantity,
-      items: [
-        {
-          item_id: product.sku,
-          item_name: product.name,
-          ...(unitPrice.amount ? { price: unitPrice.amount } : {}),
-          quantity: quantity || 1,
-        },
-      ],
-    },
+    type: 'ProductAddedToCart',
+    sku: product.sku,
+    name: product.name,
+    unitPrice: { amount: unitPrice.amount, currency: unitPrice.currency },
+    quantity,
   };
 }

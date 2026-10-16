@@ -6,6 +6,7 @@ import {
   purchasableFromScraped,
   type PurchasableProduct,
 } from '@/modules/cart/domain/add-to-cart';
+import { AnalyticsProvider } from '@/modules/analytics/ui/analytics-provider.client';
 import { encodePersisted } from '@/modules/cart/domain/browser-persistence';
 import { AddToCart } from '@/modules/cart/ui/add-to-cart.client';
 import { cartCountStore } from '@/modules/cart/ui/cart-store';
@@ -43,7 +44,11 @@ const scrapedProduct: ScrapedProduct = {
 };
 
 function renderAddToCart(product: PurchasableProduct) {
-  return render(<AddToCart product={product} />);
+  return render(
+    <AnalyticsProvider>
+      <AddToCart product={product} />
+    </AnalyticsProvider>,
+  );
 }
 
 const button = () => screen.getByRole('button', { name: /agregar al carrito|agregando/i });
@@ -89,8 +94,16 @@ describe('AddToCart', () => {
       'textContent',
       '¡Producto agregado correctamente!',
     );
+    // Same GA4 payload the cart pushed before the analytics module.
     expect((window as unknown as { dataLayer: unknown[] }).dataLayer).toEqual([
-      expect.objectContaining({ event: 'add_to_cart' }),
+      {
+        event: 'add_to_cart',
+        ecommerce: {
+          currency: 'MXN',
+          value: 450,
+          items: [{ item_id: 'B0ASIN0001', item_name: 'Lámpara', price: 450, quantity: 1 }],
+        },
+      },
     ]);
   });
 

@@ -181,4 +181,19 @@ describe('parseServerEnv', () => {
       parseServerEnv({ ...required, ORGANIZATION_SAME_AS: 'https://ok.example.com,javascript:x' }),
     ).toThrow(/ORGANIZATION_SAME_AS/);
   });
+
+  it('leaves GTM_ID unset by default and when blank', () => {
+    expect(parseServerEnv(required).GTM_ID).toBeUndefined();
+    expect(parseServerEnv({ ...required, GTM_ID: '  ' }).GTM_ID).toBeUndefined();
+  });
+
+  it('reads a GTM container id, trimmed', () => {
+    expect(parseServerEnv({ ...required, GTM_ID: ' GTM-AB12CD ' }).GTM_ID).toBe('GTM-AB12CD');
+  });
+
+  it('rejects a GTM_ID that is not a container id (it is inlined in a script)', () => {
+    for (const value of ['AB12CD', 'GTM-ab12', "GTM-1');alert(1)//", 'G-AB12CD']) {
+      expect(() => parseServerEnv({ ...required, GTM_ID: value })).toThrow(/GTM_ID/);
+    }
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildAddToCartDataLayerEvent,
+  buildProductAddedToCartEvent,
   buildCartItem,
   clampQuantity,
   evaluatePurchase,
@@ -269,28 +269,20 @@ describe('buildCartItem', () => {
   });
 });
 
-describe('buildAddToCartDataLayerEvent (legacy GTM add_to_cart)', () => {
-  it('builds the GA4 add_to_cart payload the legacy handler pushes', () => {
+describe('buildProductAddedToCartEvent (analytics domain event)', () => {
+  it('describes the added product, its unit price and the quantity', () => {
     const product = purchasableFromMagento(buildMagentoProduct());
-    expect(buildAddToCartDataLayerEvent(product, mxn(1299.5), 2)).toEqual({
-      event: 'add_to_cart',
-      ecommerce: {
-        currency: 'MXN',
-        value: 2599,
-        items: [
-          {
-            item_id: 'B0TESTSKU1',
-            item_name: 'Audífonos inalámbricos',
-            price: 1299.5,
-            quantity: 2,
-          },
-        ],
-      },
+    expect(buildProductAddedToCartEvent(product, mxn(1299.5), 2)).toEqual({
+      type: 'ProductAddedToCart',
+      sku: 'B0TESTSKU1',
+      name: 'Audífonos inalámbricos',
+      unitPrice: { amount: 1299.5, currency: 'MXN' },
+      quantity: 2,
     });
   });
 
   it('omits the event when there is no price', () => {
     const product = purchasableFromScraped(scraped({ price: null }));
-    expect(buildAddToCartDataLayerEvent(product, null, 1)).toBeNull();
+    expect(buildProductAddedToCartEvent(product, null, 1)).toBeNull();
   });
 });
