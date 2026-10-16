@@ -47,6 +47,13 @@ const productionPlaceholderFor = (url: string) => ({
   name: 'External URL Placeholder',
 });
 
+/** Urls whose first segment is not in `PRODUCT_VENDORS`; Magento answers its placeholder. */
+const OTHER_SKU_SEARCH = 'walmart-123456-search.html';
+const OTHER_PRODUCT_URL = 'walmart-123456-foo.html';
+/** Real Magento product at a url that is not a vendor product url. */
+const HOUSE_URL_KEY = 'house-brand-mug';
+const HOUSE_URL = `${HOUSE_URL_KEY}.html`;
+
 /** Real Magento product whose own sku is not in its url (url key + suffix is the url). */
 const OWN_URL_KEY = 'amazon-B0OWNKEY01-Own-Key-Lamp';
 const OWN_URL = `${OWN_URL_KEY.toLowerCase()}.html`;
@@ -112,6 +119,16 @@ beforeAll(async () => {
       [SKU_SEARCH_SLOW]: placeholderFor(SKU_SEARCH_SLOW),
       [SKU_SEARCH_HYPHEN]: productionPlaceholderFor(SKU_SEARCH_HYPHEN),
       [SKU_SEARCH_PRODUCT_URL]: productionPlaceholderFor(SKU_SEARCH_PRODUCT_URL),
+      [OTHER_SKU_SEARCH]: productionPlaceholderFor(OTHER_SKU_SEARCH),
+      [OTHER_PRODUCT_URL]: placeholderFor(OTHER_PRODUCT_URL),
+      [HOUSE_URL]: {
+        ...productRoute.data.route,
+        relative_url: HOUSE_URL,
+        url_key: HOUSE_URL_KEY,
+        url_suffix: '.html',
+        sku: 'HOUSE-MUG-01',
+        name: 'House Brand Mug',
+      },
       [OWN_URL]: {
         ...productRoute.data.route,
         relative_url: OWN_URL,
@@ -542,6 +559,41 @@ describe('PDP — Magento placeholder product for a vendor url it does not have'
     await settle();
     expect(chapiCalls()).toEqual([]);
     expect(mutations()).toEqual([]);
+  });
+});
+
+describe('PDP — Magento placeholder product for a url that is not a vendor product url', () => {
+  it.each([
+    ['user', OTHER_SKU_SEARCH, BROWSER_UA],
+    ['bot', OTHER_SKU_SEARCH, BOT_UA],
+    ['user', OTHER_PRODUCT_URL, BROWSER_UA],
+    ['bot', OTHER_PRODUCT_URL, BOT_UA],
+  ])('%s: /%s is a 404 noindex, never the placeholder, no scraper', async (_who, url, ua) => {
+    const page = await get(`/${url}`, ua);
+
+    expect(page.status).toBe(404);
+    expect(robots(page.html)).toContain('noindex');
+    expect(page.html).not.toContain('External URL Placeholder');
+    expect(page.html).not.toContain('Carmina Earrings');
+    expect(ofType(page.html, 'Product')).toEqual([]);
+    expect(backends.callsTo('magento', 'ProductByRoute')).toHaveLength(1);
+    await settle();
+    expect(chapiCalls()).toEqual([]);
+    expect(mutations()).toEqual([]);
+  });
+
+  it.each([
+    ['user', BROWSER_UA],
+    ['bot', BOT_UA],
+  ])('%s: a real Magento product at its own url key stays indexable', async (_who, ua) => {
+    const page = await get(`/${HOUSE_URL}`, ua);
+
+    expect(page.status).toBe(200);
+    expect(robots(page.html)).toBe('index, follow');
+    expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${HOUSE_URL}`);
+    expect(page.html).toContain('House Brand Mug');
+    expect(ofType(page.html, 'Product')).toHaveLength(1);
+    expect(chapiCalls()).toEqual([]);
   });
 });
 

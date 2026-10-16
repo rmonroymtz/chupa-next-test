@@ -13,13 +13,13 @@ This document is for whoever operates the edge (CloudFront or nginx). The config
 
 ## What changes
 
-| Request                                               | Phase 2 | Phase 3 | Why                                                                                        |
-| ----------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------ |
-| `/search.html` (any query string)                     | PWA     | Next    | Next renders the CHAPI search page (single store or ChupaChoice), `noindex, follow`.       |
-| `/{vendor}-{sku}-search.html` (amazon, ebay, …)       | PWA     | Next    | Next renders the CHAPI product for that sku on the same url, `noindex`; bots get 404.      |
-| Other `*-search.html` (e.g. `/walmart-1-search.html`) | PWA     | Next    | Through Magento like any `.html` url; the legacy search bar never builds them (see below). |
-| Home, categories, products, listed CMS paths          | Next    | Next    | Unchanged phase 1 and 2 rules.                                                             |
-| Cart, checkout, account, other PWA pages, `/api/*`    | PWA     | PWA     | Unchanged.                                                                                 |
+| Request                                               | Phase 2 | Phase 3 | Why                                                                                                |
+| ----------------------------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `/search.html` (any query string)                     | PWA     | Next    | Next renders the CHAPI search page (single store or ChupaChoice), `noindex, follow`.               |
+| `/{vendor}-{sku}-search.html` (amazon, ebay, …)       | PWA     | Next    | Next renders the CHAPI product for that sku on the same url, `noindex`; bots get 404.              |
+| Other `*-search.html` (e.g. `/walmart-1-search.html`) | PWA     | Next    | Through Magento like any `.html` url; Magento's placeholder answer is a 404 `noindex` (see below). |
+| Home, categories, products, listed CMS paths          | Next    | Next    | Unchanged phase 1 and 2 rules.                                                                     |
+| Cart, checkout, account, other PWA pages, `/api/*`    | PWA     | PWA     | Unchanged.                                                                                         |
 
 ### What Next answers
 
@@ -115,10 +115,10 @@ PWA Studio still serves search, so rollback is a routing change only:
 
 ## Not handled by the edge
 
-| Item                                              | Notes                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SKU jump from the search bar                      | The legacy search bar sends a sku query (amazon, ebay, target regexes) to `/{store}-{sku}-search.html`; the Next search bar always submits to `/search.html`. Next still serves the `*-search.html` urls that PWA pages and old links build.                                                                                                                                                                  |
-| Non-vendor `*-search.html` and `/{x}-….html` urls | Next trusts Magento for urls whose prefix is not in `PRODUCT_VENDORS`: `/walmart-123456-search.html` answered 200 "External URL Placeholder" `index, follow` on the dev server (2026-10-16), same as `/walmart-123456-foo.html`, which already reaches Next under phase 2 rule 9. The search bars never build them. Follow-up in the [phase 3 report](../phase-3-report.md#known-limitations-and-follow-ups). |
+| Item                                              | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SKU jump from the search bar                      | The legacy search bar sends a sku query (amazon, ebay, target regexes) to `/{store}-{sku}-search.html`; the Next search bar always submits to `/search.html`. Next still serves the `*-search.html` urls that PWA pages and old links build.                                                                                                                                                                                                                                                                                                         |
+| Non-vendor `*-search.html` and `/{x}-….html` urls | Fixed 2026-10-16. Magento `route()` answers its placeholder product for these urls too (`/walmart-123456-search.html`, `/walmart-123456-foo.html` answered 200 "External URL Placeholder" `index, follow` before the fix). Next now ignores a Magento product whose `url_key + url_suffix` is not the requested url key (last path segment) and whose sku is not in the url, for every url: a non-vendor url gets the plain 404 `noindex` for users and bots, without CHAPI. The search bars never build them; they reach Next under phase 2 rule 9. |
 
 ## Checklist
 

@@ -6,8 +6,8 @@ Status (2026-10-16): **phase 3 complete pending the T7 PR.** T1–T6c merged to 
 
 ## Resume here (2026-10-16, phase 4 hand-off)
 
-1. Open the T7 PR from `feat/phase-3-07-ops-docs` (one work-unit commit: docs, e2e smoke, this file, the user's
-   `.env.example` line). Tell the user to merge only after the last push. Then phase 3 is done.
+1. Open the T7 PR from `feat/phase-3-07-ops-docs` (work-unit commits: docs, e2e smoke, this file, the user's
+   `.env.example` lines, and the placeholder fix for non-vendor urls). Tell the user to merge only after the last push. Then phase 3 is done.
 2. Go-live (ops, not code): phase 2 edge change first, then `docs/routing/phase-3.md` (delete rules 5 and 6, remove
    prerender for search), `GTM_ID` in the task definition, run `E2E_BASE_URL=… E2E_PHASE3_SMOKE=1 pnpm test:e2e
    --project phase-3-smoke` against staging behind the edge.
@@ -24,10 +24,11 @@ search item slug keeps a trailing `-`; canonical with a literal `%` for missing 
 imports `buildSearchItemUrlKey` from `search/domain` (move it to the product domain); SEO slug gap (decision 11);
 analytics dispatcher isolates only native Promise rejections (T6a review); cross-store `storeParams` pinning test (T6b
 review); slider load promise created inline per render and untested rating cap (T6c review); stale
-`.next/dev/types/validator.ts` (T6a, not reproduced since T6b). **New in T7 (needs a decision):** Magento placeholder
-products render `index, follow` for non-vendor `/{x}-….html` urls (`/walmart-123456-search.html`,
-`/walmart-123456-foo.html` → 200 "External URL Placeholder" on the dev server), because the placeholder check only
-covers `PRODUCT_VENDORS`; reachable since phase 2 rule 9 (`*.html` → Next).
+`.next/dev/types/validator.ts` (T6a, not reproduced since T6b); custom Magento no-redirect url rewrites to products
+(a request path whose last segment is not the product's url key and does not carry its sku) now 404 like the legacy
+PWA: list them before go-live (T7 fix). **Fixed in T7 (2026-10-16):** Magento placeholder products rendered `index,
+follow` for non-vendor `/{x}-….html` urls (`/walmart-123456-search.html`, `/walmart-123456-foo.html`); the
+placeholder check now covers every url.
 
 Working notes for the next session: the user writes in Spanish; commits use
 `git -c user.name="Ricardo Monroy" -c user.email="ricardo@chupaprecios.com.mx"` (no git identity configured), no
@@ -423,6 +424,38 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   build pass; `pnpm format:check` fails only on pre-existing `docs/phase-1-report.md` and
   `tests/fixtures/page-builder/venia-new-home.json` (changed files pass `prettier --check`). `.env.example`: the user
   staged `MAGENTO_RECOMMENDATIONS_TIMEOUT_MS`; `GTM_ID` (if missing) and the three e2e lines are the user's edit.
+
+- 2026-10-16: T7 fix — Magento placeholder for every url (user approved; route: delegated, writer trigger 2+
+  non-trivial files: service, unit, integration, docs). Bug (dev server, production Magento):
+  `/walmart-123456-search.html`, `/homedepot-123-search.html`, `/walmart-123456-foo.html` answered 200 "External URL
+  Placeholder" (`url_key: null`, `relative_url` = requested path) `index, follow` for users and Googlebot, because
+  `isPlaceholder` returned early when `matchesProductUrlSku` was null (url not in `PRODUCT_VENDORS`). Legacy PWA
+  (verified by the parent): for non-CHAPI stores the PDP looks the product up by url key and shows "Product not
+  found" when empty. Fix (`product-page-service.ts`): Magento's product is ignored as a placeholder for **any** url
+  when (a) its `url_key + url_suffix` (suffix falls back to the configured one; an empty url key never matches) is not
+  the requested url key — now the **last path segment** of the decoded route url, case-insensitive — AND (b) its sku
+  is not in the url. For non-vendor urls `matchesProductUrlSku` is null and counts as "no sku match": only vendor
+  product urls carry a sku, so the url key alone decides (legacy parity). Vendor urls keep the phase 1 missing flow;
+  any other url goes through `missing()`, which already answers `not_found` with `case: null` (404 `noindex`, no
+  CHAPI) like `route: null`. Log `magento placeholder ignored` gains `urlKind` (`vendor_product` | `other`); metric
+  `MagentoPlaceholderIgnored` unchanged. Real-product safety: vendor urls have no `/`, so comparing the last segment
+  equals the old full-path comparison for them; a product under a category path (`hogar/x.html`) or requested in
+  another case or percent-encoded still matches its url key; renamed url keys answer `redirect_code`, not a product
+  (T5 evidence); residual: a custom no-redirect rewrite to a product at an unrelated path now 404s (legacy parity;
+  follow-up above). Tests: unit — production (`url_key` empty) and staging (`carmina-earrings`) placeholders on
+  `/walmart-123456-search.html`, `/walmart-123456-foo.html`, `/homedepot-123-search.html` → `not_found` for users and
+  bots, no `PdpOutcome`; real non-vendor product at its url key, different case, category path, encoded character →
+  `magento_product` `index`; configured suffix fallback; a url key that is only a suffix of the requested key is not
+  trusted; the old "trusts Magento for non-vendor urls" test removed and the copy-request test given a matching url
+  key. Integration — the two walmart urls (production and staging placeholder mocks) 404 `noindex` for user and
+  Googlebot, no placeholder text, no Product JSON-LD, no CHAPI, no mutation; `/house-brand-mug.html` 200 `index,
+  follow` with Product JSON-LD for both. RED: unit 4 failed, integration 4 failed (200 placeholder) against 8d3eec5;
+  GREEN. Checks: typecheck, lint (0 errors, 1 pre-existing warning), unit (1027), integration (102), build pass. Dev
+  server (production Magento): `/walmart-123456-search.html`, `/walmart-123456-foo.html`, `/homedepot-123-search.html`
+  user and Googlebot 404 `noindex`, no placeholder; the DeWalt Magento url user and Googlebot 200 `index, follow`;
+  `/amazon-B0ZZZZZZZZ-foo.html` user 200 `noindex, follow`, Googlebot 404 (vendor flow unchanged). Docs:
+  `docs/routing/phase-3.md` and `docs/phase-3-report.md` mark the bug fixed and add the custom-rewrite follow-up.
+  Commit: work-unit `fix(product): ignore the Magento placeholder product for every url, not only vendor urls`.
 
 ## Next step
 
