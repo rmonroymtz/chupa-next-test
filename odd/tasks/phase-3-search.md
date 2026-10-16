@@ -1,37 +1,24 @@
 # Phase 3 storefront — search
 
-Status (2026-10-15, end of day): T1–T4 merged to `main` (PRs #15–#19); T5 done and committed on
-`feat/phase-3-05-sku-search` (pushed, **no PR yet, native review pending**); T6–T7 not started; one product decision
-open. **Start with "Resume here" below.**
+Status (2026-10-16): T1–T5 merged to `main` (PRs #15–#20; T5 native review approved, one non-blocking warning =
+decision 11). T6 split into T6a–T6c (decision 12); T6a committed on `feat/phase-3-06-search-extras` (no PR yet);
+T6b next; T7 not started.
 
-## Resume here (handoff 2026-10-15)
+## Resume here (2026-10-16)
 
-1. `git fetch origin && git switch feat/phase-3-05-sku-search && pnpm install`; `.env.local` needs `MAGENTO_GRAPHQL_URL`
-   (staging: `https://staging.chupaprecios.com.mx/graphql`, which has categories and products), `CHAPI_BASE_URL`,
-   `PUBLIC_BASE_URL`. Check: `pnpm typecheck && pnpm lint && pnpm test` (927) and `pnpm test:integration` (81).
-2. **T5 native review is pending.** The last `gentle-ai review start` consent for T5 (14 files, 1094 lines, up to
-   `7e801e0`) was interrupted by the user before answering. Run `gentle-ai review status --cwd . --contract
-   gentle-ai.review-integration/v2 --agent claude-code --next-transition` and follow the returned transition (relay the
-   consent to the user). Earlier T5 reviews were approved; their warnings are fixed in `90d7e4f` and `7e801e0`.
-3. Then open the T5 PR from `feat/phase-3-05-sku-search` (compare link; `gh` is not installed on this machine). Tell
-   the user to merge only after the last push (twice a PR was merged before the follow-up commits landed: #14 and #18).
-4. **Open decision (ask the user first):** product URLs built from CHAPI titles use the legacy slug (non-ASCII → `-`,
-   e.g. `perforaci-n`) while Magento url keys drop non-ASCII characters (`perforacin`). Search result cards and the
-   `-search.html` canonical therefore point to a `noindex` missing-product URL instead of the indexable Magento page
-   for products Magento already has. Options offered: (1, recommended) build the slug like Magento (drop non-ASCII),
-   verified against several real staging products, in its own branch after T5; (2) look the product up in Magento by
-   sku and redirect (`products(filter: {sku})` answers "Internal server error" on staging today); (3) leave it as a
-   follow-up.
-5. Then T6 (GTM search events, recommendation sliders from Magento `randomProducts`) and T7 (phase 3 routing doc:
-   delete the temporary phase 2 search rules 5 and 6, prerender, env vars, phase 3 report, e2e smoke).
+1. `git fetch origin && pnpm install`; `.env.local` needs `MAGENTO_GRAPHQL_URL` (staging:
+   `https://staging.chupaprecios.com.mx/graphql`), `CHAPI_BASE_URL`, `PUBLIC_BASE_URL`, and optionally `GTM_ID` (T6a).
+   Check: `pnpm typecheck && pnpm lint && pnpm test` and `pnpm test:integration`.
+2. Continue with the next unfinished task in "Tasks" (T6a → T6b → T6c → T7). `gh` is installed and authenticated on
+   this machine; tell the user to merge only after the last push (#14 and #18 were merged before follow-up commits).
 
 Open follow-ups (no decision needed now): acme base64url `-` SKU limitation (count affected Magento SKUs before any
 format change); `useSearchParams` in the header without Suspense relies on every route being dynamic; header
 integration assertions depend on HTML attribute order; prev link clamped to page 1 label; search item slug keeps a
 trailing `-`; canonical with a literal `%` for missing products (phase 1); the product module imports
-`buildSearchItemUrlKey` from `search/domain` (move it to the product domain).
+`buildSearchItemUrlKey` from `search/domain` (move it to the product domain); SEO slug gap (decision 11).
 
-Working notes for the next session: the user writes in Spanish (Rioplatense replies); commits use
+Working notes for the next session: the user writes in Spanish; commits use
 `git -c user.name="Ricardo Monroy" -c user.email="ricardo@chupaprecios.com.mx"` (no git identity configured), no
 `Co-Authored-By`; shell is zsh (pass provider tokens with `A=("${(@f)$(jq -r '…token' file)}")`); the user's dev
 server usually runs on port 3000 against staging — don't kill it; agents cannot read or edit `.env*` (give the user the
@@ -138,6 +125,24 @@ Next (reusable / missing):
     Chupaprecios PWA, which never answer 5xx for search (upstream: Apollo RetryLink 5 attempts client-side only, no
     timeout, error shown as "No results found…"; Chupaprecios: SWR 3 retries, separate error and empty messages).
 
+11. Search slug vs Magento url key — DECIDED 2026-10-16 (user): **follow-up, no change now**. The legacy PWA builds
+    search card links with the same slug (`convertChapiToMagento.js:94`, non-ASCII → `-`; `Gallery/item.js:58`), and
+    its PDP on CHAPI stores reads only `[store, sku]` from the path and asks CHAPI (slug and Magento `route()` ignored;
+    no canonical, no robots meta, only `og:url`). Next keeps legacy parity (CHAPI render) plus `noindex` and the CHAPI
+    canonical. Switching to the Magento slug would make Magento render those products (indexable): a new SEO behavior,
+    not a parity fix. Note: legacy `generateUrlKey` (`product-full-details/src/helpers.js:182-189`) drops non-ASCII.
+12. Analytics — DECIDED 2026-10-16 (user): Next loads no GTM today and only the cart pushes to `window.dataLayer`
+    (private helper). New module `src/modules/analytics/` mirroring the legacy eventing pattern (components dispatch
+    domain events; the `google-tag-manager` package maps them to dataLayer via `canHandle`/`handle` + `safePush`):
+    domain events (typed), application `AnalyticsProvider` port + dispatcher fanning out to registered providers,
+    `infrastructure/gtm` mappers + safe push, ui `<GtmScript>` (only when `GTM_ID` is set), client `<AnalyticsProvider>`
+    with `useAnalytics().dispatch`, and `<TrackEvent>` for server pages. The cart moves to it (one push mechanism;
+    legacy has two in parallel). Legacy search payloads: `{event:'search', search_term, store}` on the first search or a
+    store change; `view_item_list` (`item_list_name 'Search Results'`, `item_list_id 'search_results'`) on every
+    non-empty response; never for chupachoice. Legacy pushes `price: NaN` and empty `item_brand` (bug); Next sends the
+    real price and brand. Sliders: `randomProducts(limit: 30, type: tendency|also_bought|recently)`, independent of the
+    query, under single-store results only after a CHAPI answer, hidden when empty.
+
 ## Tasks
 
 Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first with Vitest + MSW. Forecast well over 400
@@ -157,11 +162,16 @@ authored lines in total: one stacked PR per task.
 - [x] T4 (search UI; PRs #18 and #19; test 874, integration 71) Search UI: results grid (reuse `ProductCards`), sort selector, filters (refinements), pagination
   from CHAPI links (`storeParams`, `page` display only), empty state, error state with "Reintentar", fallback-store
   notice, ChupaChoice multi-store view; desktop and mobile. Check: unit + integration + visual check on staging.
-- [x] T5 (sku jump 44ad0f1; general placeholder fix + review fixes 90d7e4f; url-key hardening 7e801e0, all on `feat/phase-3-05-sku-search`, not merged; test 927, integration 81) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
+- [x] T5 (sku jump 44ad0f1; general placeholder fix + review fixes 90d7e4f; url-key hardening 7e801e0, PR #20 merged; test 927, integration 81) `*-search.html` SKU jump: do not trust Magento `route()` for `/{store}-{sku}-search.html` (placeholder
   product); resolve the product from CHAPI, render it on that URL with canonical = product canonical URL and `noindex`;
   bots → no CHAPI (phase 1 missing-product rule). Fixes the "Carmina Earrings" bug. Check: unit + integration.
-- [ ] T6 Extras: GTM `SEARCH_REQUEST`/`SEARCH_RESPONSE` dataLayer events; recommendation sliders
-  (Crossell/Upsell/Recommender from Magento `randomProducts`) under the results. Check: unit + integration.
+- [x] T6a (route: delegated, writer trigger 2+ non-trivial files; `src/modules/analytics/**`, env `GTM_ID`, root layout, cart migrated; work-unit commit `feat(analytics): …`; test 951, integration 83) Analytics module + GTM loader (decision 12):
+  `src/modules/analytics/**`, `<GtmScript>` in the root layout behind `GTM_ID`, `<AnalyticsProvider>`, migrate the
+  cart add-to-cart event to it (same dataLayer payload). Check: unit + integration + build.
+- [ ] T6b (route: delegated) Search events: `search` and `view_item_list` via the analytics module from the search
+  page (single store only, not bots/empty query), real price and brand. Check: unit + integration.
+- [ ] T6c (route: delegated) Recommendation sliders (Crossell/Upsell/Recommender) from Magento `randomProducts` under
+  single-store results; recorded staging fixture. Check: unit + integration.
 - [ ] T7 Ops and docs: phase 3 routing doc (delete the temporary search rules 5 and 6 of phase 2; prerender
   exclusions), env vars, phase 3 report, e2e smoke for search. Check: full suite + build.
 
@@ -283,9 +293,32 @@ Same as phase 2: `ask-on-risk`, chain `stacked-to-main`; one PR per task slice.
   legacy square `AcmeLogo`, added as `public/images/search/stores/acme.svg`. Kept a "Reintentar" link in the error
   box (not in the legacy). Roboto Flex is already the base font. Unit 867, integration 71, build pass.
 
+- 2026-10-16: T6a implemented (delegated writer, branch `feat/phase-3-06-search-extras`). Module
+  `src/modules/analytics/`: domain `AnalyticsEvent` union (`ProductAddedToCart` {sku, name, unitPrice, quantity},
+  `SearchRequested` {query, store}, `SearchResultsViewed` {query, store, items {sku, name, price|null, brand|null,
+  index 1-based}}); application `AnalyticsProvider` port + `createAnalyticsDispatcher` (fan-out in order; a throwing or
+  rejecting provider goes to `onError` and never reaches the caller or the next providers); `infrastructure/gtm`
+  `toDataLayerObject` (add_to_cart identical to the old cart payload; `search`; `view_item_list` with the real price,
+  `0`/`''` for null price/brand, null for an empty list), `pushToDataLayer` (no-op server-side or without
+  `window.dataLayer`, try/catch), `gtmAnalyticsProvider`, snippet builders, `getGtmContainerId` (server-only); ui
+  `<GtmScript>` (inline standard GTM snippet + noscript iframe, first in `<body>` so `dataLayer` exists before
+  hydration; nothing without `GTM_ID`), client `<AnalyticsProvider>`/`useAnalytics()` (context defaults to the GTM
+  dispatcher; optional `dispatcher` prop for tests) wrapping header/main/footer in the root layout, and `<TrackEvent>`
+  (dispatches once per mount, StrictMode-safe; T6b should key it by query/store). Env `GTM_ID` (optional, strict
+  `^GTM-[A-Z0-9]+$` because it is inlined in a script). Cart: `buildAddToCartDataLayerEvent` replaced by
+  `buildProductAddedToCartEvent` (null without a price, same as before); `add-to-cart.client.tsx` dispatches it through
+  `useAnalytics()`, private `pushDataLayer` removed; the cart UI test now asserts the exact pushed payload. No CSP in
+  the app (no middleware/proxy, no `headers()` in `next.config.ts`), so nothing to allow. `.env.example` and
+  `docs/environment.md` still need `GTM_ID` (user edit / T7). RED: 8 unit files failed (6 at import), 4 tests failed
+  (env GTM_ID, cart event builder); GREEN: 162 focused tests. Integration `tests/integration/analytics.test.ts` (+2,
+  two servers from one build, `GTM_ID` unset vs set) green on the first run (not run against the base build). Checks:
+  typecheck, lint (0 errors, 1 pre-existing warning), unit (951), integration (83), build pass — with the stale
+  dev-server types `.next/dev/types` (2026-10-13, reference removed routes `[...path]`, `page`) moved aside during the
+  checks and restored afterwards; with them in place `pnpm typecheck` and `pnpm build` fail on those files only.
+
 ## Next step
 
-See "Resume here" at the top of this file (handoff 2026-10-15). Entries below are the detailed T5 log.
+See "Resume here" at the top of this file. Entries below are the detailed T5 log.
 
 - 2026-10-15: decision (user): the acme base64url `-` SKU limitation (e.g. `~~~` → `fn5-`, read back as `~~`) stays
   as is for now — inherited from the legacy PWA and phase 1 product URLs. Follow-up before any format change: count how

@@ -148,6 +148,18 @@ const serverEnvSchema = z.object({
   ORGANIZATION_LOGO_URL: z.preprocess(blankAsUndefined, httpUrl.optional()),
   /** Official social profiles for Organization `sameAs` (comma-separated urls). */
   ORGANIZATION_SAME_AS: urlList,
+  /**
+   * Google Tag Manager container (`GTM-…`); GTM is not loaded when unset.
+   * Strict format: the id is inlined in the GTM loader script.
+   */
+  GTM_ID: z.preprocess(
+    blankAsUndefined,
+    z
+      .string()
+      .trim()
+      .regex(/^GTM-[A-Z0-9]+$/, 'Expected a GTM container id such as GTM-AB12CD')
+      .optional(),
+  ),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

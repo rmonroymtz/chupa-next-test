@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useAnalytics } from '@/modules/analytics/ui/analytics-provider.client';
 import {
-  buildAddToCartDataLayerEvent,
   buildCartItem,
+  buildProductAddedToCartEvent,
   clampQuantity,
   evaluatePurchase,
   extractVendor,
@@ -40,6 +41,7 @@ interface AddToCartProps {
  */
 export function AddToCart({ product }: AddToCartProps) {
   const id = useId();
+  const analytics = useAnalytics();
   const [quantity, setQuantity] = useState(1);
   const [selections, setSelections] = useState<OptionSelections>({});
   const [adding, setAdding] = useState(false);
@@ -91,7 +93,8 @@ export function AddToCart({ product }: AddToCartProps) {
         return;
       }
       show({ kind: 'success', message: ADDED });
-      pushDataLayer(buildAddToCartDataLayerEvent(product, evaluation.unitPrice, units));
+      const added = buildProductAddedToCartEvent(product, evaluation.unitPrice, units);
+      if (added) analytics.dispatch(added);
     } catch {
       show({ kind: 'error', message: FAILED });
     } finally {
@@ -221,15 +224,4 @@ function QuantityStepper({ value, cap, onChange }: QuantityStepperProps) {
       </button>
     </div>
   );
-}
-
-/** Same guard as the legacy `safePush`: only when GTM created `dataLayer`. */
-function pushDataLayer(event: object | null): void {
-  if (!event) return;
-  try {
-    const { dataLayer } = window as unknown as { dataLayer?: unknown[] };
-    dataLayer?.push(event);
-  } catch {
-    // Analytics never breaks the purchase flow.
-  }
 }
