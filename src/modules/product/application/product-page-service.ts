@@ -164,13 +164,18 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
   }
 
   /**
-   * Magento `route()` answers a placeholder PRODUCT for any vendor-shaped url
-   * it does not have (production: `url_key` null, `relative_url` echoing the
-   * request; staging: `url_key: carmina-earrings`), with a sku that is not the
-   * url's. Conservative rule: the product is ignored (the url is treated as
-   * missing from Magento) only when its sku is not in the url AND its own
-   * `url_key + url_suffix` is not the requested url (case-insensitive, path
-   * decoded once). Urls that are not vendor product urls trust Magento.
+   * Magento `route()` answers a placeholder PRODUCT for urls it does not have
+   * (production: `url_key` null, `relative_url` echoing the request; staging:
+   * `url_key: carmina-earrings`), with a sku that is not the url's, for vendor
+   * product urls and for any other url (`/walmart-123456-search.html`).
+   * Conservative rule: the product is ignored (the url is treated as missing
+   * from Magento) only when its sku is not in the url AND its own
+   * `url_key + url_suffix` is not the requested url key (last path segment,
+   * case-insensitive, path decoded once). Only vendor product urls carry a
+   * sku, so for any other url the url key alone decides: the legacy PWA looks
+   * those products up by url key and never renders the route answer as is.
+   * The caller then runs the vendor missing-product flow, or the plain 404
+   * for any other url.
    */
   function isPlaceholder(
     pathname: string,
@@ -178,25 +183,36 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     product: MagentoProduct,
     searchParams: URLSearchParams,
   ): boolean {
+    // null: not a vendor product url, so there is no sku to match.
     const skuMatches = matchesProductUrlSku(pathname, product.sku, {
       vendors: deps.vendors,
       suffix,
       searchParams,
     });
-    if (skuMatches !== false || isOwnUrl(product, routeUrl)) return false;
+    if (skuMatches === true || isOwnUrl(product, routeUrl)) return false;
     deps.metrics.emitMetric({ name: 'MagentoPlaceholderIgnored', value: 1 });
     deps.logger.info(
-      { path: pathname, magentoSku: product.sku, magentoUrl: product.relativeUrl },
+      {
+        path: pathname,
+        urlKind: skuMatches === null ? 'other' : 'vendor_product',
+        magentoSku: product.sku,
+        magentoUrl: product.relativeUrl,
+      },
       'magento placeholder ignored',
     );
     return true;
   }
 
-  /** Whether the product's own `url_key + url_suffix` is the requested url. */
+  /**
+   * Whether the product's own `url_key + url_suffix` is the requested url key:
+   * the last path segment, so a product served under a category path
+   * (`hogar/house-brand-mug.html`) is still its own url.
+   */
   function isOwnUrl(product: MagentoProduct, routeUrl: string): boolean {
     if (product.urlKey === '') return false;
     const ownUrl = `${product.urlKey}${product.urlSuffix ?? suffix}`;
-    return ownUrl.toLowerCase() === routeUrl.toLowerCase();
+    const requestedUrl = routeUrl.slice(routeUrl.lastIndexOf('/') + 1);
+    return ownUrl.toLowerCase() === requestedUrl.toLowerCase();
   }
 
   function missing(

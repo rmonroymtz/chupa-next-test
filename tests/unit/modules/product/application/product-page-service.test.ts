@@ -92,7 +92,11 @@ describe('product page service', () => {
 
     it('does not ask for a copy when the Magento url is not a vendor product url', async () => {
       const repository = new FakeMagentoProductRepository({
-        'house-brand-mug.html': { ...PRODUCT, relativeUrl: 'house-brand-mug.html' },
+        'house-brand-mug.html': {
+          ...PRODUCT,
+          urlKey: 'house-brand-mug',
+          relativeUrl: 'house-brand-mug.html',
+        },
       });
       const { logger, metrics } = createCapturingObservability();
       const service = createProductPageService({
@@ -452,12 +456,6 @@ describe('product page service', () => {
       },
     );
 
-    it('trusts Magento for urls that are not vendor product urls', async () => {
-      const { resolve } = withProducts({ 'house-brand-mug.html': placeholder });
-
-      expect((await resolve('/house-brand-mug.html', false)).kind).toBe('magento_product');
-    });
-
     it('sends a -search.html url whose sku contains "-" through Magento and ignores its placeholder', async () => {
       // Not the sku jump: parseProductUrl reads only `ABC` (legacy split), so the
       // jump could not look up `ABC-123`; the legacy header never builds such urls.
@@ -471,6 +469,118 @@ describe('product page service', () => {
         origin: 'product_url',
       });
       expect(repository.calls).toEqual(['amazon-ABC-123-search.html']);
+    });
+  });
+
+  describe('Magento placeholder product for urls that are not vendor product urls', () => {
+    // Verified live on the dev server (production Magento): `/walmart-123456-search.html`
+    // answered the placeholder PRODUCT (`url_key` null, `relative_url` echoing the request).
+    function withProducts(products: Record<string, MagentoProduct>) {
+      const repository = new FakeMagentoProductRepository(products);
+      const observability = createCapturingObservability();
+      const service = createProductPageService({
+        products: repository,
+        vendors: VENDORS,
+        publicBaseUrl: BASE,
+        logger: observability.logger,
+        metrics: observability.metrics,
+      });
+      const resolve = (pathname: string, isBot: boolean) =>
+        service.resolve({ pathname, searchParams: new URLSearchParams(), isBot });
+      return { repository, observability, resolve };
+    }
+
+    const placeholderFor = (relativeUrl: string, fields: Partial<MagentoProduct>) => ({
+      ...PRODUCT,
+      sku: 'urllocator-external-placeholder',
+      name: 'External URL Placeholder',
+      relativeUrl,
+      ...fields,
+    });
+
+    it.each([
+      ['production (no url key)', '/walmart-123456-search.html', { urlKey: '' }],
+      ['production (no url key)', '/walmart-123456-foo.html', { urlKey: '' }],
+      [
+        'staging (`carmina-earrings`)',
+        '/homedepot-123-search.html',
+        { urlKey: 'carmina-earrings', urlSuffix: '.html', sku: 'VA11-GO-NA' },
+      ],
+    ])('ignores a %s placeholder at %s: 404 for users and bots', async (_label, path, fields) => {
+      const routeUrl = path.slice(1);
+      const { resolve, repository, observability } = withProducts({
+        [routeUrl]: placeholderFor(routeUrl, fields),
+      });
+
+      expect(await resolve(path, false)).toEqual({ kind: 'not_found', case: null });
+      expect(await resolve(path, true)).toEqual({ kind: 'not_found', case: null });
+      expect(repository.calls).toEqual([routeUrl, routeUrl]);
+      expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toHaveLength(2);
+      expect(observability.metricsNamed('PdpOutcome')).toEqual([]);
+      expect(observability.logLines).toContainEqual(
+        expect.objectContaining({ msg: 'magento placeholder ignored', path, urlKind: 'other' }),
+      );
+    });
+
+    it.each([
+      ['its url key + suffix', '/house-brand-mug.html', 'house-brand-mug.html'],
+      ['a different case', '/House-Brand-Mug.html', 'house-brand-mug.html'],
+      [
+        'a category path (last segment)',
+        '/hogar/cocina/house-brand-mug.html',
+        'house-brand-mug.html',
+      ],
+      ['an encoded character', '/house-brand-mug%C3%B1.html', 'house-brand-mugñ.html'],
+    ])('keeps a real product requested at %s (index)', async (_label, path, relativeUrl) => {
+      const real = {
+        ...PRODUCT,
+        sku: 'HOUSE-MUG-01',
+        name: 'House Brand Mug',
+        urlKey: relativeUrl.replace('.html', ''),
+        urlSuffix: '.html',
+        relativeUrl,
+      };
+      const { resolve, observability } = withProducts({
+        [decodeURIComponent(path.slice(1))]: real,
+      });
+
+      for (const isBot of [false, true]) {
+        expect(await resolve(path, isBot)).toMatchObject({
+          kind: 'magento_product',
+          product: real,
+          robots: { index: true, follow: true },
+        });
+      }
+      expect(observability.metricsNamed('MagentoPlaceholderIgnored')).toEqual([]);
+    });
+
+    it('uses the configured suffix when Magento gives none', async () => {
+      const real: MagentoProduct = {
+        ...PRODUCT,
+        urlKey: 'house-brand-mug',
+        relativeUrl: 'house-brand-mug.html',
+      };
+      delete (real as { urlSuffix?: string }).urlSuffix;
+      const { resolve } = withProducts({ 'house-brand-mug.html': real });
+
+      expect((await resolve('/house-brand-mug.html', false)).kind).toBe('magento_product');
+    });
+
+    it('does not trust a product whose url key is only a suffix of the requested key', async () => {
+      const { resolve } = withProducts({
+        'walmart-123456-house-brand-mug.html': placeholderFor(
+          'walmart-123456-house-brand-mug.html',
+          {
+            urlKey: 'house-brand-mug',
+            urlSuffix: '.html',
+          },
+        ),
+      });
+
+      expect(await resolve('/walmart-123456-house-brand-mug.html', false)).toEqual({
+        kind: 'not_found',
+        case: null,
+      });
     });
   });
 
