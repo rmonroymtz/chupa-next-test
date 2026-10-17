@@ -64,7 +64,7 @@ export function ChupaChoiceSection({
           <a
             href={storeTabHref(query, store)}
             aria-label={`Ver más productos de ${label}`}
-            className="inline-flex items-center justify-center gap-1 text-center text-[20px] leading-[50px] font-light text-brand-yellow uppercase"
+            className="inline-flex items-center justify-center gap-1 text-center text-[20px] leading-[50px] font-light text-ds-amber uppercase"
           >
             Ver <span className="text-[42px] font-bold">MÁS</span> productos
             <Chevron />
@@ -146,18 +146,18 @@ function ChupaChoiceItem({ item }: { readonly item: SearchItem }) {
               {discount > 0 ? (
                 <>
                   <div data-search-discount className="flex flex-col items-start gap-0.5">
-                    <p className="m-0 text-[10px] leading-none font-normal text-brand-red uppercase">
+                    <p className="m-0 text-[10px] leading-none font-normal text-ds-accent uppercase">
                       Promoción
                     </p>
-                    <p className="m-0 text-[20px] leading-[34px] font-bold text-brand-red max-[359px]:text-[14px] max-[359px]:leading-5">
+                    <p className="m-0 text-[20px] leading-[34px] font-bold text-ds-accent max-[359px]:text-[14px] max-[359px]:leading-5">
                       {discount}%
                     </p>
                   </div>
-                  <div className="w-px self-stretch bg-neutral-inactive" />
+                  <div className="w-px self-stretch bg-ds-surface-muted" />
                 </>
               ) : null}
               <div data-search-price className="flex flex-col items-end gap-0.5">
-                <p className="m-0 text-[10px] leading-none font-normal text-neutral-black-base uppercase">
+                <p className="m-0 text-[10px] leading-none font-normal text-ds-text uppercase">
                   Precio final
                 </p>
                 <p className="m-0 text-[20px] leading-[34px] font-bold max-[359px]:text-[14px] max-[359px]:leading-5">

@@ -196,7 +196,7 @@ describe('site layout', () => {
       })),
     );
     const faces = sheets.flatMap(({ url, css }) => fontFaces(css, url));
-    for (const family of ['Roboto Flex', 'Noto Sans', 'Montserrat']) {
+    for (const family of ['Inter', 'Roboto Flex']) {
       const ofFamily = faces.filter((face) => face.family === family);
       expect(ofFamily.length, family).toBeGreaterThan(0);
       for (const face of ofFamily) {
@@ -212,11 +212,7 @@ describe('site layout', () => {
     // carries the classes that define them.
     const css = sheets.map((sheet) => sheet.css).join('\n');
     const htmlClasses = /<html[^>]*class="([^"]*)"/.exec(page)?.[1]?.split(/\s+/) ?? [];
-    for (const variable of [
-      '--next-font-roboto-flex',
-      '--next-font-noto-sans',
-      '--next-font-montserrat',
-    ]) {
+    for (const variable of ['--next-font-inter', '--next-font-roboto-flex']) {
       expect(css).toContain(`var(${variable},`);
       const definedBy = [...css.matchAll(new RegExp(`\\.([\\w-]+)\\{[^}]*${variable}:`, 'g'))].map(
         (match) => match[1]!,

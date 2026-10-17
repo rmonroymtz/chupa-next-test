@@ -34,18 +34,18 @@ export function MagentoProductView({
       <div className="grid gap-8 lg:grid-cols-2">
         <ProductGallery images={product.images} alt={product.name} loadingStrategy="preload" />
         <div className="flex flex-col gap-4">
-          {product.brand ? <p className="text-sm text-neutral-600">{product.brand}</p> : null}
-          <h1 className="text-2xl font-semibold text-neutral-900">{product.name}</h1>
+          {product.brand ? <p className="text-sm text-ds-text-secondary">{product.brand}</p> : null}
+          <h1 className="text-2xl font-semibold text-ds-neutral-950">{product.name}</h1>
           <MagentoProductPrice product={product} />
           <AvailabilityBadge availability={product.availability} />
           {outOfStock ? (
-            <p className="text-sm text-neutral-700">
+            <p className="text-sm text-ds-text">
               Este producto está agotado por ahora. Revisa las alternativas más abajo.
             </p>
           ) : null}
           {product.shortDescriptionHtml ? (
             <div
-              className="text-sm text-neutral-700"
+              className="text-sm text-ds-text"
               dangerouslySetInnerHTML={{ __html: product.shortDescriptionHtml }}
             />
           ) : null}
@@ -58,7 +58,7 @@ export function MagentoProductView({
             Descripción
           </h2>
           <div
-            className="space-y-2 text-neutral-800"
+            className="space-y-2 text-ds-text"
             dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
           />
         </section>

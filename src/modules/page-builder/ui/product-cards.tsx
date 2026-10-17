@@ -66,13 +66,13 @@ function Rating({ value }: { readonly value: number }) {
       aria-label={`Calificación: ${rating.toFixed(1)} de 5 estrellas`}
       className="relative inline-flex w-fit"
     >
-      <Stars className="text-gray-300" />
+      <Stars className="text-ds-neutral-300" />
       <div
         data-rating-fill
         className="absolute inset-y-0 left-0 overflow-hidden"
         style={{ width: `${Math.round((rating / 5) * 100)}%` }}
       >
-        <Stars className="text-amber-500" />
+        <Stars className="text-ds-amber" />
       </div>
     </div>
   );

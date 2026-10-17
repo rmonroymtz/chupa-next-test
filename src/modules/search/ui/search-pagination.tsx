@@ -10,7 +10,7 @@ interface SearchPaginationProps {
 }
 
 // Same look as the category pagination.
-const LINK = 'flex h-10 min-w-10 items-center justify-center rounded px-3 text-sm';
+const LINK = 'flex h-10 min-w-10 items-center justify-center rounded-xs px-3 text-sm';
 
 /**
  * Page links from CHAPI data: previous, the pages CHAPI links (it reports no
@@ -29,7 +29,7 @@ export function SearchPagination({ pagination, page, location }: SearchPaginatio
       <ul className="flex flex-wrap items-center justify-center gap-1">
         {prev ? (
           <li>
-            <a href={link(prev)} className={`${LINK} hover:bg-neutral-inactive`}>
+            <a href={link(prev)} className={`${LINK} hover:bg-ds-surface-muted`}>
               Anterior
             </a>
           </li>
@@ -37,13 +37,13 @@ export function SearchPagination({ pagination, page, location }: SearchPaginatio
         {pages.map((entry, index) => (
           <li key={`${index}-${entry.page}`}>
             {entry.link === null ? (
-              <span aria-current="page" className={`${LINK} bg-brand-red font-semibold text-white`}>
+              <span aria-current="page" className={`${LINK} bg-ds-cta font-semibold text-white`}>
                 {entry.page}
               </span>
             ) : (
               <a
                 href={link({ page: entry.page, link: entry.link })}
-                className={`${LINK} hover:bg-neutral-inactive`}
+                className={`${LINK} hover:bg-ds-surface-muted`}
               >
                 {entry.page}
               </a>
@@ -52,7 +52,7 @@ export function SearchPagination({ pagination, page, location }: SearchPaginatio
         ))}
         {next ? (
           <li>
-            <a href={link(next)} className={`${LINK} hover:bg-neutral-inactive`}>
+            <a href={link(next)} className={`${LINK} hover:bg-ds-surface-muted`}>
               Siguiente
             </a>
           </li>

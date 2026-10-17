@@ -12,13 +12,13 @@ export function ProductSkeleton() {
     >
       <span className="sr-only">Cargando producto…</span>
       <div className="grid animate-pulse gap-8 lg:grid-cols-2" aria-hidden="true">
-        <div className="aspect-square w-full rounded-lg bg-neutral-200" />
+        <div className="aspect-square w-full rounded-md bg-ds-neutral-200" />
         <div className="flex flex-col gap-4">
-          <div className="h-4 w-1/4 rounded bg-neutral-200" />
-          <div className="h-8 w-3/4 rounded bg-neutral-200" />
-          <div className="h-10 w-1/3 rounded bg-neutral-200" />
-          <div className="h-6 w-1/5 rounded bg-neutral-200" />
-          <div className="h-24 w-full rounded bg-neutral-200" />
+          <div className="h-4 w-1/4 rounded-xs bg-ds-neutral-200" />
+          <div className="h-8 w-3/4 rounded-xs bg-ds-neutral-200" />
+          <div className="h-10 w-1/3 rounded-xs bg-ds-neutral-200" />
+          <div className="h-6 w-1/5 rounded-xs bg-ds-neutral-200" />
+          <div className="h-24 w-full rounded-xs bg-ds-neutral-200" />
         </div>
       </div>
     </div>

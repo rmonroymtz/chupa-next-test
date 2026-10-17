@@ -1,69 +1,165 @@
 @import 'tailwindcss';
 
 /*
- * Theme tokens ported from the legacy PWA Studio theme
- * (`@chupaprecios/pwa-ch-theme`: tokens/colors.js, tokens/typography.js,
- * tokens/figma-variables.js and tailwind.preset.js). Names follow the legacy
- * Tailwind class names (`bg-brand-red`, `text-marketplace-amazon`,
- * `border-ch-logo-red`, `max-w-site`...) so styles read alike in both apps.
+ * Design system (DS) tokens, ported 1:1 from the PWA's canonical spec
+ * `chupaprecios-pwa/src/designSystem/tokens.js` (System Design v3.0, "the
+ * fidelity contract"). Do not copy the generated `tokens.css`: its font
+ * weights carry a wrong `px` suffix.
  *
- * Not ported: the legacy named spacing (`p-xs`, `gap-md`...), because Tailwind
- * v4 also resolves `max-w-*` against `--spacing-*` and would change
- * `max-w-sm`/`max-w-md`; use the numeric scale (legacy 2xs = 2, xs = 4,
- * sm = 6, md = 8, lg = 12). Breakpoints already match Tailwind's defaults.
+ * Colors live under the `ds-` namespace in two tiers: primitives (raw scales)
+ * and semantic roles that point at them (`bg-ds-cta`, `text-ds-text`...).
+ * Components use the semantic roles; primitives are for the rare case no role
+ * fits. Red rule (HANDOFF.md): `ds-cta` (#BE424B) fills interactive controls,
+ * `ds-accent` (#D84752) is the brand anchor for offer prices, accents and the
+ * focus ring, `ds-logo` (#FF0000) is the logo only.
+ *
+ * Breakpoints: the DS grid uses 768 (`md`) and 1024 (`lg`), which are
+ * Tailwind's defaults. `sm`/`xl`/`2xl` stay available until the header and
+ * other legacy layouts are rebuilt on the DS grid.
  */
 @theme {
-  /* Brand (tokens/colors.js `brand` + preset `brandColors` scale). */
-  --color-brand-red: #d84752;
-  --color-brand-muted-red: #be424b;
-  --color-brand-yellow: #fdaa40;
-  --color-brand-base: #d84752;
-  --color-brand-dark: #be424b;
-  --color-brand-darkest: #af1e26;
-  --color-brand-light: #fdaa40;
-  --color-brand-100: #fdaa40;
-  --color-brand-400: #d84752;
-  --color-brand-600: #be424b;
-  --color-brand-700: #af1e26;
-  --color-brand-800: #a01921;
+  /* ── Primitive scales ─────────────────────────────────────────────────── */
 
-  /* Marketplaces (tokens/colors.js; acme and chupachoice from the search bar `STORE_CONFIGS`). */
+  /* Brand UI red (rose). 600 is the brand anchor, 700–900 interactive states. */
+  --color-ds-primary-50: #fff1f2;
+  --color-ds-primary-100: #ffe4e6;
+  --color-ds-primary-200: #fecdd3;
+  --color-ds-primary-300: #fda4af;
+  --color-ds-primary-400: #fb7185;
+  --color-ds-primary-500: #f43f5e;
+  --color-ds-primary-600: #d84752;
+  --color-ds-primary-700: #be424b;
+  --color-ds-primary-800: #9f1239;
+  --color-ds-primary-900: #881337;
+
+  /* Neutral scale (only the greys of the V3 manual). */
+  --color-ds-neutral-0: #ffffff;
+  --color-ds-neutral-50: #f8f8f8;
+  --color-ds-neutral-100: #f0f0f0;
+  --color-ds-neutral-200: #e5e7eb;
+  --color-ds-neutral-300: #c7c7c7;
+  --color-ds-neutral-350: #bbbbbb;
+  --color-ds-neutral-400: #aaaaaa;
+  --color-ds-neutral-550: #6e6e6e;
+  --color-ds-neutral-800: #3b3b3b;
+  --color-ds-neutral-950: #1a1a1a;
+  --color-ds-neutral-1000: #000000;
+
+  /* Brand identity: the logo only, never interactive UI. */
+  --color-ds-logo: #ff0000;
+
+  /* Ecommerce accent hues: green trust/new, amber stars/featured,
+     orange urgency, teal free shipping. */
+  --color-ds-green: #10b981;
+  --color-ds-amber: #fdaa40;
+  --color-ds-orange: #f96304;
+  --color-ds-teal: #0c7bb2;
+
+  /* ── Semantic roles ───────────────────────────────────────────────────── */
+
+  /* Interactive. */
+  --color-ds-cta: var(--color-ds-primary-700);
+  --color-ds-cta-hover: var(--color-ds-primary-800);
+  --color-ds-cta-pressed: var(--color-ds-primary-900);
+  --color-ds-focus: var(--color-ds-primary-600);
+  --color-ds-disabled: var(--color-ds-neutral-350);
+  --color-ds-selection: var(--color-ds-primary-50);
+
+  /* Brand anchor: offer prices, accents. */
+  --color-ds-accent: var(--color-ds-primary-600);
+
+  /* Text. */
+  --color-ds-text: var(--color-ds-neutral-800);
+  --color-ds-text-secondary: var(--color-ds-neutral-550);
+  --color-ds-text-tertiary: var(--color-ds-neutral-400);
+  --color-ds-text-disabled: var(--color-ds-neutral-300);
+  --color-ds-text-inverse: var(--color-ds-neutral-0);
+  --color-ds-text-on-cta: var(--color-ds-neutral-0);
+  --color-ds-link: var(--color-ds-primary-700);
+  --color-ds-text-error: var(--color-ds-primary-700);
+  --color-ds-text-success: var(--color-ds-green);
+
+  /* Surfaces. */
+  --color-ds-surface: var(--color-ds-neutral-0);
+  --color-ds-surface-subtle: var(--color-ds-neutral-50);
+  --color-ds-surface-muted: var(--color-ds-neutral-100);
+  --color-ds-surface-inverse: var(--color-ds-neutral-950);
+  --color-ds-surface-brand: var(--color-ds-primary-50);
+  --color-ds-overlay: rgb(26 26 26 / 0.6);
+
+  /* Borders. */
+  --color-ds-border: var(--color-ds-neutral-200);
+  --color-ds-border-subtle: var(--color-ds-neutral-100);
+  --color-ds-border-strong: var(--color-ds-neutral-800);
+  --color-ds-border-error: var(--color-ds-primary-700);
+  --color-ds-border-success: var(--color-ds-green);
+
+  /* Feedback: text over any `*-bg` is always `ds-text`. */
+  --color-ds-success: var(--color-ds-green);
+  --color-ds-success-bg: #ecfdf5;
+  --color-ds-error: #ef4444;
+  --color-ds-error-bg: #fef2f2;
+  --color-ds-warning: #f5af02;
+  --color-ds-warning-bg: #fffbeb;
+  --color-ds-info: #0064d2;
+  --color-ds-info-bg: #eff6ff;
+
+  /* Third-party store colors (not part of the DS: each store's own brand). */
   --color-marketplace-home-depot: #f96302;
   --color-marketplace-amazon: #ff9901;
   --color-marketplace-ebay: #8ab94a;
   --color-marketplace-target: #cc0000;
   --color-marketplace-acme: #ffcb05;
-  --color-marketplace-chupachoice: #d84752;
+  --color-marketplace-chupachoice: var(--color-ds-accent);
 
-  /* Neutrals. */
-  --color-neutral-black: #000000;
-  --color-neutral-dark-grey: #343434;
-  --color-neutral-black-base: #3b3b3b;
-  --color-neutral-medium-grey-dark: #707070;
-  --color-neutral-grey: #7e7e7e;
-  --color-neutral-medium-grey: #aaaaaa;
-  --color-neutral-inactive: #f0f0f0;
-  --color-neutral-background: #f8f8f8;
-  --color-neutral-white: #ffffff;
+  /* ── Typography ───────────────────────────────────────────────────────── */
 
-  /* Feedback and accents. */
-  --color-feedback-success: #bdf0d3;
-  --color-feedback-warning: #ffebb4;
-  --color-feedback-error: #ffb4ba;
-  --color-accent-decoration-orange: #ff9f0f;
+  /* DS type scale (desktop values, size / line in px). Display XL…H2 pair
+     with `font-display` (Roboto Flex); H3 and below with the body font. */
+  --text-display-xl: 3.5rem;
+  --text-display-xl--line-height: 4rem;
+  --text-display-xl--font-weight: 700;
+  --text-display-l: 3rem;
+  --text-display-l--line-height: 3.5rem;
+  --text-display-l--font-weight: 700;
+  --text-display-m: 2.5rem;
+  --text-display-m--line-height: 3rem;
+  --text-display-m--font-weight: 700;
+  --text-h1: 2rem;
+  --text-h1--line-height: 2.5rem;
+  --text-h1--font-weight: 700;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 700;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.75rem;
+  --text-h3--font-weight: 600;
+  --text-h4: 1.125rem;
+  --text-h4--line-height: 1.625rem;
+  --text-h4--font-weight: 600;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 0.875rem;
+  --text-body-md--line-height: 1.25rem;
+  --text-body-md--font-weight: 400;
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-body-sm--font-weight: 400;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
+  --text-label--font-weight: 500;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 400;
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1rem;
+  --text-overline--font-weight: 500;
+  --text-overline--letter-spacing: 0.06em;
 
-  /* Legacy `ch-*` aliases still used across the PWA Studio CSS. */
-  --color-ch-red: #ff0000;
-  --color-ch-logo-red: #d84752;
-  --color-ch-muted-red: #be424b;
-  --color-ch-yellow: #fdaa40;
-  --color-ch-black: #000000;
-  --color-ch-dark-grey: #343434;
-  --color-ch-text: #3b3b3b;
-  --color-ch-grey: #7e7e7e;
-  --color-ch-medium-grey: #aaaaaa;
-
-  /* Type scale (preset `fontSize`, every step with line-height 1.5). */
+  /* Legacy size steps (ch-theme preset, line-height 1.5) still used by the
+     current components; they move to the DS roles above as each surface is
+     rebuilt. */
   --text-2xs: 0.6875rem;
   --text-2xs--line-height: 1.5;
   --text-xs: 0.75rem;
@@ -87,50 +183,78 @@
   --text-responsive-title: clamp(1.25rem, 1.8vw, 1.875rem);
   --text-responsive-subtitle: clamp(1rem, 1.8vw, 1.625rem);
 
-  /* Radii (figma-variables `borderRadius` + semantic aliases). */
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 24px;
-  --radius-3xl: 32px;
-  --radius-box: 8px;
-  --radius-button: 9999px;
-  --radius-input: 8px;
-  --radius-badge: 8px;
+  /* ── Space · Radius · Elevation ───────────────────────────────────────── */
 
-  /* Layout. */
-  --container-site: 1600px;
-  --shadow-header: 0 1px 3px 0 #00000029;
+  /* DS 8pt space scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80) is exactly
+     Tailwind's numeric scale: DS space-N = `p-N`, `gap-N`... */
+  --spacing: 0.25rem;
+
+  /* DS radius scale only (V3 "Forma" board): xs badges, sm skeletons,
+     md inputs/images, lg cards/modals/drawer, pill buttons/chips/search. */
+  --radius-*: initial;
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* Elevation 1 cards/inputs/chips, 2 dropdowns/tooltips, 3 modals/sidebars,
+     4 floating notifications. Never jump more than 2 levels between related
+     elements. */
+  --shadow-elevation-1: 0 1px 3px rgb(0 0 0 / 0.08);
+  --shadow-elevation-2: 0 4px 12px rgb(0 0 0 / 0.1);
+  --shadow-elevation-3: 0 8px 24px rgb(0 0 0 / 0.14);
+  --shadow-elevation-4: 0 16px 40px rgb(0 0 0 / 0.18);
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+
+  /* DS grid: 1260px content inside the 1440px desktop reference frame. */
+  --container-content: 1260px;
+  --container-frame: 1440px;
 }
 
 /*
  * Font families. The variables are set by `next/font` (self-hosted, see
  * `src/modules/layout/ui/fonts.ts`) on <html>; `inline` makes utilities use
- * them directly. Legacy: Roboto Flex is the base font, Noto Sans the
- * megamenu, Montserrat the footer text. Each `var()` carries a fallback: an
- * undefined variable without one would invalidate the whole font-family list.
+ * them directly. DS: Inter is the body font (`font-sans`, the page default),
+ * Roboto Flex the display font (`font-display`) for Display XL…H2. Each
+ * `var()` carries a fallback: an undefined variable without one would
+ * invalidate the whole font-family list.
  */
 @theme inline {
-  --font-sans: var(--next-font-roboto-flex, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
-  --font-roboto: var(--next-font-roboto-flex, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
-  --font-noto: var(--next-font-noto-sans, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
-  --font-montserrat:
-    var(--next-font-montserrat, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--next-font-inter, ui-sans-serif), system-ui, -apple-system, sans-serif;
+  --font-display: var(--next-font-roboto-flex, ui-sans-serif), system-ui, -apple-system, sans-serif;
 }
 
-/* Legacy `.container-padded` (preset utility): 1600px site column with 1rem gutters. */
+/*
+ * DS Container (`chupaprecios-pwa` `designSystem/layout/grid.module.css`):
+ * content-box, so `max-width` is the content width and the padding is the
+ * grid side margin: 20px, 30px from 768px, 90px from 1024px. No
+ * `width: 100%`: with content-box it would add the margins on top of the
+ * parent width and overflow; a block already fills its parent.
+ */
 @utility container-padded {
-  width: 100%;
-  max-width: var(--container-site);
+  box-sizing: content-box;
+  max-width: var(--container-content);
   margin-inline: auto;
-  padding-inline: 1rem;
+  padding-inline: 20px;
+
+  @media (width >= 768px) {
+    padding-inline: 30px;
+  }
+
+  @media (width >= 1024px) {
+    padding-inline: 90px;
+  }
 }
 
 @layer base {
   body {
-    background-color: var(--color-neutral-white);
-    color: var(--color-neutral-black-base);
+    background-color: var(--color-ds-surface);
+    color: var(--color-ds-text);
+  }
+
+  ::selection {
+    background-color: var(--color-ds-selection);
   }
 }

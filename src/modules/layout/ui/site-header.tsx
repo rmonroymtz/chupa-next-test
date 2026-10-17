@@ -27,7 +27,7 @@ interface SiteHeaderProps {
  */
 export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-white shadow-header">
+    <header className="sticky top-0 z-40 bg-white shadow-elevation-1">
       <div className="container-padded grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 pt-5 pb-4 lg:grid-cols-12">
         <div className="flex min-w-0 items-center gap-2 lg:col-span-3">
           {mobileNavigation}
@@ -48,7 +48,7 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
         <div className="flex items-center justify-end gap-3 lg:col-span-3">
           <a
             href={LEGACY_ROUTES.signIn}
-            className="hidden h-12 min-w-36 items-center gap-2 rounded-full border border-neutral-medium-grey px-4 text-xs lg:flex"
+            className="hidden h-12 min-w-36 items-center gap-2 rounded-full border border-ds-neutral-400 px-4 text-xs lg:flex"
           >
             <UserIcon className="size-[30px]" />
             Iniciar sesión

@@ -83,7 +83,7 @@ function SliderTitle({
 }) {
   return (
     <h2 id={id} className="mb-4 text-responsive-title leading-tight font-bold">
-      {title} <span className="text-brand-red">{accent}</span>
+      {title} <span className="text-ds-accent">{accent}</span>
     </h2>
   );
 }
@@ -104,9 +104,9 @@ function SliderSkeleton({ title, accent }: { readonly title: string; readonly ac
             data-recommendation-skeleton
             className={`flex-col gap-2 ${skeletonVisibility(index)}`}
           >
-            <div className="aspect-square animate-pulse rounded bg-neutral-inactive" />
-            <div className="h-3 w-4/5 animate-pulse rounded bg-neutral-inactive" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-neutral-inactive" />
+            <div className="aspect-square animate-pulse rounded-xs bg-ds-surface-muted" />
+            <div className="h-3 w-4/5 animate-pulse rounded-xs bg-ds-surface-muted" />
+            <div className="h-3 w-1/2 animate-pulse rounded-xs bg-ds-surface-muted" />
           </div>
         ))}
       </div>

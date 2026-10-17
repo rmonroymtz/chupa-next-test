@@ -121,14 +121,14 @@ export function MiniCart() {
         aria-expanded={open}
         onClick={() => (open ? closeDrawer() : openDrawer())}
         data-slot="cart-trigger"
-        className="relative grid size-10 shrink-0 place-items-center rounded-full border border-neutral-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-black"
+        className="relative grid size-10 shrink-0 place-items-center rounded-full border border-ds-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus"
       >
         <Image src="/images/layout/cart.svg" alt="" width={24} height={20} className="h-5 w-6" />
         {total > 0 ? (
           <span
             data-testid="cart-count"
             aria-hidden="true"
-            className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-red px-1 text-[0.6875rem] leading-none font-semibold text-white"
+            className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-ds-cta px-1 text-[0.6875rem] leading-none font-semibold text-white"
           >
             {display}
           </span>
@@ -146,10 +146,10 @@ export function MiniCart() {
           // A click on the backdrop targets the dialog element itself.
           if (event.target === event.currentTarget) closeDrawer();
         }}
-        className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-[min(24rem,90vw)] max-w-none bg-white p-0 text-neutral-black-base shadow-header backdrop:bg-neutral-black/40"
+        className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-[min(24rem,90vw)] max-w-none bg-white p-0 text-ds-text shadow-elevation-1 backdrop:bg-ds-overlay"
       >
         <div className="flex h-full flex-col pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-center justify-between border-b border-neutral-inactive px-4 py-3">
+          <div className="flex items-center justify-between border-b border-ds-border-subtle px-4 py-3">
             <h2 id={titleId} className="text-base font-semibold">
               Carrito de compras
             </h2>
@@ -157,7 +157,7 @@ export function MiniCart() {
               type="button"
               aria-label="Cerrar carrito"
               onClick={closeDrawer}
-              className="grid size-11 place-items-center rounded-full text-2xl leading-none focus-visible:outline-2 focus-visible:outline-neutral-black"
+              className="grid size-11 place-items-center rounded-full text-2xl leading-none focus-visible:outline-2 focus-visible:outline-ds-focus"
             >
               <span aria-hidden="true">×</span>
             </button>
@@ -184,7 +184,7 @@ function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): vo
         <button
           type="button"
           onClick={onRetry}
-          className="h-11 rounded-button border border-neutral-black px-5 font-semibold"
+          className="h-11 rounded-pill border border-ds-border-strong px-5 font-semibold"
         >
           Reintentar
         </button>
@@ -205,7 +205,7 @@ function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): vo
           </span>
         ) : null}
       </div>
-      <ul className="flex-1 divide-y divide-neutral-inactive overflow-y-auto px-4">
+      <ul className="flex-1 divide-y divide-ds-border-subtle overflow-y-auto px-4">
         {cart.items.map((item) => (
           <li key={item.uid} className="flex gap-3 py-3">
             {item.thumbnailUrl ? (
@@ -219,18 +219,18 @@ function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): vo
                 className="size-16 shrink-0 object-contain"
               />
             ) : (
-              <span className="size-16 shrink-0 bg-neutral-background" aria-hidden="true" />
+              <span className="size-16 shrink-0 bg-ds-surface-subtle" aria-hidden="true" />
             )}
             <div className="flex min-w-0 flex-col gap-1 text-sm">
               <a href={item.url} className="line-clamp-2 font-semibold hover:underline">
                 {item.name}
               </a>
               {item.options.map((option) => (
-                <span key={option.label} className="text-neutral-medium-grey-dark">
+                <span key={option.label} className="text-ds-text-secondary">
                   {option.label}: {option.value}
                 </span>
               ))}
-              {item.outOfStock ? <span className="text-brand-darkest">Agotado</span> : null}
+              {item.outOfStock ? <span className="text-ds-text-error">Agotado</span> : null}
               <span>Cantidad: {item.quantity}</span>
               {item.unitPrice ? (
                 <span>{formatPrice(item.unitPrice.amount, item.unitPrice.currency)}</span>
@@ -239,16 +239,16 @@ function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): vo
           </li>
         ))}
       </ul>
-      <div className="flex flex-col gap-2 border-t border-neutral-inactive p-4">
+      <div className="flex flex-col gap-2 border-t border-ds-border-subtle p-4">
         <a
           href={CHECKOUT_PATH}
-          className="grid h-12 place-items-center rounded-button bg-brand-red font-semibold text-white hover:bg-brand-dark"
+          className="grid h-12 place-items-center rounded-pill bg-ds-cta font-semibold text-white hover:bg-ds-cta-hover active:bg-ds-cta-pressed"
         >
           Finalizar compra
         </a>
         <a
           href={CART_PATH}
-          className="grid h-12 place-items-center rounded-button border border-neutral-black font-semibold"
+          className="grid h-12 place-items-center rounded-pill border border-ds-border-strong font-semibold"
         >
           Ver carrito
         </a>

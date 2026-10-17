@@ -107,7 +107,7 @@ const sliders = (html: string) =>
   [...html.matchAll(/<section data-recommendation="([^"]+)"/g)].map((match) => match[1]);
 /** Slider headings as rendered (legacy title plus the red accent). */
 const sliderTitle = (title: string, accent: string) =>
-  `${title} <span class="text-brand-red">${accent}</span></h2>`;
+  `${title} <span class="text-ds-accent">${accent}</span></h2>`;
 const withoutTextSeparators = (html: string) => html.replaceAll('<!-- -->', '');
 /** Product links after the results: the sliders' cards, sorted. */
 const sliderLinks = (html: string) =>

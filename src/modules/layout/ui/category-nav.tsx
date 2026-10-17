@@ -40,13 +40,13 @@ export function DesktopCategoryNav({ items }: { readonly items: readonly MenuIte
             <li key={item.id} className="group flex shrink-0">
               <a
                 href={item.categoryHref}
-                className="inline-flex items-center gap-1 px-3 font-noto text-[0.9rem] whitespace-nowrap uppercase decoration-brand-yellow decoration-2 group-focus-within:underline group-hover:underline"
+                className="inline-flex items-center gap-1 px-3 font-sans text-[0.9rem] whitespace-nowrap uppercase decoration-ds-amber decoration-2 group-focus-within:underline group-hover:underline"
               >
                 {item.label}
                 {item.children.length > 0 ? <ChevronDownIcon className="size-4" /> : null}
               </a>
               {item.children.length > 0 ? (
-                <div className="invisible absolute inset-x-0 top-full z-50 border-t border-neutral-inactive bg-white shadow-md group-focus-within:visible group-hover:visible">
+                <div className="invisible absolute inset-x-0 top-full z-50 border-t border-ds-border-subtle bg-white shadow-elevation-2 group-focus-within:visible group-hover:visible">
                   <ul className="container-padded grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-6 py-6">
                     {item.children.map((child) => (
                       <li key={child.id}>
@@ -98,9 +98,9 @@ export function MobileCategoryMenu({ items }: { readonly items: readonly MenuIte
       </summary>
       <nav
         aria-label="Menú principal"
-        className="absolute inset-x-0 top-full z-50 max-h-[70vh] overflow-y-auto border-t border-neutral-inactive bg-white shadow-md"
+        className="absolute inset-x-0 top-full z-50 max-h-[70vh] overflow-y-auto border-t border-ds-border-subtle bg-white shadow-elevation-2"
       >
-        <ul className="divide-y divide-neutral-inactive">
+        <ul className="divide-y divide-ds-border-subtle">
           {items.map((item) => (
             <li key={item.id}>
               {item.children.length > 0 ? (
