@@ -1,6 +1,7 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1 done and review approved (`a815c0e`, not pushed); T2 done (not pushed); T3 next.
+Status (2026-10-18): T1 (`a815c0e`) and T2 (`6e1f382`) done, reviews approved, not pushed; T3 done (not pushed);
+T4 next.
 
 ## Objective
 
@@ -102,7 +103,51 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     spinner, mini-cart footer buttons (Ver carrito/Reintentar are now red outline instead of dark outline).
   - Commit: the T2 work-unit commit `feat(ds): add the shared button, badge, form field and icon primitives` on
     `feat/ds-02-primitives` (hash recorded in the next Progress line).
-- [ ] T3 Footer + missing assets (chupacredit, estafeta, profeco, logos diff). Check: unit/integration + visual.
+- [x] T3 Footer + missing assets (chupacredit, estafeta, profeco, logos diff). Also fix T2 review finding
+  R3-disabled-link-onclick: a disabled/loading link `Button` must not run the caller `onClick` (test it). Check:
+  unit/integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: button RED = 2 failing (`a disabled link` /
+    `a loading link does not run the caller onClick`), GREEN = 18/18; footer RED = 3 failing of 11 (DS Icon social
+    glyph, grey `filter` payment logos, 1→2→4 grid in `container-padded`), GREEN = 11/11; icon RED = 2 failing
+    (catalog 50 with `facebook`/`instagram`, brand glyph fill), GREEN = 5/5. Content assertions kept and extended
+    (hours incl. "Horario:", both addresses, wordmark/AMVO alts, lazy images, copyright line).
+  - Files: `src/modules/layout/ui/site-footer.tsx` (rebuilt), `src/modules/layout/ui/icons.tsx` (legacy
+    Facebook/Instagram glyphs retired, only the footer used them), `src/shared/ui/icon-catalog.ts` (brand extras
+    `facebook`/`instagram` = the DS Footer organism glyphs, own fill/stroke), `src/shared/ui/button.tsx`,
+    `public/images/layout/payments/chupacredit.svg`, `public/images/layout/shipping/estafeta.svg`,
+    `tests/unit/modules/layout/ui/site-footer.test.tsx`, `tests/unit/shared/ui/button.test.tsx`,
+    `tests/unit/shared/ui/icon.test.tsx`. `footer-content.ts` unchanged.
+  - Decisions: DS organism layout: `grid-cols-1` → `md:grid-cols-2` (brand spans) → `lg:grid-cols-[1.1fr_1fr_1fr_1.2fr]`,
+    gaps 32/40 (DS space 8/10), padding 40/24 → 48/32, inside `container-padded` (1260, not the PWA's 1280). Groups:
+    brand + social; Centro de ayuda + Redes Sociales; Conócenos + AMVO (56px, 90% opacity); Atención a clientes +
+    both offices + payments. Type roles: titles `text-body-lg` bold inverse (body font, as the DS; was `font-display`),
+    text/links `text-body-md` neutral-300 → hover inverse + underline, copyright `text-body-sm` neutral-400 (4.8:1).
+    Social = 34px white pill buttons with an 18px dark DS `Icon`. Payment logos 22px high, max 46px wide,
+    `brightness-0 invert-[0.72]` (DS filter). Focus: white 2px outline (`ds-focus` #D84752 is 2.6:1 on #3B3B3B,
+    below the 3:1 non-text minimum). Headings stay `h2` (the PWA uses `h3`; `h2` is the right level under the page
+    `h1`). Images stay lazy. Disabled/loading link `Button` overrides `onClick` with `preventDefault` after the
+    caller props, so the handler never runs.
+  - Assets (byte-compare, all differ in bytes): `amex`/`mastercard` normalize identical to the PWA's repaired
+    6f0b069f versions (ours were never broken) → kept. `visa`: PWA moved to `visa.png` because its `visa.svg` was a
+    renamed PNG; ours is a real, valid SVG → kept. `kueski`, `mercadopago`, `oxxo`, `paypal`, `spei`, `stores/*`:
+    different exports of the same marks, all valid XML (`xmllint`) → kept. `amvo-white.svg` = `brand/amvo.svg` path
+    data (only ids differ) → kept. `logo-white.svg` vs `brand/chupaprecios-light.svg`: same artwork, sub-pixel export
+    differences (`10.037` vs `10.038`) and the same fills → kept. `logo.svg` (header only) uses `#000` where the DS
+    `chupaprecios.svg` uses brand purple `#2a2031` → left for T5 (header). Copied `chupacredit.svg` (payments) and
+    `estafeta.svg` (new `shipping/` folder) from the DS catalog; neither is rendered (the PWA footer renders
+    neither). `profeco.svg` not copied: `para-UX`, the PWA footer does not render it (INCONSISTENCIAS Footer row).
+  - Content differences vs the PWA footer (kept the Next content, not invented): the PWA lacks "Facturación",
+    Mercado Pago and Kueski Pay logos, "Horario:", the new-tab disclosure and Spanish copyright ("all rights
+    reserved"); the PWA adds a visible "Formas de pago" heading (Next keeps the `aria-label="Métodos de pago"` list),
+    writes "Preguntas Frecuentes (FAQ)", "Redes sociales", "Oficina central" / "Centro de desarrollo tecnológico"
+    without the colon, "Col." / "C.P." and the CDMX line without the trailing "Col.", and puts the whole hours line in
+    one sentence. The PWA has a checkout-only footer variant (Next has no checkout pages).
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 113 files / 1076 tests pass;
+    integration 7 files / 102 tests pass; build pass (footer utilities present in the built CSS); dev server
+    `/aviso-privacidad` 200 with the new footer markup. Visual check on the dev server pending (user): Kueski and
+    Mercado Pago are wide marks and render small under the DS 46px cap.
+  - Commit: the T3 work-unit commit `feat(layout): rebuild the footer on the design system` on `feat/ds-03-footer`
+    (hash recorded in the next Progress line).
 - [ ] T4 Promo bar (rotating, pause on hover, reduced motion, static fallback). Check: unit + visual.
 - [ ] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
 - [ ] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
@@ -128,3 +173,9 @@ lines in total.
   test that removed legacy token names are unreferenced in `src`).
 - 2026-10-18: T2 done (shared Button/Badge/Input/Select/Checkbox/Icon in `src/shared/ui`, cart CTAs migrated, DS
   theme vars always emitted, legacy-token structural test); all checks green, visual check pending.
+- 2026-10-18: T2 commit `6e1f382` on `feat/ds-02-primitives` (stacked on T1, not pushed). Assessed medium
+  (`slice_budget_reached`, 1172 lines: icon catalog + tests); user granted review; native review approved and
+  acknowledged (lineage `review-b69e8d9adcb35b8f`) with one advisory WARNING carried into T3:
+  R3-disabled-link-onclick (`src/shared/ui/button.tsx:144-149` spreads the caller `onClick` on a disabled/loading link).
+- 2026-10-18: T3 done (DS footer, social glyphs in the DS Icon catalog, chupacredit/estafeta assets, disabled
+  link `onClick` fix); all checks green, visual check pending.

@@ -6,9 +6,15 @@ import { Icon, iconNames } from '@/shared/ui/icon';
 afterEach(cleanup);
 
 describe('Icon', () => {
-  it('ships the 41 V3 board glyphs plus the on-demand extras', () => {
-    expect(iconNames.length).toBe(48);
+  it('ships the 41 V3 board glyphs plus the on-demand and brand extras', () => {
+    expect(iconNames.length).toBe(50);
     expect(iconNames).toEqual(expect.arrayContaining(['search', 'menu', 'chevron-down', 'check']));
+    expect(iconNames.slice(-2)).toEqual(['facebook', 'instagram']);
+  });
+
+  it('brand glyphs fill their solid parts themselves', () => {
+    const { container } = render(<Icon name="facebook" />);
+    expect(container.querySelector('path')?.getAttribute('fill')).toBe('currentColor');
   });
 
   it('is decorative by default', () => {

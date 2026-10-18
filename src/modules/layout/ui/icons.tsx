@@ -5,8 +5,8 @@ import { Icon } from '@/shared/ui/icon';
  * Small decorative icons ported from the legacy theme as inline SVG so they
  * inherit `currentColor` and cost no request. Always `aria-hidden`: the
  * control that holds them carries the accessible name. Glyphs that exist in
- * the DS catalog delegate to the shared `Icon`; the legacy brand glyphs
- * (user, search, social) stay here until their surfaces are redesigned.
+ * the DS catalog delegate to the shared `Icon`; the legacy user and search
+ * glyphs stay here until the header is redesigned.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, 'children'>;
 
@@ -56,25 +56,4 @@ export function MenuIcon(props: DsIconProps) {
 /** DS `chevron-down` (feather, as in the legacy megamenu item), legacy 2px stroke. */
 export function ChevronDownIcon(props: DsIconProps) {
   return <Icon name="chevron-down" strokeWidth={2} {...props} />;
-}
-
-/** Legacy footer `SocialButton` Facebook glyph. */
-export function FacebookIcon(props: IconProps) {
-  return (
-    <Svg viewBox="0 0 49.932 49.932" fill="currentColor" {...props}>
-      <path d="M49.932,24.966A24.966,24.966,0,1,0,24.966,49.932c.146,0,.293,0,.439-.01V30.5H20.041V24.244H25.4v-4.6c0-5.335,3.257-8.241,8.016-8.241a43.571,43.571,0,0,1,4.808.244v5.578H34.952c-2.584,0-3.092,1.229-3.092,3.033v3.979h6.193l-.809,6.251H31.861V48.967A24.974,24.974,0,0,0,49.932,24.966Z" />
-    </Svg>
-  );
-}
-
-/** Legacy footer `SocialButton` Instagram glyph. */
-export function InstagramIcon(props: IconProps) {
-  return (
-    <Svg viewBox="0 0 49.599 49.599" fill="currentColor" {...props}>
-      <path
-        d="M33,32.552a6.177,6.177,0,1,1-6.273,6.176A6.225,6.225,0,0,1,33,32.552Zm0-2.47a8.647,8.647,0,1,0,8.783,8.646A8.715,8.715,0,0,0,33,30.082ZM42.053,28a2.471,2.471,0,1,0,2.509,2.47A2.471,2.471,0,0,0,42.053,28ZM26.869,25.315H39.13a7.167,7.167,0,0,1,7.222,7.109V45.031a7.166,7.166,0,0,1-7.222,7.109H26.869a7.166,7.166,0,0,1-7.222-7.109V32.425A7.167,7.167,0,0,1,26.869,25.315Zm-1.156-2.459a8.519,8.519,0,0,0-8.585,8.451V46.148A8.518,8.518,0,0,0,25.712,54.6H40.286a8.518,8.518,0,0,0,8.585-8.451V31.308a8.519,8.519,0,0,0-8.585-8.451ZM33,13.929a24.8,24.8,0,1,1-24.8,24.8A24.8,24.8,0,0,1,33,13.929Z"
-        transform="translate(-8.2 -13.929)"
-      />
-    </Svg>
-  );
 }
