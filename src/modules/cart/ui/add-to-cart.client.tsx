@@ -14,6 +14,7 @@ import {
 import { addToCartAction } from '@/modules/cart/ui/cart-actions';
 import { cartCountStore } from '@/modules/cart/ui/cart-store';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
+import { Button } from '@/shared/ui/button';
 
 // Shopper copy from the legacy PDP (`useProductFullDetail` and `es_MX.json`).
 const ADDING = 'Agregando producto al carrito...';
@@ -148,13 +149,15 @@ export function AddToCart({ product }: AddToCartProps) {
 
       <div className="flex flex-wrap items-center gap-4">
         <QuantityStepper value={quantity} cap={cap} onChange={setQuantity} />
-        <button
+        <Button
           type="submit"
+          size="lg"
           disabled={disabled}
-          className="h-12 min-w-48 flex-1 rounded-pill bg-ds-cta px-6 font-semibold text-white hover:bg-ds-cta-hover active:bg-ds-cta-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-disabled"
+          loading={adding}
+          className="min-w-48 flex-1"
         >
           {adding ? 'Agregando...' : 'Agregar al carrito'}
-        </button>
+        </Button>
       </div>
 
       {blockedMessage ? <p className="text-sm text-ds-text">{blockedMessage}</p> : null}

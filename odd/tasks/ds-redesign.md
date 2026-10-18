@@ -1,6 +1,6 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-17): T1 done, T2 next.
+Status (2026-10-18): T1 done and review approved (`a815c0e`, not pushed); T2 done (not pushed); T3 next.
 
 ## Objective
 
@@ -61,8 +61,47 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     products, chupachoice grid. Visual check on the dev server pending (user).
   - Commit: the T1 work-unit commit `feat(ds): adopt the design system tokens, fonts and grid` (hash recorded in the
     Progress line of the next task, a commit cannot contain its own hash).
-- [ ] T2 Shared primitives: Button (sizes 24–56, pill, CTA red, loading), Badge (V3 variants), Input/Select/Checkbox
-  states, DS icon set; replace inline buttons. Check: unit tests + build.
+- [x] T2 Shared primitives: Button (sizes 24–56, pill, CTA red, loading), Badge (V3 variants), Input/Select/Checkbox
+  states, DS icon set; replace inline buttons. Also fix the T1 review findings: always emit the DS theme vars used by
+  CSS modules (`@theme static` or equivalent) and add a structural test that removed legacy token names are unused.
+  Check: unit tests + build.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: Testing Library tests written first; RED = 4
+    test files failing (modules `@/shared/ui/*` not found), GREEN = 4 files / 37 tests. The legacy-token test went
+    GREEN directly against T1 and turned RED on a planted `bg-brand-red rounded-button` (2 offenders), then removed.
+  - Files: `src/shared/ui/` (`button.tsx`, `badge.tsx`, `input.tsx`, `select.tsx`, `checkbox.tsx`, `field.tsx`,
+    `icon.tsx`, `icon-catalog.ts`, `class-names.ts`), `src/app/globals.css` (`@theme static`),
+    `src/modules/layout/ui/icons.tsx`, `src/modules/cart/ui/add-to-cart.client.tsx`,
+    `src/modules/cart/ui/mini-cart.client.tsx`, `tests/unit/shared/ui/*` (button, badge, form-fields, icon),
+    `tests/unit/app/legacy-design-tokens.test.ts`.
+  - Decisions: shared atoms live in `src/shared/ui/` (cross-module, kebab-case files, Tailwind DS classes, no CSS
+    modules). Button variants follow the DS `primary`/`secondary`/`tertiary`, sizes `xs`/`sm`/`md`/`lg`/`xl` =
+    24/32/40/48/56; secondary/tertiary text uses `ds-link` #BE424B instead of the DS source's #D84752 (under 4.5:1
+    on white at 13–16px). Loading keeps the variant colour, hides the label with `opacity-0` (keeps width and the
+    accessible name) under a spinner, sets `aria-busy` and `disabled`. With `href`, Button renders `next/link`
+    (`prefetch={false}`, the repo avoids prefetching Magento-backed pages) for internal paths, a plain `<a>` for
+    external urls or `nativeAnchor` (edge-routed PWA Studio `/cart`, `/checkout`); a disabled/loading link drops its
+    `href` and gets `aria-disabled`. Badge = C2 `new`/`sale`/`featured`/`soldout`/`shipping`/`lastunits` + `neutral`,
+    `radius-xs`, all colors already existed as T1 tokens. Form fields share `useFieldA11y` (`useId`, `aria-invalid`
+    only on error, `aria-describedby` keeps the caller's ids); focus uses the DS reference pattern 2px `ds-focus`
+    outline + 2px offset on all three (INCONSISTENCIAS "Transversal"); Select gained `success` for parity, Checkbox
+    gained helper/error. Icon ports all 48 glyphs (41 board + 7 extras) as a typed `IconName` union, `aria-hidden` +
+    `focusable=false` unless `title` (then `role="img"` + `aria-label`). `icons.tsx` keeps its exports; `MenuIcon` and
+    `ChevronDownIcon` delegate to `Icon` (same feather glyphs, 2px stroke kept), the legacy user/search/social glyphs
+    stay until T3/T5. Migrated: the add-to-cart submit (primary lg, `loading`), mini-cart "Finalizar compra"
+    (primary lg) / "Ver carrito" and "Reintentar" (secondary lg). Not migrated: `search-pagination.tsx` and
+    `search-filters.tsx` have no `<button>`s (page links, a text link and a `<summary>`; no DS pagination molecule),
+    quantity steppers and the cart trigger/close are icon buttons, and `AvailabilityBadge` does not map to C2 (no
+    in-stock variant; soft fills with dark text). R3-pb-css-var-dependency: the DS `@theme` block is `@theme static`
+    (Tailwind v4 docs, "Generating all CSS variables"); the built CSS defines `--color-ds-cta-hover`,
+    `--color-ds-accent` and also unused ones such as `--color-ds-info-bg`. R3-no-token-coverage: the structural test
+    scans `src/**/*.{ts,tsx,css,js,mjs}` for the removed `brand-*`/`ch-*`/`feedback-*`/legacy `neutral-*` colors,
+    `--container-site`/`max-w-site`, `rounded-{box,input,button,badge,xl,2xl,3xl}`, `shadow-header` and the dropped
+    fonts, ignoring `ds-*`, `marketplace-*` and `--pb-brand-*`.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 113 files / 1066 tests pass;
+    integration 7 files / 102 tests pass; build pass. Visual check on the dev server pending (user): add-to-cart
+    spinner, mini-cart footer buttons (Ver carrito/Reintentar are now red outline instead of dark outline).
+  - Commit: the T2 work-unit commit `feat(ds): add the shared button, badge, form field and icon primitives` on
+    `feat/ds-02-primitives` (hash recorded in the next Progress line).
 - [ ] T3 Footer + missing assets (chupacredit, estafeta, profeco, logos diff). Check: unit/integration + visual.
 - [ ] T4 Promo bar (rotating, pause on hover, reduced motion, static fallback). Check: unit + visual.
 - [ ] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
@@ -81,3 +120,11 @@ lines in total.
   the full 8-task scope.
 - 2026-10-17: T1 done (DS tokens, Inter/Roboto Flex, DS radius/elevation, 1260 grid); all checks green, visual check
   pending.
+- 2026-10-18: T1 commit `a815c0e` on `feat/ds-01-tokens-grid` (not pushed). Assessed medium (`slice_budget_reached`);
+  user granted review; native review approved and acknowledged (lineage `review-9ebb102963f675ca`) with two advisory
+  findings, both carried into T2: R3-pb-css-var-dependency (WARNING: `page-builder.module.css` reads
+  `--color-ds-cta`/`-cta-hover`/`-accent` without fallback, and Tailwind v4 only emits theme vars that some scanned
+  utility uses; fix with `@theme static` or explicit emission) and R3-no-token-coverage (SUGGESTION: add a structural
+  test that removed legacy token names are unreferenced in `src`).
+- 2026-10-18: T2 done (shared Button/Badge/Input/Select/Checkbox/Icon in `src/shared/ui`, cart CTAs migrated, DS
+  theme vars always emitted, legacy-token structural test); all checks green, visual check pending.

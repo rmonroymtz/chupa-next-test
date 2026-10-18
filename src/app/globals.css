@@ -16,8 +16,13 @@
  * Breakpoints: the DS grid uses 768 (`md`) and 1024 (`lg`), which are
  * Tailwind's defaults. `sm`/`xl`/`2xl` stay available until the header and
  * other legacy layouts are rebuilt on the DS grid.
+ *
+ * `static`: Tailwind v4 only emits the theme variables some scanned utility
+ * uses, but CSS modules (`page-builder.module.css`, `search-form.module.css`)
+ * read DS variables directly with `var()`, so every DS token is always
+ * emitted on `:root`.
  */
-@theme {
+@theme static {
   /* ── Primitive scales ─────────────────────────────────────────────────── */
 
   /* Brand UI red (rose). 600 is the brand anchor, 700–900 interactive states. */
