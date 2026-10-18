@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
-import { DesktopCategoryNav, MobileCategoryMenu } from '@/modules/layout/ui/category-nav';
+import { CategoriesDropdown } from '@/modules/layout/ui/categories-dropdown.client';
+import { NavDrawer } from '@/modules/layout/ui/nav-drawer.client';
 import { SiteHeader } from '@/modules/layout/ui/site-header';
 
 vi.mock('@/modules/cart/ui/cart-actions', () => ({
@@ -27,8 +28,8 @@ const MENU = [item('hogar', [item('cocina', [item('sartenes')])]), item('juguete
 function renderHeader(items: readonly MenuItem[] = MENU) {
   return render(
     <SiteHeader
-      mobileNavigation={<MobileCategoryMenu items={items} />}
-      desktopNavigation={<DesktopCategoryNav items={items} />}
+      mobileNavigation={<NavDrawer items={items} />}
+      desktopNavigation={<CategoriesDropdown items={items} />}
     />,
   );
 }
@@ -44,7 +45,8 @@ describe('SiteHeader', () => {
     // DS actions: "Mi cuenta" keeps the sign-in target; the mobile drawer keeps its own entry.
     const account = within(banner).getByRole('link', { name: 'Mi cuenta' });
     expect(account.getAttribute('href')).toBe('/sign-in');
-    const signIn = within(banner).getAllByRole('link', { name: 'Iniciar sesión' });
+    // The drawer is a closed dialog until opened (hidden from the accessibility tree).
+    const signIn = within(banner).getAllByRole('link', { name: 'Iniciar sesión', hidden: true });
     expect(signIn.map((link) => link.getAttribute('href'))).toEqual(['/sign-in']);
     // Mini-cart trigger (T8): opens a dialog linking to the PWA cart and checkout.
     const cart = within(banner).getByRole('button', { name: /mini carrito/ });
@@ -104,7 +106,7 @@ describe('SiteHeader', () => {
     renderHeader();
     const banner = screen.getByRole('banner');
     const classes = [banner, ...banner.querySelectorAll('*')]
-      .filter((element) => !element.closest('nav, details'))
+      .filter((element) => !element.closest('nav, dialog'))
       .flatMap((element) => (element.getAttribute('class') ?? '').split(/\s+/));
     expect(classes.filter((name) => /^(sm|xl|2xl):/.test(name))).toEqual([]);
   });
@@ -115,50 +117,35 @@ describe('SiteHeader', () => {
     expect(svg).not.toContain('fill="#000"');
   });
 
-  it('desktop navigation: every level links to its category page', () => {
-    render(<DesktopCategoryNav items={MENU} />);
-    const nav = screen.getByRole('navigation', { name: 'Categorías' });
+  it('row 1: menu button, logo, the Categorías dropdown, then the store pills', () => {
+    renderHeader();
+    const banner = screen.getByRole('banner');
+    const [drawerButton, dropdownButton] = within(banner).getAllByRole('button', {
+      name: 'Categorías',
+    });
+    const logo = within(banner).getByRole('link', { name: 'Chupaprecios' });
+    const pills = within(banner).getByRole('radiogroup', { name: 'Tienda donde buscar' });
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-    expect(within(nav).getByRole('link', { name: 'hogar' }).getAttribute('href')).toBe(
-      '/hogar.html',
-    );
-    expect(within(nav).getByRole('link', { name: 'cocina' }).getAttribute('href')).toBe(
-      '/cocina.html',
-    );
-    expect(within(nav).getByRole('link', { name: 'sartenes' }).getAttribute('href')).toBe(
-      '/sartenes.html',
-    );
+    expect(drawerButton!.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(dropdownButton!.hasAttribute('aria-controls')).toBe(true);
+    expect(follows(drawerButton!, logo)).toBe(true);
+    expect(follows(logo, dropdownButton!)).toBe(true);
+    expect(follows(dropdownButton!, pills)).toBe(true);
+    // Below 1024 the drawer, from 1024 the dropdown.
+    expect(drawerButton!.closest('.lg\\:hidden')).not.toBeNull();
+    expect(dropdownButton!.closest('.hidden.lg\\:block')).not.toBeNull();
   });
 
-  it('without categories keeps the reserved bar instead of an empty navigation', () => {
-    const { container } = render(<DesktopCategoryNav items={[]} />);
-    expect(screen.queryByRole('navigation')).toBeNull();
-    expect(container.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
-    expect(container.firstElementChild?.className).toContain('h-12');
-  });
-
-  it('mobile navigation is a native disclosure that links every level to its category page', () => {
-    render(<MobileCategoryMenu items={MENU} />);
-    const toggle = screen.getByLabelText('Alternar panel de navegación');
-    expect(toggle.tagName).toBe('SUMMARY');
-
-    const nav = screen.getByRole('navigation', { name: 'Menú principal', hidden: true });
-    const links = within(nav).getAllByRole('link', { hidden: true });
-    expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/hogar.html',
-      '/cocina.html',
-      '/juguetes.html',
-      '/sign-in',
-    ]);
-  });
-
-  it('mobile navigation still offers sign-in when the menu is unavailable', () => {
-    render(<MobileCategoryMenu items={[]} />);
-    const nav = screen.getByRole('navigation', { name: 'Menú principal', hidden: true });
-    expect(
-      within(nav)
-        .getAllByRole('link', { hidden: true })
-        .map((link) => link.textContent),
-    ).toEqual(['Iniciar sesión']);
+  it('no longer renders the horizontal megamenu or the <details> drawer', () => {
+    renderHeader();
+    const banner = screen.getByRole('banner');
+    expect(banner.querySelector('details, summary')).toBeNull();
+    expect(screen.queryByLabelText(/Desplazar categorías/)).toBeNull();
+    // The only "Categorías" navigation lives in the (closed) dropdown panel.
+    const navs = within(banner).getAllByRole('navigation', { name: 'Categorías', hidden: true });
+    expect(navs).toHaveLength(1);
+    expect(navs[0]!.closest('[hidden]')).not.toBeNull();
   });
 });

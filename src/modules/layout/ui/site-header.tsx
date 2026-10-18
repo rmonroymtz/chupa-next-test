@@ -7,18 +7,19 @@ import { SearchForm } from './search-form';
 import { CurrentStoreSelector } from './store-selector.client';
 
 interface SiteHeaderProps {
-  /** Mobile menu button (left of the logo, hidden from `lg`). */
+  /** Menu button + navigation drawer (left of the logo, below 1024). */
   readonly mobileNavigation: ReactNode;
-  /** Desktop category bar (below the search row, from `lg`). */
+  /** "Categorías" dropdown (right of the logo, from 1024). */
   readonly desktopNavigation: ReactNode;
 }
 
 /**
  * DS header (FIGMA-MAKE-HEADER-AUDIT §4-5, colors and type mapped to the DS
- * tokens). Row 1: logo, store pills and the "Mi cuenta" / cart actions; below
- * 1024 the pills wrap to their own line under the logo row. Row 2: the
- * full-width search pill. One search form, never duplicated; the pills join
- * it through its id. Then the category bar.
+ * tokens). Row 1: menu button (below 1024), logo, "Categorías" (from 1024),
+ * store pills and the "Mi cuenta" / cart actions; below 1024 the pills wrap to
+ * their own line under the logo row. Row 2: the full-width search pill. One
+ * search form, never duplicated; the pills join it through its id. No
+ * horizontal category bar: like the PWA, categories open from "Categorías".
  *
  * Links go to pages PWA Studio still serves: plain anchors (see
  * `legacy-routes.ts`).
@@ -48,6 +49,7 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
               className="h-auto w-[102px] md:w-[125px] lg:w-[136px]"
             />
           </a>
+          {desktopNavigation}
           <div className="order-last basis-full lg:order-none lg:ml-auto lg:basis-auto">
             <CurrentStoreSelector />
           </div>
@@ -64,7 +66,6 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
         </div>
         <SearchForm />
       </div>
-      {desktopNavigation}
     </header>
   );
 }

@@ -1,7 +1,7 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1–T5 done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, T5 commit in the next Progress line),
-T1–T4 reviews approved, not pushed; T6 next.
+Status (2026-10-18): T1–T6 done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, T6 commit in the next
+Progress line); T1–T5 reviews approved, not pushed; T7 next.
 
 ## Objective
 
@@ -231,7 +231,69 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     new header and "Carrito" markup. Visual check on the dev server pending (user).
   - Commit: the T5 work-unit commit `feat(layout): rebuild the header and search on the design system` on
     `feat/ds-05-header-search` (hash recorded in the next Progress line).
-- [ ] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
+- [x] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: RED = 3 layout test files failing at import
+    (`categories-dropdown.client`, `nav-drawer.client` missing; the updated `site-header.test.tsx` imports them),
+    31 other layout tests passing; GREEN = layout unit 10 files / 57 tests. The integration additions (closed
+    disclosure + `<dialog>` markup, no megamenu) passed on the first run; the existing position-order assertion failed
+    once (see changed assertions) and was rescoped.
+  - Files: `src/modules/layout/ui/categories-dropdown.client.tsx` (new), `categories-dropdown.tsx` (new, invisible
+    same-footprint placeholder), `nav-drawer.client.tsx` (new), `nav-drawer.tsx` (new, placeholder),
+    `site-header.tsx` (dropdown slot right after the logo, bottom category bar removed), `site-header.container.tsx`;
+    deleted `category-nav.tsx` (megamenu + `<details>` menu), `category-nav-scroller.client.tsx`, `icons.tsx` (its
+    `MenuIcon`/`ChevronDownIcon` only served the megamenu; DS `Icon` used directly) and
+    `tests/unit/modules/layout/ui/category-nav-scroller.test.tsx`; tests
+    `tests/unit/modules/layout/ui/{categories-dropdown,nav-drawer,site-header}.test.tsx`,
+    `tests/integration/layout.test.ts`. No data change: the `HeaderMenu` query already fetches three levels below the
+    root (dropdown uses two, the drawer all three); query, mapping, caching (`no-store`, `force-dynamic`, React
+    `cache()` = one call per request) and category urls unchanged. No CSS module (Tailwind DS classes only).
+  - Decisions: desktop (from 1024) = "Categorías" button (DS `menu` 18 + Inter semibold 14/20, gap 6) right of the
+    logo (gap 20, audit §4), a disclosure (`aria-expanded`/`aria-controls`, no `role="menu"`). Panel 740 wide, 12px
+    under the row, `radius-md`, `border-ds-border`, `elevation-2`: left list 264 (DS `grid` placeholder icon + name +
+    chevron, active row `ds-surface-subtle`, chevron `ds-link`), right detail = title link (`ds-link`, 16 semibold),
+    children in 2 columns filled by column (CSS `columns`, INCONSISTENCIAS "orden de columnas"), "Ver todo en {cat}"
+    + DS `arrow-right`. Hover, focus, Up/Down/Home/End pick the active category; Right enters its detail, Left
+    returns. Each detail follows its row in the DOM (absolutely placed in the right column), so Tab from a row enters
+    the subcategories it revealed instead of cycling every row first. Escape closes and focuses the button; a
+    pointerdown outside or focus leaving closes. Mobile/tablet (< 1024) = the menu button (hamburger 22, "Categorías"
+    label visible from 768 as the PWA `navTrigger`, sr-only below) opening a native modal `<dialog>` (`showModal`
+    focus trap, `aria-modal`, `aria-label="Menú"`), left side, `w-full max-w-[24rem]`, `ds-overlay` backdrop:
+    header 72px (wordmark home link + "Cerrar menú" DS `x`), Venia-style drill-down (a category with subcategories is
+    a button opening its own view with "Volver" + `h2` + "Ver todo en {cat}"; leaves are 56px links), footer auth bar
+    64px with "Iniciar sesión" (`ds-link`, DS `user`). Focus: close button on open, the new view's "Volver" on drill,
+    the opened branch on back, the menu button on close; Escape = the dialog `cancel` event; backdrop click closes;
+    `body` overflow hidden while open and restored; reopens at the top level. Both components render every link on
+    the server (closed panel, inactive details and drawer views are `hidden`), so all category links stay in the
+    markup as with the megamenu (e2e `nav[aria-label="Categorías"|"Menú principal"]` locators still hold). Empty
+    menu: the dropdown renders nothing (invisible placeholder keeps the width), the drawer keeps sign-in.
+  - Spec deviations: links keep today's category urls (`/{url_path}.html`), not the PWA's
+    `/search.html?query=<url_path>&store=` targets (brief rule); layout switch at 1024 (PWA 1160, as T5); the DS
+    `grid` icon is a placeholder on every row (no per-category icons in the data, same gap as the PWA); no slide
+    animation on the drawer (native dialog, no motion); no store/currency switchers in the drawer footer (Next has
+    none); the dropdown opens on click only (as the PWA). A11y notes: closed `<dialog>` content is outside the
+    accessibility tree until opened; the drawer stays open if the viewport grows past 1024 while open (its button is
+    then hidden; Escape/backdrop still close it).
+  - Changed/deleted assertions: `site-header.test.tsx` "banner" now finds the drawer "Iniciar sesión" with
+    `hidden: true` (closed `<dialog>`; still exactly one, still `/sign-in`); the breakpoint test skips `nav, dialog`
+    (was `nav, details`); the four megamenu/`<details>` tests ("desktop navigation: every level…", "without categories
+    keeps the reserved bar" incl. its `h-12` check, "mobile navigation is a native disclosure…" incl. `SUMMARY` and
+    the exact href list, "mobile navigation still offers sign-in…") were replaced by the dropdown/drawer tests, which
+    assert the same hrefs at every level (dropdown: levels 1–2, drawer: levels 1–3 + `/sign-in`) and sign-in when
+    the menu is empty; added "row 1 order" and "no megamenu" tests. Deleted the 7 scroller tests with the scroller.
+    `layout.test.ts`: the "ordered by position" check now reads the indexes inside the dropdown `<nav>` (the drawer,
+    first in the DOM, lists a branch as a button and its link in a later view, so page-wide first occurrences no longer
+    follow menu order); its `electronica/audio`, `Interna` and single `HeaderMenu` call assertions unchanged; the
+    failure-case comment updated (assertions unchanged). Added: closed disclosure/dialog markup, no scroller or
+    `<details>`.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 117 files / 1105 tests pass;
+    integration 7 files / 102 tests pass; build pass (`w-66`, `left-66`, `columns-2`, `h-18`, `w-[46.25rem]`,
+    `max-w-[24rem]` in the built CSS); impeccable detector: no findings; dev server `/` and `/computo.html` 200 with
+    12 dropdown rows and the closed drawer markup. Visual check on the dev server pending (user): panel width/position
+    at 1024, detail height with many subcategories (scrolls inside the panel), drawer on phone/tablet.
+  - Size: ~860 added / ~450 deleted (two interactive components with their tests; deletions are the dead megamenu,
+    scroller, legacy icons and their tests). Over the 400 heuristic as one coherent work unit, not split.
+  - Commit: the T6 work-unit commit `feat(layout): replace the megamenu with the categories dropdown and nav drawer`
+    on `feat/ds-06-categories-nav` (hash recorded in the next Progress line).
 - [ ] T7 Account panel + mini-cart restyle (head, footer with subtotal + "Ir a pagar"). Check: unit + visual.
 - [ ] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
 
@@ -276,3 +338,10 @@ lines in total.
   decision for the user/UX: WCAG 2.2.2 pause control (the DS molecule has none).
 - 2026-10-18: T5 done (DS two-row header, store pills as a radio group joined to the GET search form, search pill, DS
   wordmark, "Mi cuenta" / "Carrito (N)" actions); all checks green, visual check pending.
+- 2026-10-18: T5 commit `af201ed` on `feat/ds-05-header-search` (stacked on T4, not pushed). Edit surface extended by
+  the parent mid-task with `src/modules/cart/ui/mini-cart.client.tsx` (the cart trigger markup lives there; parent
+  derivation gap, inside the authorized task). Assessed medium (`slice_budget_reached`); user granted review; native
+  review approved with no findings and acknowledged (lineage `review-7f11df9f2c7b1058`). Follow-ups: delete unused
+  `public/images/layout/cart.svg`; cart `aria-label` does not start with the visible "Carrito (N)" (WCAG 2.5.3).
+- 2026-10-18: T6 done (desktop "Categorías" two-panel dropdown, light native-dialog drawer with drill-down below 1024,
+  megamenu, scroller and `<details>` menu removed); all checks green, visual check pending.
