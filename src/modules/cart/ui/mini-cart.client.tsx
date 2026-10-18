@@ -8,6 +8,7 @@ import { cartCountStore, useCartCount } from '@/modules/cart/ui/cart-store';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { formatPrice } from '@/modules/product/ui/format-price';
 import { Button } from '@/shared/ui/button';
+import { Icon } from '@/shared/ui/icon';
 
 /** PWA Studio pages: plain anchors so the edge routes them to PWA Studio. */
 const CART_PATH = '/cart';
@@ -122,14 +123,16 @@ export function MiniCart() {
         aria-expanded={open}
         onClick={() => (open ? closeDrawer() : openDrawer())}
         data-slot="cart-trigger"
-        className="relative grid size-10 shrink-0 place-items-center rounded-full border border-ds-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus"
+        className="relative inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xs text-body-sm font-medium text-ds-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus lg:min-w-0"
       >
-        <Image src="/images/layout/cart.svg" alt="" width={24} height={20} className="h-5 w-6" />
+        <Icon name="shopping-cart" size={16} className="text-ds-neutral-950 lg:size-3.5" />
+        {/* DS action label from 1024; icon only below, with the count as a badge. */}
+        <span className="hidden lg:inline">Carrito</span>
         {total > 0 ? (
           <span
             data-testid="cart-count"
             aria-hidden="true"
-            className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-ds-cta px-1 text-[0.6875rem] leading-none font-semibold text-white"
+            className="absolute top-1.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-pill bg-ds-cta px-1 text-[0.625rem] leading-none font-semibold text-ds-text-on-cta lg:static lg:block lg:h-auto lg:min-w-0 lg:rounded-none lg:bg-transparent lg:p-0 lg:text-body-sm lg:font-medium lg:text-ds-text lg:before:content-['('] lg:after:content-[')']"
           >
             {display}
           </span>

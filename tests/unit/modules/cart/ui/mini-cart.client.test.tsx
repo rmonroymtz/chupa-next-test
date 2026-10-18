@@ -106,6 +106,27 @@ describe('MiniCart', () => {
     );
   });
 
+  it('is the DS "Carrito (N)" action: cart icon, label and count, same name and popup', async () => {
+    await act(async () => render(<MiniCart />));
+    act(() => cartCountStore.set(2));
+
+    const button = trigger();
+    expect(button.getAttribute('aria-label')).toBe(
+      'Alternar mini carrito. Tienes 2 artículos en tu carrito.',
+    );
+    expect(button.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(button.dataset.slot).toBe('cart-trigger');
+    // DS shopping-cart glyph (decorative) instead of the legacy cart image.
+    expect(button.querySelector('img')).toBeNull();
+    expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+    // Visible "Carrito" label followed by the count, shown as "(2)" from 1024 (CSS parens).
+    expect(within(button).getByText('Carrito')).toBeTruthy();
+    const count = within(button).getByTestId('cart-count');
+    expect(count.textContent).toBe('2');
+    expect(count.className).toContain("lg:before:content-['(']");
+    expect(count.className).toContain("lg:after:content-[')']");
+  });
+
   it('opens a dialog with items, subtotal and links to the PWA cart and checkout', async () => {
     window.localStorage.setItem(CART_KEY, encodePersisted('pwa-cart', Date.now()));
     actions.getCartCountAction.mockResolvedValue({ status: 'ok', totalQuantity: 3 });
