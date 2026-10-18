@@ -61,14 +61,14 @@ test.describe('cart shared with PWA Studio (local stack)', () => {
     await expect(cartTrigger(page)).toHaveAccessibleName(/Tienes 2 artículos/);
 
     await cartTrigger(page).click();
-    const dialog = page.getByRole('dialog', { name: 'Carrito de compras' });
+    const dialog = page.getByRole('dialog', { name: /^Carrito/ });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(`Producto ${LOCAL_PRODUCTS.magento.sku}`)).toBeVisible();
-    await expect(dialog.getByRole('link', { name: 'Finalizar compra' })).toHaveAttribute(
+    await expect(dialog.getByRole('link', { name: 'Ir a pagar' })).toHaveAttribute(
       'href',
       '/checkout',
     );
-    await expect(dialog.getByRole('link', { name: 'Ver carrito' })).toHaveAttribute(
+    await expect(dialog.getByRole('link', { name: 'Editar carrito' })).toHaveAttribute(
       'href',
       '/cart',
     );

@@ -1,10 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { MiniCart as MiniCartData } from '@/modules/cart/application/ports';
 import { getCartCountAction, getMiniCartAction } from '@/modules/cart/ui/cart-actions';
 import { cartCountStore, useCartCount } from '@/modules/cart/ui/cart-store';
+import { MiniCartItem } from '@/modules/cart/ui/mini-cart-item';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { formatPrice } from '@/modules/product/ui/format-price';
 import { Button } from '@/shared/ui/button';
@@ -25,6 +25,11 @@ type Contents =
  * add-to-cart island afterwards; the items are read when the drawer opens.
  * A cart Magento rejects shows as empty and is left in storage: the next add
  * to cart (or PWA Studio itself) replaces it.
+ *
+ * The drawer is the DS `.miniCart` panel (PWA `MiniCart`): a 360px floating
+ * surface with a head ("Carrito (N artículos)" + "Editar carrito" to the PWA
+ * cart + close), the scrolling item rows, and a footer with the subtotal and
+ * the main CTA "Ir a pagar" to checkout. It stays a native modal dialog.
  */
 export function MiniCart() {
   const count = useCartCount();
@@ -146,24 +151,45 @@ export function MiniCart() {
         ref={dialogRef}
         aria-labelledby={titleId}
         onClose={() => setOpen(false)}
+        onKeyDown={(event) => {
+          // Close here and mark Escape handled, so the document-level Escape of
+          // other layers (the categories dropdown) leaves it alone.
+          if (event.key !== 'Escape' || event.defaultPrevented) return;
+          event.preventDefault();
+          closeDrawer();
+        }}
         onClick={(event) => {
           // A click on the backdrop targets the dialog element itself.
           if (event.target === event.currentTarget) closeDrawer();
         }}
-        className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-[min(24rem,90vw)] max-w-none bg-white p-0 text-ds-text shadow-elevation-1 backdrop:bg-ds-overlay"
+        className="fixed top-3 right-3 bottom-auto left-auto m-0 h-auto max-h-[min(35rem,calc(100dvh-1.5rem))] w-[min(22.5rem,calc(100vw-1.5rem))] max-w-none overflow-hidden rounded-lg border border-ds-border-subtle bg-ds-surface p-0 text-ds-text shadow-elevation-3 backdrop:bg-ds-overlay"
       >
-        <div className="flex h-full flex-col pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-center justify-between border-b border-ds-border-subtle px-4 py-3">
-            <h2 id={titleId} className="text-base font-semibold">
-              Carrito de compras
+        <div className="flex max-h-[inherit] flex-col">
+          <div
+            data-slot="mini-cart-head"
+            className="flex shrink-0 items-center gap-3 border-b border-ds-border-subtle py-2 pr-2 pl-4"
+          >
+            <h2
+              id={titleId}
+              className="min-w-0 flex-1 truncate text-body-md font-bold tracking-[0.02em] uppercase"
+            >
+              {title(contents)}
             </h2>
+            {hasItems(contents) ? (
+              <a
+                href={CART_PATH}
+                className="inline-flex min-h-8 items-center rounded-xs text-body-sm font-semibold whitespace-nowrap text-ds-link hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus"
+              >
+                Editar carrito
+              </a>
+            ) : null}
             <button
               type="button"
               aria-label="Cerrar carrito"
               onClick={closeDrawer}
-              className="grid size-11 place-items-center rounded-full text-2xl leading-none focus-visible:outline-2 focus-visible:outline-ds-focus"
+              className="grid size-11 shrink-0 place-items-center rounded-full text-ds-text hover:bg-ds-surface-subtle focus-visible:outline-2 focus-visible:outline-ds-focus"
             >
-              <span aria-hidden="true">×</span>
+              <Icon name="x" size={20} />
             </button>
           </div>
           <MiniCartBody contents={contents} onRetry={() => void load()} />
@@ -173,78 +199,62 @@ export function MiniCart() {
   );
 }
 
+function hasItems(contents: Contents): contents is { kind: 'ready'; cart: MiniCartData } {
+  return contents.kind === 'ready' && contents.cart !== null && contents.cart.items.length > 0;
+}
+
+/** PWA head title, "Carrito (N artículos)"; just "Carrito" until the items are known. */
+function title(contents: Contents): string {
+  if (!hasItems(contents)) return 'Carrito';
+  const quantity = contents.cart.totalQuantity;
+  return `Carrito (${quantity} ${quantity === 1 ? 'artículo' : 'artículos'})`;
+}
+
 function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): void }) {
   if (contents.kind === 'loading') {
     return (
-      <p role="status" className="px-4 py-6 text-sm">
+      <p role="status" className="px-4 py-8 text-center text-body-md text-ds-text-secondary">
         Cargando tu carrito...
       </p>
     );
   }
   if (contents.kind === 'error') {
     return (
-      <div role="alert" className="flex flex-col items-start gap-3 px-4 py-6 text-sm">
-        <p>No pudimos cargar tu carrito.</p>
-        <Button variant="secondary" size="lg" onClick={onRetry}>
+      <div role="alert" className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+        <p className="text-body-md font-semibold text-ds-text">No pudimos cargar tu carrito.</p>
+        <Button variant="secondary" size="md" onClick={onRetry}>
           Reintentar
         </Button>
       </div>
     );
   }
-  const { cart } = contents;
-  if (!cart || cart.items.length === 0) {
-    return <p className="px-4 py-6 text-sm">No hay artículos en tu carrito.</p>;
+  if (!hasItems(contents)) {
+    return (
+      <p className="px-4 py-8 text-center text-body-md font-semibold text-ds-text-secondary">
+        No hay artículos en tu carrito.
+      </p>
+    );
   }
+  const { cart } = contents;
   return (
     <>
-      <div className="flex items-baseline justify-between gap-2 px-4 py-3 text-sm">
-        <span>{cart.totalQuantity} productos</span>
-        {cart.subtotal ? (
-          <span className="font-semibold">
-            Subtotal: {formatPrice(cart.subtotal.amount, cart.subtotal.currency)}
-          </span>
-        ) : null}
-      </div>
-      <ul className="flex-1 divide-y divide-ds-border-subtle overflow-y-auto px-4">
+      <ul className="min-h-32 flex-1 divide-y divide-ds-border-subtle overflow-y-auto px-4">
         {cart.items.map((item) => (
-          <li key={item.uid} className="flex gap-3 py-3">
-            {item.thumbnailUrl ? (
-              <Image
-                src={item.thumbnailUrl}
-                alt=""
-                width={64}
-                height={64}
-                unoptimized
-                loading="lazy"
-                className="size-16 shrink-0 object-contain"
-              />
-            ) : (
-              <span className="size-16 shrink-0 bg-ds-surface-subtle" aria-hidden="true" />
-            )}
-            <div className="flex min-w-0 flex-col gap-1 text-sm">
-              <a href={item.url} className="line-clamp-2 font-semibold hover:underline">
-                {item.name}
-              </a>
-              {item.options.map((option) => (
-                <span key={option.label} className="text-ds-text-secondary">
-                  {option.label}: {option.value}
-                </span>
-              ))}
-              {item.outOfStock ? <span className="text-ds-text-error">Agotado</span> : null}
-              <span>Cantidad: {item.quantity}</span>
-              {item.unitPrice ? (
-                <span>{formatPrice(item.unitPrice.amount, item.unitPrice.currency)}</span>
-              ) : null}
-            </div>
-          </li>
+          <MiniCartItem key={item.uid} item={item} />
         ))}
       </ul>
-      <div className="flex flex-col gap-2 border-t border-ds-border-subtle p-4">
-        <Button href={CHECKOUT_PATH} nativeAnchor size="lg">
-          Finalizar compra
-        </Button>
-        <Button href={CART_PATH} nativeAnchor variant="secondary" size="lg">
-          Ver carrito
+      <div
+        data-slot="mini-cart-footer"
+        className="flex shrink-0 flex-col gap-3 border-t border-ds-border-subtle bg-ds-surface px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
+        {cart.subtotal ? (
+          <p className="flex items-baseline justify-between gap-2 text-[0.9375rem] font-bold text-ds-text">
+            <span>Subtotal ({cart.totalQuantity} art.):</span>
+            <span>{formatPrice(cart.subtotal.amount, cart.subtotal.currency)}</span>
+          </p>
+        ) : null}
+        <Button href={CHECKOUT_PATH} nativeAnchor size="lg" className="w-full">
+          Ir a pagar
         </Button>
       </div>
     </>

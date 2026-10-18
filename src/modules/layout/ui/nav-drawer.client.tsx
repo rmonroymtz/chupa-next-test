@@ -34,7 +34,8 @@ export function NavDrawer({ items }: { readonly items: readonly MenuItem[] }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const overflowRef = useRef('');
+  // The page `overflow` saved while the drawer locks the scroll; null = not locked.
+  const overflowRef = useRef<string | null>(null);
   const focusKeyRef = useRef<string | null>(null);
   const [open, setOpen] = useState(false);
   // Ids of the opened categories, outermost first; empty = top level.
@@ -49,14 +50,32 @@ export function NavDrawer({ items }: { readonly items: readonly MenuItem[] }) {
     [...targets].find((element) => element.dataset.focusKey === key)?.focus();
   }, [path]);
 
+  // The drawer is the < 1024 navigation: when the viewport grows past it (its
+  // button is then hidden), close it and give the page its scroll back.
+  useEffect(() => {
+    if (!open || typeof window.matchMedia !== 'function') return;
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    function onChange(event: { readonly matches: boolean }) {
+      const dialog = dialogRef.current;
+      if (!event.matches || !dialog) return;
+      // Same path as the close button: the `close` event runs `onClosed`.
+      if (typeof dialog.close === 'function') dialog.close();
+      else {
+        dialog.removeAttribute('open');
+        dialog.dispatchEvent(new Event('close'));
+      }
+    }
+    desktop.addEventListener('change', onChange);
+    return () => desktop.removeEventListener('change', onChange);
+  }, [open]);
+
   function openDrawer(): void {
     const dialog = dialogRef.current;
     if (!dialog) return;
     setPath([]);
     if (typeof dialog.showModal === 'function') dialog.showModal();
     else dialog.setAttribute('open', '');
-    overflowRef.current = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     setOpen(true);
     closeRef.current?.focus();
   }
@@ -72,9 +91,23 @@ export function NavDrawer({ items }: { readonly items: readonly MenuItem[] }) {
 
   /** The dialog `close` event: also after the platform closed it. */
   function onClosed(): void {
-    document.body.style.overflow = overflowRef.current;
+    unlockScroll();
     setOpen(false);
     triggerRef.current?.focus();
+  }
+
+  // Idempotent: a repeated open keeps the first saved value, and a close
+  // without an open (or a second close) leaves the page overflow alone.
+  function lockScroll(): void {
+    if (overflowRef.current !== null) return;
+    overflowRef.current = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function unlockScroll(): void {
+    if (overflowRef.current === null) return;
+    document.body.style.overflow = overflowRef.current;
+    overflowRef.current = null;
   }
 
   function drillInto(id: string): void {

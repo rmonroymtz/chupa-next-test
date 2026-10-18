@@ -19,7 +19,8 @@ const ROW_SELECTOR = '[data-category-row]';
  * order, and each category's detail follows its own row, so tabbing from a row
  * enters the subcategories it just revealed. Up/Down/Home/End move between the
  * rows, Right enters the active detail, Left returns to its row. Escape closes
- * and returns focus to the button; a click or focus outside closes.
+ * and returns focus to the button (unless another layer already handled it); a
+ * click outside or focus leaving (also to nothing, as on window blur) closes.
  *
  * The panel is server-rendered with every link (the closed panel and the
  * inactive details are `hidden`), so the category links stay crawlable as they
@@ -37,7 +38,8 @@ export function CategoriesDropdown({ items }: { readonly items: readonly MenuIte
   useEffect(() => {
     if (!open) return;
     function onKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key !== 'Escape') return;
+      // An Escape another layer already handled (the mini cart dialog) is not ours.
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
       setOpen(false);
       triggerRef.current?.focus();
     }
@@ -80,13 +82,22 @@ export function CategoriesDropdown({ items }: { readonly items: readonly MenuIte
     row.focus();
   }
 
+  // Focus moving outside, or to nothing (window blur, a click on the page
+  // background), closes. A click inside never reports null: the root is
+  // focusable (`tabIndex={-1}`), so it takes focus for clicks on non-focusable
+  // content and, in Safari, on links and buttons.
   function onBlur(event: FocusEvent<HTMLDivElement>) {
     const next = event.relatedTarget;
-    if (next instanceof Node && !event.currentTarget.contains(next)) setOpen(false);
+    if (!(next instanceof Node) || !event.currentTarget.contains(next)) setOpen(false);
   }
 
   return (
-    <div ref={rootRef} className="relative hidden shrink-0 lg:block" onBlur={onBlur}>
+    <div
+      ref={rootRef}
+      tabIndex={-1}
+      className="relative hidden shrink-0 outline-none lg:block"
+      onBlur={onBlur}
+    >
       <button
         ref={triggerRef}
         type="button"

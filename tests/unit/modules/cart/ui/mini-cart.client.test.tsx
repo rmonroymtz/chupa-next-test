@@ -127,7 +127,7 @@ describe('MiniCart', () => {
     expect(count.className).toContain("lg:after:content-[')']");
   });
 
-  it('opens a dialog with items, subtotal and links to the PWA cart and checkout', async () => {
+  it('opens the DS panel: head with title and "Editar carrito", items, subtotal and "Ir a pagar"', async () => {
     window.localStorage.setItem(CART_KEY, encodePersisted('pwa-cart', Date.now()));
     actions.getCartCountAction.mockResolvedValue({ status: 'ok', totalQuantity: 3 });
     actions.getMiniCartAction.mockResolvedValue({ status: 'ok', cart: CART });
@@ -135,29 +135,90 @@ describe('MiniCart', () => {
 
     await act(async () => fireEvent.click(trigger()));
 
-    const dialog = screen.getByRole('dialog', { name: 'Carrito de compras' });
+    const dialog = screen.getByRole('dialog', { name: 'Carrito (3 artículos)' });
     expect(trigger().getAttribute('aria-expanded')).toBe('true');
     const view = within(dialog);
-    expect(view.getByRole('link', { name: 'Playera' }).getAttribute('href')).toBe(
+    // Head: the title (dialog name) and the PWA "Editar carrito" link to the PWA cart.
+    expect(view.getByRole('heading', { level: 2, name: 'Carrito (3 artículos)' })).toBeTruthy();
+    const edit = view.getByRole('link', { name: 'Editar carrito' });
+    expect(edit.getAttribute('href')).toBe('/cart');
+    expect(edit.closest('[data-slot="mini-cart-head"]')).toBeTruthy();
+    // Item rows.
+    const items = view.getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+    const row = within(items[0]!);
+    expect(row.getByRole('link', { name: 'Playera' }).getAttribute('href')).toBe(
       '/ebay-1-playera.html',
     );
-    expect(view.getByText('Talla: M')).toBeTruthy();
-    expect(view.getByText('Cantidad: 3')).toBeTruthy();
-    expect(view.getByText('3 productos')).toBeTruthy();
-    expect(view.getByText(/Subtotal:/).textContent).toContain('1,548.50');
-    expect(view.getByRole('link', { name: 'Finalizar compra' }).getAttribute('href')).toBe(
+    expect(row.getByText('Talla: M')).toBeTruthy();
+    expect(row.getByText('Cantidad: 3')).toBeTruthy();
+    expect(row.getByText(/516\.17/)).toBeTruthy();
+    // Footer: subtotal and the main CTA to checkout (the PWA set: no "Ver carrito").
+    const footer = dialog.querySelector<HTMLElement>('[data-slot="mini-cart-footer"]')!;
+    expect(within(footer).getByText('Subtotal (3 art.):')).toBeTruthy();
+    expect(within(footer).getByText(/1,548\.50/)).toBeTruthy();
+    expect(within(footer).getByRole('link', { name: 'Ir a pagar' }).getAttribute('href')).toBe(
       '/checkout',
     );
-    expect(view.getByRole('link', { name: 'Ver carrito' }).getAttribute('href')).toBe('/cart');
+    expect(view.queryByRole('link', { name: 'Ver carrito' })).toBeNull();
+    expect(view.queryByRole('link', { name: 'Finalizar compra' })).toBeNull();
 
     fireEvent.click(view.getByRole('button', { name: 'Cerrar carrito' }));
     expect(trigger().getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('marks an out-of-stock item and uses the singular title for one article', async () => {
+    window.localStorage.setItem(CART_KEY, encodePersisted('pwa-cart', Date.now()));
+    actions.getCartCountAction.mockResolvedValue({ status: 'ok', totalQuantity: 1 });
+    actions.getMiniCartAction.mockResolvedValue({
+      status: 'ok',
+      cart: {
+        ...CART,
+        totalQuantity: 1,
+        items: [{ ...CART.items[0]!, quantity: 1, outOfStock: true }],
+      },
+    });
+    await act(async () => render(<MiniCart />));
+
+    await act(async () => fireEvent.click(trigger()));
+
+    const dialog = screen.getByRole('dialog', { name: 'Carrito (1 artículo)' });
+    expect(within(dialog).getByText('Agotado')).toBeTruthy();
+    expect(within(dialog).getByText('Subtotal (1 art.):')).toBeTruthy();
+  });
+
+  it('Escape closes the panel and marks the key handled for other listeners', async () => {
+    await act(async () => render(<MiniCart />));
+    await act(async () => fireEvent.click(trigger()));
+    const dialog = screen.getByRole('dialog', { name: 'Carrito' });
+
+    const notPrevented = fireEvent.keyDown(dialog, { key: 'Escape' });
+
+    expect(notPrevented).toBe(false);
+    expect(trigger().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('keeps the title and close button but no "Editar carrito" while loading', async () => {
+    window.localStorage.setItem(CART_KEY, encodePersisted('pwa-cart', Date.now()));
+    actions.getCartCountAction.mockResolvedValue({ status: 'ok', totalQuantity: 3 });
+    actions.getMiniCartAction.mockReturnValue(new Promise(() => {}));
+    await act(async () => render(<MiniCart />));
+
+    await act(async () => fireEvent.click(trigger()));
+
+    const dialog = screen.getByRole('dialog', { name: 'Carrito' });
+    expect(within(dialog).getByRole('status').textContent).toBe('Cargando tu carrito...');
+    expect(within(dialog).getByRole('button', { name: 'Cerrar carrito' })).toBeTruthy();
+    expect(within(dialog).queryByRole('link', { name: 'Editar carrito' })).toBeNull();
+  });
+
   it('shows the legacy empty message without a cart', async () => {
     await act(async () => render(<MiniCart />));
     await act(async () => fireEvent.click(trigger()));
-    expect(screen.getByText('No hay artículos en tu carrito.')).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Carrito' });
+    expect(within(dialog).getByText('No hay artículos en tu carrito.')).toBeTruthy();
+    expect(within(dialog).queryByRole('link', { name: 'Ir a pagar' })).toBeNull();
+    expect(within(dialog).queryByRole('link', { name: 'Editar carrito' })).toBeNull();
     expect(actions.getMiniCartAction).not.toHaveBeenCalled();
   });
 

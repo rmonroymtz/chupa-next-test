@@ -1,7 +1,6 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1–T6 done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, T6 commit in the next
-Progress line); T1–T5 reviews approved, not pushed; T7 next.
+Status (2026-10-18): T1–T6 done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, `6fd60d3`), reviews approved, not pushed; T7a done; T8 next (T7b pending).
 
 ## Objective
 
@@ -294,7 +293,54 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     scroller, legacy icons and their tests). Over the 400 heuristic as one coherent work unit, not split.
   - Commit: the T6 work-unit commit `feat(layout): replace the megamenu with the categories dropdown and nav drawer`
     on `feat/ds-06-categories-nav` (hash recorded in the next Progress line).
-- [ ] T7 Account panel + mini-cart restyle (head, footer with subtotal + "Ir a pagar"). Check: unit + visual.
+- [x] T7a Mini-cart restyle (head, footer with subtotal + "Ir a pagar") (user, 2026-10-18: mini-cart first). Check: unit + visual. Also fix the T6 review warnings: the dropdown Escape handler must respect `event.defaultPrevented` (no clash with the mini-cart), close the dropdown when focus leaves to nothing (window blur), and close the drawer when the viewport reaches 1024; make the drawer overflow restore idempotent.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: baseline cart + layout unit 8 files / 63 tests
+    green; RED = 10 failing of 71 (mini-cart: DS panel head/footer, singular title + "Agotado", Escape marked handled,
+    loading head, empty state without CTAs; dropdown: prevented Escape ignored, blur to nothing closes, focusable
+    root keeps panel clicks inside; drawer: viewport ≥1024 closes + listener cleanup, idempotent overflow restore);
+    GREEN = 8 files / 71 tests.
+  - Files: `src/modules/cart/ui/mini-cart.client.tsx` (panel only; trigger untouched), `src/modules/cart/ui/mini-cart-item.tsx`
+    (new row component), `src/modules/layout/ui/categories-dropdown.client.tsx`, `src/modules/layout/ui/nav-drawer.client.tsx`,
+    `tests/unit/modules/cart/ui/mini-cart.client.test.tsx`, `tests/unit/modules/layout/ui/{categories-dropdown,nav-drawer}.test.tsx`,
+    `e2e/local/shared-cart.spec.ts` (labels only).
+    No action, store or data change.
+  - Decisions: the mini cart stays a native modal `<dialog>` (`showModal`, backdrop click, close button, focus back
+    to the trigger) but becomes the DS `.miniCart` surface: floating 360px (`min(22.5rem, 100vw-1.5rem)`), 12px from
+    the top-right, max height `min(35rem, 100dvh-1.5rem)`, `radius-lg`, `border-ds-border-subtle`, `elevation-3`
+    (was a full-height right sheet). Head: `h2` title (14 bold uppercase, the dialog name), "Editar carrito" (13
+    semibold `ds-link`, plain `<a href="/cart">`, edge-routed) only when there are items (PWA hides it when empty and
+    disables it while loading), close = DS `x` icon. Body: scrolling rows (`MiniCartItem`: 80px thumbnail, name link,
+    options, "Agotado", "Cantidad: N" + unit price). Footer (sticky, not scrolled): "Subtotal (N art.):" + price
+    (15 bold) and full-width primary lg "Ir a pagar" (`/checkout`, `nativeAnchor`). Loading/empty/error centered;
+    "Reintentar" now secondary md. Escape: the dialog `onKeyDown` closes it and calls `preventDefault`, so the
+    document listener of the dropdown skips it (React's root listener runs before the document one).
+    No quantity stepper or remove button: Next has no cart mutation (port/actions only add and read), the brief
+    keeps Magento/API changes out of scope, and the PWA mini-cart itself only removes (stepper rows pending there
+    as sub-slice 4b); quantity and removal stay in the PWA cart via "Editar carrito". No analytics events exist in
+    the Next mini cart (the PWA `CART_REMOVE_ITEM` belongs to remove), so none were added or lost.
+    T6 warnings: R3-dropdown-escape-focus (document Escape ignores `defaultPrevented`); R3-dropdown-blur-focus-null
+    (blur to `null` closes; the root is `tabIndex={-1}` + `outline-none`, so clicks on non-focusable panel content,
+    and on links/buttons in Safari, move focus to the root instead of to nothing); R3-drawer-viewport-grow (while
+    open, a `(min-width: 1024px)` `change` listener closes through `dialog.close()`, removed on close/unmount);
+    R3-drawer-overflow-restore (`overflowRef` is `null` when unlocked; lock saves once, unlock restores once).
+  - Renamed/removed labels: dialog title "Carrito de compras" → "Carrito" / "Carrito (N artículos|artículo)";
+    "Finalizar compra" → "Ir a pagar" (same `/checkout`); "Ver carrito" (footer button) → "Editar carrito" (head
+    link, same `/cart`); "N productos" line removed (count moved into the title); "Subtotal: $X" → "Subtotal (N art.):"
+    + price; the close glyph "×" → DS `x` icon (name "Cerrar carrito" unchanged). Kept: "Cargando tu carrito...",
+    "No pudimos cargar tu carrito.", "Reintentar", "No hay artículos en tu carrito.", "Agotado", "Cantidad: N".
+  - Changed assertions: mini-cart "opens a dialog with items, subtotal and links…" replaced by "opens the DS panel…":
+    dialog name `Carrito de compras` → `Carrito (3 artículos)`, `3 productos` → title, `Subtotal:` → `Subtotal (3
+    art.):` in the footer, `Finalizar compra` → `Ir a pagar` (/checkout), `Ver carrito` → `Editar carrito` (/cart) in
+    the head; item link/options/quantity kept and scoped to the row, unit price and absence of the old links added.
+    "shows the legacy empty message" additionally asserts no "Ir a pagar"/"Editar carrito". No assertion removed.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 117 files / 1113 tests pass;
+    integration 7 files / 102 tests pass; build pass (panel arbitrary values in the built CSS); dev server `/` 200.
+    `e2e/local/shared-cart.spec.ts` (surface extended by the parent mid-task, derivation gap inside the task):
+    dialog name `Carrito de compras` → `/^Carrito/`, `Finalizar compra` → `Ir a pagar` (`/checkout`), `Ver carrito`
+    → `Editar carrito` (`/cart`); every step kept (open, product text, both hrefs, Escape closes). It typechecks and
+    lints; not run (its global setup builds and starts a standalone Next + mock backends). Visual check on the dev server pending (user): floating panel
+    at 375/1024/1440, long item lists scrolling under the sticky footer, uppercase title truncation.
+- [ ] T7b Account panel (avatar, name, items, sign-out in #BE424B). Pending: Next has no customer session yet (account pages stay on the PWA until phase 4).
 - [ ] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
 
 ## Delivery strategy
@@ -345,3 +391,10 @@ lines in total.
   `public/images/layout/cart.svg`; cart `aria-label` does not start with the visible "Carrito (N)" (WCAG 2.5.3).
 - 2026-10-18: T6 done (desktop "Categorías" two-panel dropdown, light native-dialog drawer with drill-down below 1024,
   megamenu, scroller and `<details>` menu removed); all checks green, visual check pending.
+- 2026-10-18: T6 commit `6fd60d3` on `feat/ds-06-categories-nav` (stacked on T5, not pushed). Assessed medium
+  (`slice_budget_reached`, 1390 lines incl. deleted megamenu + tests); user granted review; native review approved and
+  acknowledged (lineage `review-108e8b9fc7ff6077`) with three advisory WARNINGs and one SUGGESTION, carried into T7:
+  R3-dropdown-escape-focus, R3-dropdown-blur-focus-null, R3-drawer-viewport-grow, R3-drawer-overflow-restore.
+- 2026-10-18: T7a done (DS mini-cart panel: head title + "Editar carrito", item rows, footer subtotal + "Ir a pagar";
+  T6 warnings fixed: prevented Escape ignored, blur to nothing closes, drawer closes at 1024, idempotent overflow);
+  all required checks green, local e2e cart spec relabeled (not run), visual check pending.

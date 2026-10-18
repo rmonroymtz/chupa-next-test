@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
 import { NavDrawer } from '@/modules/layout/ui/nav-drawer.client';
@@ -92,6 +92,57 @@ describe('NavDrawer', () => {
     const { dialog } = openDrawer();
     fireEvent.click(dialog);
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('closes and restores the page scroll when the viewport reaches 1024', () => {
+    const listeners = new Set<(event: { matches: boolean }) => void>();
+    const query = {
+      matches: false,
+      addEventListener: vi.fn((_: string, fn: (event: { matches: boolean }) => void) =>
+        listeners.add(fn),
+      ),
+      removeEventListener: vi.fn((_: string, fn: (event: { matches: boolean }) => void) =>
+        listeners.delete(fn),
+      ),
+    };
+    const matchMedia = vi.fn(() => query);
+    vi.stubGlobal('matchMedia', matchMedia);
+    try {
+      const { trigger, dialog } = openDrawer();
+      expect(matchMedia).toHaveBeenCalledWith('(min-width: 1024px)');
+      expect(listeners.size).toBe(1);
+
+      act(() => listeners.forEach((fn) => fn({ matches: false })));
+      expect(dialog.hasAttribute('open')).toBe(true);
+
+      act(() => listeners.forEach((fn) => fn({ matches: true })));
+      expect(dialog.hasAttribute('open')).toBe(false);
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(document.body.style.overflow).toBe('');
+      // The listener only lives while the drawer is open.
+      expect(listeners.size).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('restores the page scroll exactly once (no clobbering on a repeated close)', () => {
+    document.body.style.overflow = 'scroll';
+    const { container } = renderDrawer();
+    const dialog = container.querySelector('dialog')!;
+    // A close without an open leaves the page alone.
+    fireEvent(dialog, new Event('close'));
+    expect(document.body.style.overflow).toBe('scroll');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Categorías' }));
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar menú', hidden: true }));
+    expect(document.body.style.overflow).toBe('scroll');
+
+    // Someone else changes it afterwards; a second close must not undo that.
+    document.body.style.overflow = 'auto';
+    fireEvent(dialog, new Event('close'));
+    expect(document.body.style.overflow).toBe('auto');
   });
 
   it('drills down the category tree and back, linking every level to its page', () => {
