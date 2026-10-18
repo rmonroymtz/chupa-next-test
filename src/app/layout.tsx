@@ -5,6 +5,7 @@ import { GtmScript } from '@/modules/analytics/ui/gtm-script';
 import { fontVariables } from '@/modules/layout/ui/fonts';
 import { SiteFooter } from '@/modules/layout/ui/site-footer';
 import { SiteHeaderContainer } from '@/modules/layout/ui/site-header.container';
+import { PromoBar } from '@/modules/promo-bar/ui/promo-bar';
 import { OG_LOCALE, SITE_NAME } from '@/modules/seo/domain/site';
 import {
   buildOrganizationJsonLd,
@@ -46,6 +47,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <JsonLd data={buildOrganizationJsonLd(site)} />
         <JsonLd data={buildWebSiteJsonLd(site)} />
         <AnalyticsProvider>
+          {/* Site-wide announcements above the header, as the PWA's Main mounts them. */}
+          <PromoBar />
           <SiteHeaderContainer />
           {/* The only <main> landmark: pages render plain containers inside it. */}
           <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 outline-none">

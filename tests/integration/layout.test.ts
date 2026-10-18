@@ -95,6 +95,11 @@ function expectLayout(html: string) {
   expect(html).toContain('href="#main-content"');
   expect(html).toContain('id="main-content"');
   expect(html).toMatch(/<header[^>]*>/);
+  // The promo bar region sits above the header, its first slide server-rendered.
+  const promo = html.indexOf('<section aria-label="Promociones"');
+  expect(promo).toBeGreaterThan(-1);
+  expect(promo).toBeLessThan(html.indexOf('<header'));
+  expect(html).toContain('Envío gratis');
   const form = /<form[^>]*role="search"[^>]*>/.exec(html)?.[0] ?? '';
   expect(form).toContain('action="/search.html"');
   expect(form).toContain('method="get"');
