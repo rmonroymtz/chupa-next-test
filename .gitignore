@@ -33,3 +33,6 @@ pnpm-debug.log*
 
 # gentle-ai skill registry (generated locally)
 /.atl/
+
+# written by next dev (agent rules)
+AGENTS.md
