@@ -862,3 +862,9 @@ lines in total.
   diseño nuevo aun no me lo comparten"). Do not change it until that design arrives.
 - 2026-10-19: T13 open decision closed: the red cart count badge below 1160 (tablet and mobile) stays, although the
   PWA shows only the icon there (user: "dejalo"). Intentional difference from the PWA.
+- 2026-10-19: local e2e `e2e/local/shared-cart.spec.ts` run for the first time since T7c: 1 of 3 failed (the
+  "Carrito" region was the zero-height PWA `.root` wrapper, so it had no box and was not visible to Playwright).
+  Fix (user: "dale"): the region (`section aria-label="Carrito"`) is now the sized 360px card inside the wrapper;
+  the wrapper keeps the id, `aria-controls` target, `aria-hidden`/`inert` and the fade. RED: the mini-cart panel test
+  (region must not be the zero-height wrapper) failed, then GREEN. Checks: typecheck, lint (1 known warning), unit
+  1197, integration 102, e2e local 3/3 (includes a production build). Route: inline (one component and its test).
