@@ -1,9 +1,12 @@
 import type { ReactNode, SVGProps } from 'react';
+import { Icon } from '@/shared/ui/icon';
 
 /*
  * Small decorative icons ported from the legacy theme as inline SVG so they
  * inherit `currentColor` and cost no request. Always `aria-hidden`: the
- * control that holds them carries the accessible name.
+ * control that holds them carries the accessible name. Glyphs that exist in
+ * the DS catalog delegate to the shared `Icon`; the legacy brand glyphs
+ * (user, search, social) stay here until their surfaces are redesigned.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, 'children'>;
 
@@ -39,40 +42,20 @@ export function SearchIcon(props: IconProps) {
   );
 }
 
-/** Venia `navTrigger` icon (feather `Menu`). */
-export function MenuIcon(props: IconProps) {
-  return (
-    <Svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </Svg>
-  );
+/*
+ * The call sites size these with classes (`size-4`...), which win over the
+ * DS default `width`/`height` attributes.
+ */
+type DsIconProps = Omit<IconProps, 'width' | 'height' | 'role' | 'name' | 'strokeWidth'>;
+
+/** DS `menu` (the Venia `navTrigger` feather glyph), legacy 2px stroke. */
+export function MenuIcon(props: DsIconProps) {
+  return <Icon name="menu" strokeWidth={2} {...props} />;
 }
 
-/** Feather `ChevronDown`, as in the legacy megamenu item. */
-export function ChevronDownIcon(props: IconProps) {
-  return (
-    <Svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </Svg>
-  );
+/** DS `chevron-down` (feather, as in the legacy megamenu item), legacy 2px stroke. */
+export function ChevronDownIcon(props: DsIconProps) {
+  return <Icon name="chevron-down" strokeWidth={2} {...props} />;
 }
 
 /** Legacy footer `SocialButton` Facebook glyph. */

@@ -7,6 +7,7 @@ import { getCartCountAction, getMiniCartAction } from '@/modules/cart/ui/cart-ac
 import { cartCountStore, useCartCount } from '@/modules/cart/ui/cart-store';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { formatPrice } from '@/modules/product/ui/format-price';
+import { Button } from '@/shared/ui/button';
 
 /** PWA Studio pages: plain anchors so the edge routes them to PWA Studio. */
 const CART_PATH = '/cart';
@@ -181,13 +182,9 @@ function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): vo
     return (
       <div role="alert" className="flex flex-col items-start gap-3 px-4 py-6 text-sm">
         <p>No pudimos cargar tu carrito.</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="h-11 rounded-pill border border-ds-border-strong px-5 font-semibold"
-        >
+        <Button variant="secondary" size="lg" onClick={onRetry}>
           Reintentar
-        </button>
+        </Button>
       </div>
     );
   }
@@ -240,18 +237,12 @@ function MiniCartBody({ contents, onRetry }: { contents: Contents; onRetry(): vo
         ))}
       </ul>
       <div className="flex flex-col gap-2 border-t border-ds-border-subtle p-4">
-        <a
-          href={CHECKOUT_PATH}
-          className="grid h-12 place-items-center rounded-pill bg-ds-cta font-semibold text-white hover:bg-ds-cta-hover active:bg-ds-cta-pressed"
-        >
+        <Button href={CHECKOUT_PATH} nativeAnchor size="lg">
           Finalizar compra
-        </a>
-        <a
-          href={CART_PATH}
-          className="grid h-12 place-items-center rounded-pill border border-ds-border-strong font-semibold"
-        >
+        </Button>
+        <Button href={CART_PATH} nativeAnchor variant="secondary" size="lg">
           Ver carrito
-        </a>
+        </Button>
       </div>
     </>
   );
