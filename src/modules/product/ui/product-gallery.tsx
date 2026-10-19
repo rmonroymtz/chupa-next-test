@@ -36,7 +36,7 @@ export function ProductGallery({ images, alt, loadingStrategy }: ProductGalleryP
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <div className="relative aspect-square w-full overflow-hidden rounded-md bg-white">
         <Image
           src={main.url}
