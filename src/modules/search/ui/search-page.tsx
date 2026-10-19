@@ -143,43 +143,51 @@ function SingleStore({
   const linkStore = answeringStore(listing, result);
   const location: SearchLocation = { query: view.query, store: linkStore ?? listing.store };
   const hasFilters = linkStore !== null && result.refinements.length > 0;
+  // PWA `searchPage.module.css`: the controls row spans the page above the filter column and the
+  // results; the 280px filter column (16px gap) starts at 1025px (`max-width: 1024px` stacks it).
   return (
-    <div
-      className={`mt-6 ${hasFilters ? 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8' : ''}`}
-    >
-      {hasFilters ? (
-        <SearchFiltersSidebar refinements={result.refinements} location={location} />
-      ) : null}
-      <div className="min-w-0">
-        {listing.servedByFallback ? (
-          <FallbackNotice
-            requested={listing.store}
-            vendor={result.vendor}
-            count={result.items.length}
-            query={view.query}
-          />
+    <div className="mt-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p data-search-count className="text-sm text-ds-text-secondary">
+          {productCount(result.items.length)}
+        </p>
+        {linkStore !== null ? (
+          <Suspense fallback={<SearchSortPlaceholder />}>
+            <SearchSort
+              options={safeSortOptions(loadSortOptions, { ...listing, store: linkStore, result })}
+              location={location}
+            />
+          </Suspense>
         ) : null}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p data-search-count className="text-sm text-ds-text-secondary">
-            {productCount(result.items.length)}
-          </p>
-          {linkStore !== null ? (
-            <Suspense fallback={<SearchSortPlaceholder />}>
-              <SearchSort
-                options={safeSortOptions(loadSortOptions, { ...listing, store: linkStore, result })}
-                location={location}
-              />
-            </Suspense>
+        {hasFilters ? (
+          <SearchFiltersDisclosure refinements={result.refinements} location={location} />
+        ) : null}
+      </div>
+      <div
+        className={
+          hasFilters
+            ? 'flex flex-col gap-4 min-[1025px]:grid min-[1025px]:grid-cols-[280px_minmax(0,1fr)]'
+            : undefined
+        }
+      >
+        {hasFilters ? (
+          <SearchFiltersSidebar refinements={result.refinements} location={location} />
+        ) : null}
+        <div className="min-w-0">
+          {listing.servedByFallback ? (
+            <FallbackNotice
+              requested={listing.store}
+              vendor={result.vendor}
+              count={result.items.length}
+              query={view.query}
+            />
           ) : null}
-          {hasFilters ? (
-            <SearchFiltersDisclosure refinements={result.refinements} location={location} />
+          {/* The PWA Gallery item shows the brand and the review stars of each result. */}
+          <ProductCards cards={result.items} appearance="grid" showRating />
+          {linkStore !== null ? (
+            <SearchPagination pagination={result.pagination} page={view.page} location={location} />
           ) : null}
         </div>
-        {/* The PWA Gallery item shows the brand and the review stars of each result. */}
-        <ProductCards cards={result.items} appearance="grid" showRating />
-        {linkStore !== null ? (
-          <SearchPagination pagination={result.pagination} page={view.page} location={location} />
-        ) : null}
       </div>
     </div>
   );
