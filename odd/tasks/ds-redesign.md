@@ -922,3 +922,22 @@ lines in total.
 - 2026-10-19: T14 done: search filter column 280px + 16px gap from 1025px, stacked below the results at 1024,
   capped scroll box, controls row above both columns; product grid, category and ChupaChoice grids already
   matched the PWA. Commit on `feat/ds-14-product-grid` (not pushed).
+- [x] T14b ChupaChoice search horizontal overflow on phones (user, 2026-10-19: "dale"; found in T14: page 466px wide
+  at 375). Route: inline (one component and its test).
+  - Cause (DOM walk at 320/375/414, elements past the viewport with no clipping ancestor): the legacy logo row
+    (`flex`, no wrap, gap 20) holds the logo (up to 150px) and the "Ver MÁS productos" link, an unbreakable
+    278px inline-flex (42px "MÁS"), so the row needs ~448px and the link ends at x 466 (every store section). At
+    320 and 375 the price row of discounted items also spilled ~27px past its card: discount + divider +
+    "$8,275.19" at 20px is wider than the 140px card content box (the 14px price only applies below 360px). The
+    legacy PWA has the same CSS (`productList.module.css` `.storeHeader`, `.priceRow`) and overflows too.
+  - Fix in `chupachoice-section.tsx`: the logo row wraps (column gap 20, no row gap), so the link moves under the
+    logo when it does not fit; the price row wraps, so the price drops under the discount in narrow cards. Wide
+    screens are unchanged (both rows fit on one line).
+  - Test-first: RED = new search view test (logo row and price row must wrap) failed; GREEN = pass. No existing
+    assertion changed.
+  - Measured `scrollWidth` (before → after): ChupaChoice search 466 → 320/375/414 at 320/375/414; ChupaChoice
+    (two queries and a no-results query), Amazon search and `/computo.html` equal the viewport at 320, 375, 414,
+    768, 1024 and 1440. Screenshot `visual/chupachoice-375-next-t14b.png`.
+  - Checks: typecheck pass; lint pass (0 errors, 1 known warning); unit 130 files / 1200 tests pass; integration
+    7 files / 102 tests pass; build pass, no warnings.
+- 2026-10-19: T14b done (user: "dale"): ChupaChoice logo and price rows wrap on phones; no horizontal overflow.

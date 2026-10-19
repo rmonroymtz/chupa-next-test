@@ -583,6 +583,19 @@ describe('SearchPage: ChupaChoice (legacy PWA look)', () => {
     ]);
   });
 
+  it('narrow phones: the logo row and the price row wrap instead of widening the page', () => {
+    const body = render(
+      multi([listing({ store: 'amazon', result: result({ items: [priced()] }) })]),
+    );
+
+    const more = [...body.querySelectorAll('a')].find((a) => a.textContent === 'Ver MÁS productos');
+    // Logo (up to 150px) + 20px + "Ver MÁS productos" (278px) does not fit a 335px content column.
+    expect(more?.parentElement?.className.split(' ')).toContain('flex-wrap');
+    // Discount + divider + "$8,275.19" at 20px is wider than a 140px card content box at 375.
+    const priceRow = body.querySelector('[data-search-price]')?.parentElement;
+    expect(priceRow?.className.split(' ')).toContain('flex-wrap');
+  });
+
   it('lists products in the legacy grid (2, 3, then 6 columns), not the CMS product grid', () => {
     const body = render(fourStores());
 
