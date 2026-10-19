@@ -22,7 +22,22 @@ describe('SiteFooter', () => {
       'Atención a clientes',
       'Oficina central:',
       'Centro de desarrollo tecnológico:',
+      'Formas de pago',
     ]);
+  });
+
+  it('titles the payment logos "Formas de pago" right above them, as the PWA footer', () => {
+    const list = within(footer()).getByRole('list', { name: 'Métodos de pago' });
+    const heading = list.previousElementSibling;
+    // PWA `.col`: column title (16px bold inverse, 8px bottom margin) then the logos, 8px gap.
+    expect(heading?.tagName).toBe('H2');
+    expect(heading?.textContent).toBe('Formas de pago');
+    expect(heading?.className.split(' ')).toEqual(
+      expect.arrayContaining(['text-body-lg', 'font-bold', 'text-ds-text-inverse', 'mb-2']),
+    );
+    expect(heading?.parentElement?.className.split(' ')).toEqual(
+      expect.arrayContaining(['flex', 'flex-col', 'gap-2']),
+    );
   });
 
   it('links the legacy pages with plain relative anchors', () => {

@@ -59,6 +59,29 @@ function stubReducedMotion(matches: boolean) {
   );
 }
 
+/** A reduced-motion query whose `matches` the test flips, firing its `change` listeners. */
+function liveReducedMotion() {
+  const listeners = new Set<() => void>();
+  const query = {
+    matches: false,
+    media: '(prefers-reduced-motion: reduce)',
+    addEventListener: vi.fn((_: string, listener: () => void) => listeners.add(listener)),
+    removeEventListener: vi.fn((_: string, listener: () => void) => listeners.delete(listener)),
+  };
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => query),
+  );
+  return {
+    query,
+    listeners,
+    set(matches: boolean) {
+      query.matches = matches;
+      act(() => listeners.forEach((listener) => listener()));
+    },
+  };
+}
+
 function renderCarousel(itemCount = 8) {
   return render(
     <ProductCarousel itemCount={itemCount}>
@@ -183,6 +206,44 @@ describe('ProductCarousel (PWA RandomSliders embla carousel)', () => {
     expect(embla.api.scrollPrev).toHaveBeenCalledWith(true);
     expect(embla.api.scrollNext).toHaveBeenCalledWith(true);
     expect(embla.api.scrollTo).toHaveBeenCalledWith(1, true);
+  });
+
+  it('follows a reduced-motion preference change after mount', () => {
+    const motion = liveReducedMotion();
+    embla.state.prev = true;
+    renderCarousel();
+
+    fireEvent.click(next());
+    expect(embla.api.scrollNext).toHaveBeenLastCalledWith(false);
+
+    motion.set(true);
+    fireEvent.click(next());
+    fireEvent.click(prev());
+    expect(embla.api.scrollNext).toHaveBeenLastCalledWith(true);
+    expect(embla.api.scrollPrev).toHaveBeenLastCalledWith(true);
+
+    motion.set(false);
+    fireEvent.click(next());
+    expect(embla.api.scrollNext).toHaveBeenLastCalledWith(false);
+  });
+
+  it('removes its embla and media-query listeners on unmount', () => {
+    const motion = liveReducedMotion();
+    const on = vi.spyOn(embla.api, 'on');
+    const off = vi.spyOn(embla.api, 'off');
+    const { unmount } = renderCarousel();
+    expect(on.mock.calls.map(([event]) => event)).toEqual(['select', 'reInit']);
+    expect(motion.listeners.size).toBe(1);
+
+    unmount();
+
+    // The same handler is detached from each event it was attached to.
+    expect(off.mock.calls).toEqual(on.mock.calls);
+    expect(motion.listeners.size).toBe(0);
+    expect(motion.query.removeEventListener).toHaveBeenCalledWith(
+      'change',
+      motion.query.addEventListener.mock.calls[0]?.[1],
+    );
   });
 
   it('renders on the server with both arrows disabled and no dots until embla starts', async () => {

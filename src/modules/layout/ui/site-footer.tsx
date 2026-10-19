@@ -120,20 +120,23 @@ export function SiteFooter() {
               </FooterColumn>
             </address>
           ))}
-          <ul aria-label="Métodos de pago" className="mt-1 flex flex-wrap items-center gap-3">
-            {PAYMENT_METHODS.map((method) => (
-              <li key={method.id}>
-                {/* DS: every logo becomes one light-grey silhouette on the dark surface. */}
-                <Image
-                  src={`/images/layout/payments/${method.id}.svg`}
-                  alt={method.label}
-                  width={method.width}
-                  height={PAYMENT_LOGO_HEIGHT}
-                  className="h-[22px] w-auto max-w-[46px] object-contain brightness-0 invert-[0.72]"
-                />
-              </li>
-            ))}
-          </ul>
+          {/* PWA `CHUP-redesign` footer: "Formas de pago" column title above the logos. */}
+          <FooterColumn title="Formas de pago">
+            <ul aria-label="Métodos de pago" className="mt-1 flex flex-wrap items-center gap-3">
+              {PAYMENT_METHODS.map((method) => (
+                <li key={method.id}>
+                  {/* DS: every logo becomes one light-grey silhouette on the dark surface. */}
+                  <Image
+                    src={`/images/layout/payments/${method.id}.svg`}
+                    alt={method.label}
+                    width={method.width}
+                    height={PAYMENT_LOGO_HEIGHT}
+                    className="h-[22px] w-auto max-w-[46px] object-contain brightness-0 invert-[0.72]"
+                  />
+                </li>
+              ))}
+            </ul>
+          </FooterColumn>
         </div>
       </div>
 
