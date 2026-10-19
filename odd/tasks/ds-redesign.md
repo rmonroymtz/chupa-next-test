@@ -560,7 +560,51 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
   measure on the dev server (`/amazon-B00IJ0ALYS-…-dck240c2-.html`): before 536px at 375, after 375/1024/1440 equal
   to the viewport. Checks: typecheck, lint (1 existing warning), unit 1181, integration 102, build pass. Commit
   `9a20413` on `feat/ds-10-product-gallery` (stacked on `feat/ds-09-embla-sliders`, not pushed); assessed medium,
-  `under_budget` (2 lines), review pending in the slice.
+  `under_budget` (2 lines). User then granted a branch-wide review (vs `main`, includes T9): reliability lens
+  approved and acknowledged (lineage `review-ecf75ba3caa0315b`), same three T9 suggestions only. T9 and T10 merged
+  (PR #35 merge `6c56be6`).
+- [x] T11 Layout parity with the redesigned PWA (visual review 2026-10-19 against localhost:10000; user: "dale").
+  Route: delegated (writer trigger: 2+ non-trivial files). Scope:
+  1. Page container on the canonical grid (1260 content / 1440 container, margins 20/30/90) instead of
+     `max-w-[1280px] px-4` on category, search and CMS pages (and the product views' `max-w-6xl px-4`), so content
+     lines up with the header (x=90 at 1440, x=20 at 375).
+  2. "Mi cuenta" must not wrap at 1024 (the 1024 desktop switch stays, documented in T5).
+  3. Store selector pill logos sized as the PWA `CHUP-redesign` source (live :10000 measured 90×28 at 375, 86px wide
+     Amazon at 1440; Next 62×32 / 72px).
+  4. Categories dropdown row text 16px as the PWA (Next 14px `text-body-md`); 36px rows and 8/12 padding unchanged.
+  Out of scope: account/cart label sizes and red cart label (Figma Make spec, needs a decision), footer
+  "Formas de pago" heading, T9 review test suggestions.
+  Check: unit/integration where behavior or classes are asserted + typecheck/lint/test/integration/build + Playwright
+  measure on the dev server (content x vs header x at 375/1024/1440; no "Mi cuenta" wrap at 1024; pill logo boxes;
+  dropdown row font-size) and no horizontal overflow.
+  - Route: delegated (writer trigger). Test-first: RED = 5 unit failures (category, search and CMS heading not on
+    `container-padded`; pill logo `width`/`height` not the PWA boxes; "Mi cuenta" label without `whitespace-nowrap`)
+    + 2 PDP integration failures (product `<article>` without `container-padded`, Magento and scraped views; a third
+    test failed in cascade from the unawaited mutation); GREEN = all pass. Layout outcomes measured with Playwright.
+  - Files: `category-page.tsx`, `search-page.tsx`, `cms-page.tsx` (content heading only; Page Builder rows keep their
+    own widths), `magento-product-view.tsx`, `scraped-product-view.tsx` (`container-padded`, the header grid),
+    `site-header.tsx` (label `whitespace-nowrap max-lg:sr-only`: Tailwind `not-sr-only` resets `white-space: normal`,
+    which made "Mi cuenta" wrap at 1024; pill wrapper `min-w-0`), `store-selector.tsx` (PWA logo boxes),
+    `search-form.module.css` (PWA pill values: 28px, padding 8 / min 56 up to 640px, then 12 / 72; the track is
+    centered and scrolls inside itself, no visible scrollbar); tests `category-page-view`, `search-page-view`,
+    `cms-page` (new), `search-form`, `site-header`, `integration/pdp`. No existing assertion changed (only additions).
+  - PWA vs brief: item 4 needs no change. The live PWA row button computes 16px, but its visible text is the
+    `categoryName` span at 14/20 (`categoriesDropdown.module.css`), the same as Next (14/20, 36px rows, 8/12 padding).
+    The PWA pill track overflows the page at 375 (scrollWidth 433) and at 1024 (1204, mobile header there); Next
+    scrolls inside the track instead. Acme keeps the PWA 50px box (its SVG declares 842x303 for 148x15 artwork, so
+    the wordmark renders 50x5 in both).
+  - Measured (before → after; PWA :10000): content x 16/16/96 → 20/90/90 at 375/1024/1440 on `/computo.html`,
+    search and the DEWALT product (product h1 column before), equal to the header x 20/90/90; `scrollWidth` equals
+    the viewport everywhere; "Mi cuenta" label 36 → 18px at 1024; pills at 375 62x32 each → 90/78/63/90/68 x28 (PWA
+    identical); at 1440 98/72/72/72/72 → 98/86/72/98/76 x28 (PWA identical, Amazon 86); dropdown rows 14/20, 36px
+    (PWA text 14/20). Screenshots `visual/<page>-<width>-next-t11.png`.
+  - Open decision (user): at 1024 the row cannot hold the PWA pills (logo, Categorías, 454px track and actions need
+    ~900px of the 844px content), so the track is 380px and scrolls, with the Acme pill almost fully hidden until
+    ~1080px (at 375 Acme and part of Target are scrolled out, as off-page in the PWA). Alternatives: move the header
+    switch to 1160 as the PWA, or accept the scroll. `product-skeleton.tsx` keeps `max-w-6xl px-4` (outside the
+    edit surface), so the streamed PDP loading state is not yet on the grid.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 128 files / 1186 tests pass;
+    integration 7 files / 102 tests pass; build pass; Playwright measure as above.
 
 ## Delivery strategy
 
@@ -654,3 +698,7 @@ lines in total.
   lens) approved and acknowledged (lineage `review-5490addf2e2d360c`), suggestions only: effect cleanup untested,
   reduced-motion listener untested, skeleton loop flag differs from the loaded carousel. Reviewed boundary: `82b90d1`.
   Next: user visual check of the sliders against localhost:10000; then the product gallery overflow at 375.
+- 2026-10-19: T11 done (page content on the header grid, "Mi cuenta" on one line at 1024, PWA pill sizes with an
+  in-track scroll, dropdown already at the PWA 14px text); all required checks green. Open: Acme pill hidden at 1024
+  (switch at 1160 or accept the scroll) and the PDP skeleton container. Work-unit commit on
+  `feat/ds-11-layout-parity` (from `main` `6c56be6`, not pushed).

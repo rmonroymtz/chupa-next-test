@@ -70,6 +70,13 @@ const jsonLd = (html: string) =>
   );
 
 describe('CategoryPage', () => {
+  it('lays the page on the canonical grid container, aligned with the header', () => {
+    const root =
+      /<div data-category-uid="[^"]*" class="([^"]*)"/.exec(render(listing()))?.[1] ?? '';
+    expect(root.split(' ')).toContain('container-padded');
+    expect(root).not.toMatch(/max-w-|px-4/);
+  });
+
   it('shows the breadcrumb trail: Inicio, parent categories, then the current one unlinked', () => {
     const html = render(listing());
 

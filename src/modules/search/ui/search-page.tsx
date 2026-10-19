@@ -78,7 +78,7 @@ export function SearchPage({
   }
   const heading = query ? `Resultados para «${query}»` : 'Búsqueda';
   return (
-    <div data-search-store={view.store} className="mx-auto max-w-[1280px] px-4 py-6">
+    <div data-search-store={view.store} className="container-padded py-6">
       <h1 className="text-2xl font-semibold">{heading}</h1>
       {results.kind === 'none' && results.reason === 'empty_query' ? (
         <p className="py-12 text-center text-ds-text-secondary">Escribe lo que quieres buscar.</p>

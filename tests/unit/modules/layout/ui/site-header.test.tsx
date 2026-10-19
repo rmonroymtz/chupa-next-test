@@ -44,6 +44,13 @@ describe('SiteHeader', () => {
     expect(within(home).getByRole('img', { name: 'Chupaprecios' })).toBeTruthy();
     // DS actions: "Mi cuenta" keeps the sign-in target; the mobile drawer keeps its own entry.
     const account = within(banner).getByRole('link', { name: 'Mi cuenta' });
+    // One line at 1024 (the desktop switch): the label never wraps (`not-sr-only`
+    // would reset `white-space: normal`, so the label is only hidden below 1024).
+    const label = within(account).getByText('Mi cuenta');
+    expect(label.className.split(' ')).toEqual(
+      expect.arrayContaining(['whitespace-nowrap', 'max-lg:sr-only']),
+    );
+    expect(label.className).not.toContain('not-sr-only');
     expect(account.getAttribute('href')).toBe('/sign-in');
     // The drawer is a closed dialog until opened (hidden from the accessibility tree).
     const signIn = within(banner).getAllByRole('link', { name: 'Iniciar sesión', hidden: true });

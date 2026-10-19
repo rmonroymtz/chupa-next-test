@@ -50,7 +50,7 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
             />
           </a>
           {desktopNavigation}
-          <div className="order-last basis-full lg:order-none lg:ml-auto lg:basis-auto">
+          <div className="order-last min-w-0 basis-full lg:order-none lg:ml-auto lg:basis-auto">
             <CurrentStoreSelector />
           </div>
           <div className="flex items-center gap-3.5 lg:ml-auto lg:gap-5">
@@ -59,7 +59,7 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
               className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-xs text-body-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus lg:min-w-0"
             >
               <Icon name="user" size={16} className="text-ds-neutral-950 lg:size-3.5" />
-              <span className="sr-only lg:not-sr-only">Mi cuenta</span>
+              <span className="whitespace-nowrap max-lg:sr-only">Mi cuenta</span>
             </a>
             <CartTriggerSlot />
           </div>

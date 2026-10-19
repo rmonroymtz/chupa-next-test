@@ -14,9 +14,7 @@ export function CmsPage({ page }: CmsPageProps) {
   return (
     <div data-cms-identifier={page.identifier}>
       {page.contentHeading ? (
-        <h1 className="mx-auto max-w-[1280px] px-4 pt-6 text-2xl font-semibold">
-          {page.contentHeading}
-        </h1>
+        <h1 className="container-padded pt-6 text-2xl font-semibold">{page.contentHeading}</h1>
       ) : (
         <h1 className="sr-only">{page.title}</h1>
       )}

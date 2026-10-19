@@ -4,23 +4,37 @@
  * `storeSelector.module.css` / `searchBar.module.css`). Pure CSS, no JS.
  */
 
-/* Store selector: a subtle pill track of white pills; full width below 1024. */
+/*
+ * Store selector: a subtle pill track of white pills, sized as the PWA
+ * `storeSelector.module.css` (28px pills, 8px side padding and 56px minimum up
+ * to 640px, then 12px and 72px). The PWA track overflows the page at 375 (five
+ * pills need ~413px); here it is centered and scrolls inside itself instead
+ * (no visible scrollbar), so the page never scrolls sideways.
+ */
 .stores {
   display: flex;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
   align-items: center;
   gap: 4px;
   padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
   border-radius: var(--radius-pill);
   background-color: var(--color-ds-surface-subtle);
+}
+
+.stores::-webkit-scrollbar {
+  display: none;
 }
 
 .store {
   position: relative;
   display: flex;
-  flex: 1 1 0;
-  min-width: 0;
-  height: 32px;
+  flex: 0 0 auto;
+  min-width: 56px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   padding: 0 8px;
@@ -33,11 +47,10 @@
     box-shadow 0.2s ease;
 }
 
+/* The logo box comes from the width/height attributes (the PWA logo sizes). */
 .store img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 14px;
+  display: block;
+  max-width: none;
 }
 
 .store:hover {
@@ -64,22 +77,10 @@
   pointer-events: none;
 }
 
-@media (min-width: 1024px) {
-  .stores {
-    display: inline-flex;
-    width: auto;
-  }
-
+@media (min-width: 641px) {
   .store {
-    flex: 0 0 auto;
     min-width: 72px;
-    height: 28px;
     padding: 0 12px;
-  }
-
-  .store img {
-    max-width: 72px;
-    max-height: 18px;
   }
 }
 

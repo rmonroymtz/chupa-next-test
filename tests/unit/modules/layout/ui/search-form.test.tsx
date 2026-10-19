@@ -51,3 +51,23 @@ describe('SearchForm: reflects the current search', () => {
     });
   });
 });
+
+describe('StoreSelector: pill logos sized as the PWA', () => {
+  it('each logo box is the PWA rendered size (max 72x18; Acme keeps the PWA 50px box)', () => {
+    renderForm('/', '');
+    const logos = within(screen.getByRole('radiogroup', { name: 'Tienda donde buscar' }))
+      .getAllByRole('img')
+      .map((logo) => [
+        logo.getAttribute('alt'),
+        logo.getAttribute('width'),
+        logo.getAttribute('height'),
+      ]);
+    expect(logos).toEqual([
+      ['ChupaChoice', '72', '9'],
+      ['Amazon', '60', '18'],
+      ['eBay', '45', '18'],
+      ['Target', '72', '16'],
+      ['Acme', '50', '5'],
+    ]);
+  });
+});

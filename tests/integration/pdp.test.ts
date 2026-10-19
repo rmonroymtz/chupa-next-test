@@ -256,6 +256,10 @@ const chapiCalls = () => backends.callsTo('chapi');
 /** Waits long enough for a mutation that should NOT happen to show up. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 700));
 
+/** Classes of the product view `<article>`, split (empty when it is missing). */
+const productViewClasses = (html: string) =>
+  (/<article class="([^"]*)" data-testid="product-view"/.exec(html)?.[1] ?? '').split(' ');
+
 describe('PDP — product exists in Magento', () => {
   it('exists + user: 200, indexable, canonical with literal |, mutation after the response', async () => {
     const page = await get(`/${EXISTING}`, BROWSER_UA);
@@ -265,6 +269,7 @@ describe('PDP — product exists in Magento', () => {
     expect(canonical(page.html)).toBe(`${PUBLIC_BASE_URL}/${EXISTING}`);
     expect(page.html).toContain(productRoute.data.route.name);
     expect(page.html).toContain('$1,145.13');
+    expect(productViewClasses(page.html)).toContain('container-padded');
 
     const [mutation] = await waitForCalls(mutations, 1);
     expect(mutation?.body.variables).toEqual({ sku: '126981644035|428130345038', vendor: 'ebay' });
@@ -390,6 +395,8 @@ describe('PDP — product missing from Magento', () => {
     expect(skeletonAt).toBeGreaterThan(-1);
     expect(productAt).toBeGreaterThan(skeletonAt);
     expect(page.html).toContain('$1,145.13');
+    // Same canonical grid container as the header (scraped view).
+    expect(productViewClasses(page.html)).toContain('container-padded');
 
     // Missing from Magento: no product claims in structured data or social cards.
     expect(ofType(page.html, 'Product')).toEqual([]);

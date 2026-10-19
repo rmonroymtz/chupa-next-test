@@ -104,6 +104,12 @@ const links = (root: ParentNode, selector: string) =>
   }));
 
 describe('SearchPage: store switching', () => {
+  it('lays the page on the canonical grid container, aligned with the header', () => {
+    const root = render(single()).querySelector('[data-search-store]');
+    expect(root?.classList.contains('container-padded')).toBe(true);
+    expect(root?.className).not.toMatch(/max-w-|px-4/);
+  });
+
   it('renders no on-page store tabs: the header search bar switches stores, as in the legacy PWA', () => {
     expect(render(single()).querySelector('nav[aria-label="Tiendas"]')).toBeNull();
   });
