@@ -2,7 +2,7 @@
  * DS icon catalog, ported from `chupaprecios-pwa/src/designSystem/atoms/Icon`:
  * the 41 lucide-style outline glyphs of the V3 "Iconografía" board
  * (`icons.generated.js`, Figma 413:1844) followed by the on-demand extras
- * (`icons.extra.js`). Each value is the inner markup of a 24×24 glyph drawn
+ * (`icons.extra.js`) and two brand extras (social). Each value is the inner markup of a 24×24 glyph drawn
  * with `stroke="currentColor"`. Static, trusted strings only: add new glyphs
  * here (on demand, same grid and stroke), never from runtime data.
  */
@@ -79,6 +79,15 @@ export const ICONS = {
     '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
   minus: '<line x1="5" y1="12" x2="19" y2="12"/>',
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  /*
+   * Brand extras: the social glyphs of the DS Footer organism
+   * (`organisms/Footer/Footer.js`). Not outline glyphs, so each element sets
+   * its own fill/stroke instead of inheriting the outline defaults.
+   */
+  facebook:
+    '<path fill="currentColor" stroke="none" d="M13.5 21v-7.5H16l.5-3h-3V8.5c0-.9.3-1.5 1.6-1.5H16.6V4.3c-.3 0-1.3-.2-2.4-.2-2.3 0-3.9 1.4-3.9 4v2.4H7.8v3h2.5V21z"/>',
+  instagram:
+    '<rect x="3" y="3" width="18" height="18" rx="5" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke-width="2"/><circle cx="17" cy="7" r="1.2" fill="currentColor" stroke="none"/>',
 } as const satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICONS;

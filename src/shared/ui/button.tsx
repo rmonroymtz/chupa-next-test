@@ -1,5 +1,11 @@
 import Link from 'next/link';
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react';
+import type {
+  AnchorHTMLAttributes,
+  ButtonHTMLAttributes,
+  ComponentProps,
+  MouseEvent,
+  ReactNode,
+} from 'react';
 import { cx } from './class-names';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary';
@@ -74,6 +80,8 @@ const stripStates = (classes: string): string =>
     .filter((name) => !name.startsWith('hover:') && !name.startsWith('active:'))
     .join(' ');
 
+const preventDefault = (event: MouseEvent<HTMLAnchorElement>): void => event.preventDefault();
+
 const isInternal = (href: string): boolean => href.startsWith('/') && !href.startsWith('//');
 
 function Spinner() {
@@ -142,8 +150,15 @@ export function Button({
   if ('href' in rest && rest.href !== undefined) {
     const { href, nativeAnchor = false, ...anchor } = rest;
     if (disabled || loading) {
+      // An inert link: no href, and `onClick` replaces the caller's handler.
       return (
-        <a {...anchor} aria-disabled="true" aria-busy={loading || undefined} className={classes}>
+        <a
+          {...anchor}
+          aria-disabled="true"
+          aria-busy={loading || undefined}
+          onClick={preventDefault}
+          className={classes}
+        >
           {content}
         </a>
       );

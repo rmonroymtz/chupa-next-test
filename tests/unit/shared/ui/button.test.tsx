@@ -144,4 +144,22 @@ describe('Button', () => {
     expect(link?.hasAttribute('href')).toBe(false);
     expect(link?.getAttribute('aria-disabled')).toBe('true');
   });
+
+  it.each([
+    ['disabled', { disabled: true }],
+    ['loading', { loading: true }],
+  ] as const)('a %s link does not run the caller onClick', (_state, props) => {
+    const onClick = vi.fn();
+    render(
+      <Button href="/cart" onClick={onClick} {...props}>
+        Ver carrito
+      </Button>,
+    );
+    const link = screen.getByText('Ver carrito').closest('a');
+    expect(link).not.toBeNull();
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link?.dispatchEvent(click);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(click.defaultPrevented).toBe(true);
+  });
 });

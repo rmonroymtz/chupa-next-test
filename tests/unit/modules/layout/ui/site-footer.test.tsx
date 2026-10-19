@@ -5,11 +5,14 @@ import { SiteFooter } from '@/modules/layout/ui/site-footer';
 
 afterEach(cleanup);
 
+const footer = () => {
+  render(<SiteFooter />);
+  return screen.getByRole('contentinfo');
+};
+
 describe('SiteFooter', () => {
   it('is the contentinfo landmark with the legacy section headings', () => {
-    render(<SiteFooter />);
-    const footer = screen.getByRole('contentinfo');
-    const headings = within(footer)
+    const headings = within(footer())
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
     expect(headings).toEqual([
@@ -23,9 +26,8 @@ describe('SiteFooter', () => {
   });
 
   it('links the legacy pages with plain relative anchors', () => {
-    render(<SiteFooter />);
-    const footer = screen.getByRole('contentinfo');
-    const href = (name: string) => within(footer).getByRole('link', { name }).getAttribute('href');
+    const root = footer();
+    const href = (name: string) => within(root).getByRole('link', { name }).getAttribute('href');
 
     expect(href('Preguntas Frecuentes FAQ')).toBe('/preguntas-frecuentes');
     expect(href('Facturación')).toBe('/facturacion');
@@ -36,12 +38,15 @@ describe('SiteFooter', () => {
     expect(href('(+52) 664 311 9682')).toBe('tel:+526643119682');
   });
 
-  it('social links open in a new tab safely and say so', () => {
-    render(<SiteFooter />);
-    const links = screen.getAllByRole('link', { name: /Instagram/ });
-    expect(links.length).toBeGreaterThan(0);
+  it.each([
+    ['Facebook', 'https://www.facebook.com/p/Chupaprecios-100070557248938/'],
+    ['Instagram', 'https://www.instagram.com/chupaprecios/'],
+  ])('%s links open in a new tab safely and say so', (network, url) => {
+    const links = within(footer()).getAllByRole('link', { name: new RegExp(network) });
+    // The round icon button next to the wordmark and the text link of the column.
+    expect(links).toHaveLength(2);
     for (const link of links) {
-      expect(link.getAttribute('href')).toBe('https://www.instagram.com/chupaprecios/');
+      expect(link.getAttribute('href')).toBe(url);
       expect(link.getAttribute('target')).toBe('_blank');
       expect(link.getAttribute('rel')).toBe('noopener noreferrer');
       expect(link.textContent + (link.getAttribute('aria-label') ?? '')).toContain(
@@ -50,14 +55,43 @@ describe('SiteFooter', () => {
     }
   });
 
-  it('lists the payment methods with text alternatives', () => {
-    render(<SiteFooter />);
-    const list = screen.getByRole('list', { name: 'Métodos de pago' });
+  it('draws the social glyphs with the decorative DS Icon', () => {
+    const button = within(footer()).getByRole('link', {
+      name: 'Facebook (se abre en una pestaña nueva)',
+    });
+    const glyph = button.querySelector('svg');
+    expect(glyph?.getAttribute('aria-hidden')).toBe('true');
+    expect(glyph?.getAttribute('viewBox')).toBe('0 0 24 24');
+  });
+
+  it('keeps the customer service hours and both office addresses', () => {
+    const root = footer();
+    expect(root.textContent).toContain('Lunes a Sábados: 08:00 a 17:00 (hora del Pacífico)');
+    expect(root.textContent).toContain('Horario:');
+    expect(root.textContent).toContain('Domingo: Cerrado');
+    const addresses = Array.from(root.querySelectorAll('address')).map((a) => a.textContent);
+    expect(addresses).toEqual([
+      expect.stringContaining('Calle Centro Comercial 17206'),
+      expect.stringContaining('Calle Montes Urales - Virreyes 424, Oficina 01A-129 Col.'),
+    ]);
+    expect(addresses[0]).toContain('C.P 22457 Tijuana, BC.');
+    expect(addresses[1]).toContain('C.P. 11000, Ciudad de México, CDMX.');
+  });
+
+  it('shows the wordmark and the AMVO seal with text alternatives', () => {
+    const root = footer();
+    expect(within(root).getByRole('img', { name: 'Chupaprecios' }).getAttribute('src')).toContain(
+      'logo-white.svg',
+    );
     expect(
-      within(list)
-        .getAllByRole('img')
-        .map((img) => img.getAttribute('alt')),
-    ).toEqual([
+      within(root).getByRole('img', { name: 'Sello de confianza AMVO' }).getAttribute('src'),
+    ).toContain('amvo-white.svg');
+  });
+
+  it('lists the payment methods with text alternatives, greyed out as in the DS', () => {
+    const list = within(footer()).getByRole('list', { name: 'Métodos de pago' });
+    const logos = within(list).getAllByRole('img');
+    expect(logos.map((img) => img.getAttribute('alt'))).toEqual([
       'Visa',
       'Mastercard',
       'PayPal',
@@ -67,5 +101,32 @@ describe('SiteFooter', () => {
       'OXXO',
       'SPEI',
     ]);
+    for (const logo of logos) {
+      // DS `filter: brightness(0) invert(0.72)`: one light-grey silhouette on the dark surface.
+      expect(logo.className).toContain('brightness-0');
+      expect(logo.className).toContain('invert-[0.72]');
+    }
+  });
+
+  it('lays out 1 → 2 → 4 columns inside the 1260 site container', () => {
+    const grid = footer().querySelector('[data-slot="footer-grid"]');
+    expect(grid?.className).toContain('container-padded');
+    expect(grid?.className).toContain('grid-cols-1');
+    expect(grid?.className).toContain('md:grid-cols-2');
+    expect(grid?.className).toContain('lg:grid-cols-[1.1fr_1fr_1fr_1.2fr]');
+  });
+
+  it('keeps every footer image lazy (always below the fold)', () => {
+    const images = within(footer()).getAllByRole('img');
+    expect(images.length).toBeGreaterThan(0);
+    for (const image of images) {
+      if (image.tagName === 'IMG') expect(image.getAttribute('loading')).toBe('lazy');
+    }
+  });
+
+  it('ends with the copyright line for the current year', () => {
+    expect(footer().textContent).toContain(
+      `Copyright © Chupaprecios todos los derechos reservados. Powered by Chupaprecios ${new Date().getFullYear()}`,
+    );
   });
 });
