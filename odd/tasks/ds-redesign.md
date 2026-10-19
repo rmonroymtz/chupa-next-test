@@ -490,3 +490,6 @@ lines in total.
   approved with no findings and acknowledged (lineage `review-c78a73ae615c4c23`). To verify visually: the live PWA may
   render the es_MX override strings ("Finalizar compra", "Subtotal: ", "Cantidad : N") instead of the DS defaults kept
   here; trash button contrast at 50% opacity (WCAG 1.4.11).
+- 2026-10-18: branches pushed; stacked PRs opened (user): #25 T1 (base `main`), #26 T2, #27 T3, #28 T4, #29 T5,
+  #30 T6, #31 T7a+T7c (each based on the previous branch; GitHub retargets after each merge). Slices over 400 lines
+  (#26, #28, #30, #31) are single work units, rationale in each PR's Chain Context. Merge in order.
