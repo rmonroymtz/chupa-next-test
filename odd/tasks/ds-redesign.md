@@ -560,3 +560,8 @@ lines in total.
   recommendation sliders use them; listing grid 2/4 as the live PWA, not the DS 2/5/5; ChupaChoice unchanged);
   all required checks green, visual check pending. Work-unit commit on `feat/ds-08-product-cards` (from `main`
   `c371707`, not pushed). T7b pending.
+- 2026-10-19: T8 commit `3a5ca39` on `feat/ds-08-product-cards` (from `main` `c371707`, not pushed). Assessed medium
+  (`slice_budget_reached`); user granted review; native review approved and acknowledged (lineage
+  `review-d9b2e154b9490d5d`), suggestions only (Rating and Price invalid-input tests). Open decisions for the user:
+  listing grid follows the live PWA 2/4 (DS/Figma say 5, `para-UX`); carousel per-view counts kept (PWA Page Builder
+  2/3/4/5, recommendation sliders 2/3/5 with 10px gap differ from Next 2/4/5).
