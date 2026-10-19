@@ -67,7 +67,7 @@ function RecommendationSlider({
   return (
     <section data-recommendation={type} aria-labelledby={headingId}>
       <SliderTitle id={headingId} title={title} accent={accent} />
-      <ProductCards cards={cards} appearance="carousel" showRating />
+      <ProductCards cards={cards} appearance="carousel" card="slider" showRating />
     </section>
   );
 }

@@ -1,6 +1,6 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1–T6, T7a and T7c done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, `6fd60d3`, `fc393ac`, `4f1c268`), reviews approved, not pushed; T8 next; T7b pending (no customer session).
+Status (2026-10-19): T1–T6, T7a and T7c done and merged to `main` (`c371707`); T8 done on `feat/ds-08-product-cards` (not pushed), visual check pending; T7b pending (no customer session).
 
 ## Objective
 
@@ -420,7 +420,69 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     its own servers). Visual check pending (user): dropdown at 1160/1440 under the trigger, fade, rows vs the PWA,
     the trash button contrast (50% gray, PWA parity, under WCAG 1.4.11 3:1), long lists in the fitted height.
 - [ ] T7b Account panel (avatar, name, items, sign-out in #BE424B). Pending: Next has no customer session yet (account pages stay on the PWA until phase 4).
-- [ ] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
+- [x] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: baseline focused unit (page-builder, search,
+    product, recommendations, category, shared) 70 files / 781 tests green; RED = 8 new test files, 3 failing to
+    import (`@/shared/ui/{price,rating,product-card}` missing) and 11 of 12 surface tests failing (no shared grid/card
+    slots, no slider card, no brand/rating on search results); GREEN = 78 files / 812 tests.
+  - Files: `src/shared/ui/{price,rating,product-card}.tsx` (new), `src/modules/page-builder/ui/product-cards.tsx`,
+    `src/modules/page-builder/ui/page-builder.module.css` (dead `.productGrid`/`.productCard`/`.productImage`/
+    `.productName` removed), `src/modules/product/ui/{format-price.ts,magento-product-price.tsx,product-price.tsx,related-products.tsx}`,
+    `src/modules/search/ui/search-page.tsx`, `src/modules/recommendations/ui/recommendation-sliders.tsx`; tests
+    `tests/unit/shared/ui/{price,rating,product-card}.test.tsx`, `tests/unit/modules/{page-builder,product,category,search,recommendations}/ui/*.test.tsx` (new).
+  - Live PWA sources: the redesign only re-skinned the Gallery item price (`Gallery/item.module.css`: offer
+    `--ds-color-brand-anchor` #D84752, old price `--ds-color-text-tertiary` #AAAAAA, INTEGRATION-MAP row 23). The DS
+    `molecules/ProductCard`, `atoms/Price` and `atoms/Rating` are only used by stories and a smoke test, never by a
+    live page. Live card surfaces: `Gallery/item.js` (category, search, Page Builder `products` grid and carousel:
+    the overridden `gallery.js` ignores the Page Builder `galleryItems` 5-column class and the Page Builder
+    carousel renders `GalleryItem` without `viewMode`), `RandomSliders/ProductCard` (recommendation sliders, PDP
+    Crossell/Upsell/Recommender) and the ChupaChoice `ProductList` (unchanged). The PWA PDP price did not change in
+    the redesign: the PDP `ProductPrice` stays as is (only its dead `size="sm"` card variant removed).
+  - Price (`Price`, variant `card`): `.cardDesktopPrice` block Inter 20px/1.5 bold #D84752 (`text-ds-accent`, same
+    hex), offer `flex items-start justify-center min-h-[28px]`; compare-at only when `compareAt > amount` (today's
+    rule: `getDisplayPrice` same-currency `regular > final`) as `<s>` `block min-h-[20px] text-center text-sm
+    font-light text-ds-text-tertiary line-through`, "$" at 12px top aligned via `::first-letter` (the PWA styles the
+    currency span `text-xs`; one text node keeps the amount assertions), sr-only "Antes:" before it. Variant
+    `slider` (`RandomSliders/ProductCard`): row `flex flex-wrap items-baseline gap-[6px] mt-auto`, offer 15px 500
+    #D84752, compare-at 11px #888 struck. `formatPrice` moved into `@/shared/ui/price` (es-MX, invalid-code
+    fallback); `@/modules/product/ui/format-price` re-exports it. `MagentoProductPrice` takes `variant` (`pdp`
+    default | `card` | `slider`) instead of `size`; the cards still render through it (render-isolation test).
+  - Card (`ProductCard`, variant `gallery`): one `<a data-slot="product-card">` (plain anchor, same href, same alt
+    `label ?? name`); grid layout `.cardDesktopGridBody` `grid grid-rows-[auto_3rem_1.5rem_1.75rem_1.25rem] gap-4
+    items-start` (two children in five rows: card height = image + 184px); image box `aspect-square` flex centered,
+    image `w-[80%]` full height `object-contain`, no radius/background; brand line Inter bold centered (search
+    results have a brand; blank line otherwise); rating row `min-h-[24px]` with `ReviewStars` 20px, 2px gap,
+    #FDAA40 (`ds-amber`) on #D1D5DB; name Roboto Flex (`font-display`) 16/400 centered, `min-h-[48px] pt-1`,
+    2-line clamp; no hover style (the PWA has none; the old underline hover is gone). Carousel cards use `layout
+    plain` (no grid rows, as the PWA Page Builder carousel). Variant `slider`: white card, 10px radius, padding
+    10/12/12, shadow `0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04)`, hover lift 2px + `0 4px 12px
+    rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.05)` 180ms (none with reduced motion), image square 6px radius
+    (`rounded-xs`), info `pt-2`, stars 12px #F59E0B on #D1D5DB `mb-1`, name `h3` 12px/1.4 #1A1A1A 2 lines
+    `min-h-[2.8em]`. Focus: 2px `ds-focus` outline, 2px offset (not in the PWA).
+  - Grid (`ProductGrid`): live PWA `gallery.module.css` `.grid` = 2 columns below 800px (`-md` = max 799px), 4 from
+    800px; column/row gap 8/24px, 16/32px from 1280px (`-xl` = max 1279px); `leading-none` from the Gallery root.
+    Used by category, single-store search and related products (was 5 from 641px / 2/3/5 with `sm:`). Carousels
+    keep their per-view counts (Page Builder track 2/4/5 at 641/961) since the redesign did not change them.
+  - Deviations (recorded): grid 2/4 with 8–16/24–32 gaps instead of the DS `productColumns` 2/5/5 and gutters
+    20/16/16 (the live listing still renders 2/4; INCONSISTENCIAS says Figma measured 5, `para-UX`). ChupaChoice
+    kept as is (legacy `ProductList` replica, 2/3/6 with its `max-[359px]:` rules: the live PWA still renders it
+    unchanged, so the shared card would break parity). One link per card instead of the PWA image + name links (one
+    tab stop; the integration and search tests pin one link per product). No "Unknown Brand" placeholder (blank
+    line kept). Stars clip one overlay to `value/5` (≤1px off the PWA per-star gradient because of the gaps; no
+    SVG ids). Currency stays the Intl symbol of the source currency (the PWA always prints "$"). Known per-view
+    gaps vs the live PWA, not changed (outside the redesign): Page Builder carousel PWA 2/3/4/5 at 640/960/1280 vs
+    Next 2/4/5; recommendation sliders PWA 2/3/5 (embla, 10px gap, 1024) vs Next 2/4/5; the PWA has no
+    related-products grid on the PDP (Next-only section, now on the Gallery card).
+  - Changed assertions: none of the existing tests changed (product-cards rating, render, category, search,
+    recommendations, PDP, structured data all pass unchanged). Search results now show their brand and stars
+    (`showRating` on the single-store grid), so "shows no stars unless asked" still holds for CMS/category grids.
+  - Size: 958 added / 189 deleted incl. ~470 test lines (three shared atoms + six surfaces as one work unit), over
+    the 400 heuristic, not split.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 126 files / 1169 tests pass;
+    integration 7 files / 102 tests pass; build pass (`min-width:800px`, `grid-rows-[auto_3rem…]`, `first-letter`,
+    `1lh`, `#d1d5db` in the built CSS); dev server (not restarted): `/herramientas.html` 200 (1 product grid, 12
+    shared cards, `$4,434.60`), `/search.html?query=test&store=amazon` 200 (1 grid, 26 cards, 10 compare-at
+    prices). Visual check pending (user).
 
 ## Delivery strategy
 
@@ -493,3 +555,8 @@ lines in total.
 - 2026-10-18: branches pushed; stacked PRs opened (user): #25 T1 (base `main`), #26 T2, #27 T3, #28 T4, #29 T5,
   #30 T6, #31 T7a+T7c (each based on the previous branch; GitHub retargets after each merge). Slices over 400 lines
   (#26, #28, #30, #31) are single work units, rationale in each PR's Chain Context. Merge in order.
+- 2026-10-19: T8 done (shared `Price`, `Rating`, `ProductCard` and `ProductGrid` matched to the live PWA Gallery
+  item and recommendation slider card; category, search, Page Builder products, related products and
+  recommendation sliders use them; listing grid 2/4 as the live PWA, not the DS 2/5/5; ChupaChoice unchanged);
+  all required checks green, visual check pending. Work-unit commit on `feat/ds-08-product-cards` (from `main`
+  `c371707`, not pushed). T7b pending.
