@@ -1,7 +1,7 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1 (`a815c0e`), T2 (`6e1f382`) and T3 (`569f972`) done, reviews approved, not pushed; T4 done
-(not pushed); T5 next.
+Status (2026-10-18): T1–T5 done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, T5 commit in the next Progress line),
+T1–T4 reviews approved, not pushed; T6 next.
 
 ## Objective
 
@@ -180,7 +180,57 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     (user): bar height on mobile (tallest slide wraps), Kueski logo size inline.
   - Commit: the T4 work-unit commit `feat(promo-bar): add the rotating promo bar above the header` on
     `feat/ds-04-promo-bar` (hash recorded in the next Progress line).
-- [ ] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
+- [x] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. The trigger restyle needed `mini-cart.client.tsx`, outside
+    the first derived surface; the parent extended the surface (inside the authorized T5 scope).
+  - Test-first: header RED = 5 failing in `site-header.test.tsx` (no "Mi cuenta" link, old placeholder, no
+    `radiogroup`, `sm:w-[300px]`/`xl:w-[360px]` in the header, logo without `#2a2031`) + `search-form.test.tsx` failing
+    at import (`store-selector.client` missing); GREEN = layout unit 47/47. Cart RED = 1 failing (legacy `cart.svg`
+    `<img>` still in the trigger), GREEN = mini-cart 10/10. The integration additions (form `id`, 5 radios with
+    `form="site-search"`, placeholder) failed once on attribute order only (React emits `class` between `form` and
+    `name`; regex loosened), then passed.
+  - Files: `src/modules/layout/ui/site-header.tsx` (rebuilt), `store-selector.tsx` + `store-selector.client.tsx`
+    (new), `search-form.tsx`, `search-form-fields.tsx`, `current-search-form-fields.client.tsx`,
+    `search-form.module.css` (rewritten: DS pills + search pill, per-store colored tabs and `--store-color` deleted),
+    `cart-trigger-slot.tsx` (comment), `icons.tsx` (legacy `UserIcon`/`SearchIcon` and the `Svg` helper retired, only
+    the header used them), `src/modules/cart/ui/mini-cart.client.tsx` (trigger only), `public/images/layout/logo.svg`
+    (= DS `brand/chupaprecios.svg`, wordmark `#2a2031`), `tests/unit/modules/layout/ui/{site-header,search-form}.test.tsx`,
+    `tests/unit/modules/cart/ui/mini-cart.client.test.tsx`, `tests/integration/layout.test.ts`. `icon-catalog.ts`
+    unchanged (`user`, `search`, `shopping-cart` already there).
+  - Decisions: row 1 = mobile menu · logo · store pills · actions; below 1024 the pills wrap to their own full-width
+    line (`order-last basis-full`), from 1024 they sit between logo and actions (`ml-auto` both sides). Row 2 = search
+    pill. `container-padded` + `py-3`/`lg:py-5`, gaps 12/16 (DS 20/12 and 90/20 paddings). Bottom `border-ds-border`
+    instead of the elevation shadow (live PWA header). Only `md:`/`lg:`. Logo sized by width 102/125/136 (the DS lockup
+    is ~10.8:1; the audit's 136×24 box cannot hold it, the live PWA also sizes by width). Store pills: native radios
+    in a `role="radiogroup"` "Tienda donde buscar" outside the form, joined by `form="site-search"` (no JS; submitted
+    params unchanged `store`/`query`/`page=1`, asserted with `FormData`); same stores, order and default; current
+    store from the url (`CurrentStoreSelector`, no Suspense, same as the fields); checked pill = `ds-accent` #D84752
+    border (4:1 on white) + elevation-1; focus 2px `ds-focus` outline. Search pill `ds-surface-subtle` #f8f8f8 +
+    `ds-border-subtle` #f0f0f0, 40px, leading DS `search` icon as the submit ("Buscar"), placeholder "Ingresa ASIN, SKU
+    o Nombre del producto" in `ds-text-secondary`, focus outline on the pill when the input is focused. "Mi cuenta"
+    (DS `user`, `/sign-in`) and the cart (DS `shopping-cart`) show labels from 1024 (Inter 13/18, cart medium); below,
+    icons only in 40px targets ("Mi cuenta" `sr-only`; the cart keeps its `aria-label`). The cart count is one element:
+    a badge below 1024, "(N)" from 1024 (CSS parens), still hidden at 0.
+  - Spec deviations: mobile input text 16px (not 12/16) so iOS Safari does not zoom on focus; placeholder #6e6e6e (DS
+    text-secondary) instead of #7e7e7e; store list kept (ChupaChoice, Amazon, eBay, Target, Acme; Make adds Walmart);
+    mobile pills show logos only (no 56px icon + label columns); layout switch at 1024 (PWA 1160); empty cart shows
+    "Carrito" without "(0)" (the existing count contract hides it at 0); no "Categorías" (T6). A11y notes: the
+    magnifier precedes the input in focus order (leading, as the spec); on mobile the pills come before the actions in
+    DOM while they render below them; the cart `aria-label` (kept by contract) does not start with the visible "Carrito
+    (N)" (WCAG 2.5.3 label-in-name, "carrito" is contained). `public/images/layout/cart.svg` is now unused (outside the
+    surface, not deleted).
+  - Changed assertions: site-header "banner" test expects "Mi cuenta" → `/sign-in` and a single drawer "Iniciar
+    sesión" (was two); the store checks moved out of the search-form test into a new pills test (`radiogroup` in the
+    banner, not `group` inside the form, plus `radio.form`, `FormData` and selecting eBay); added placeholder and
+    `type="submit"` checks, the breakpoint test and the logo color test. search-form test reads the radios from the
+    radiogroup and also asserts the submitted `FormData`. mini-cart: new "Carrito (N)" test. layout integration: form
+    `id`, 5 associated radios, placeholder. No behavioral assertion removed.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 116 files / 1095 tests pass;
+    integration 7 files / 102 tests pass; build pass (built CSS has the `content:"("` parens); dev server `/`,
+    `/aviso-privacidad` 200 with chupachoice checked, `/search.html?query=test&store=amazon` 200 with amazon checked,
+    new header and "Carrito" markup. Visual check on the dev server pending (user).
+  - Commit: the T5 work-unit commit `feat(layout): rebuild the header and search on the design system` on
+    `feat/ds-05-header-search` (hash recorded in the next Progress line).
 - [ ] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
 - [ ] T7 Account panel + mini-cart restyle (head, footer with subtotal + "Ir a pagar"). Check: unit + visual.
 - [ ] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
@@ -219,3 +269,10 @@ lines in total.
 - 2026-10-18: T4 done (rotating DS promo bar above the header, static content from the Magento block, server-rendered
   slides, pause on hover/focus, reduced motion); all checks green, visual check pending; WCAG 2.2.2 pause control
   open for a product decision.
+- 2026-10-18: T4 commit `b60bf1a` on `feat/ds-04-promo-bar` (stacked on T3, not pushed). Assessed medium
+  (`slice_budget_reached`); user granted review; native review approved and acknowledged (lineage
+  `review-5ba5a2963af88388`), suggestions only (test follow-ups): R3-reduced-motion-change-unproved (live
+  `matchMedia` change + cleanup untested), R3-slide-shrink-clamp-unproved, R3-cta-hover-focus-only-partial. Open
+  decision for the user/UX: WCAG 2.2.2 pause control (the DS molecule has none).
+- 2026-10-18: T5 done (DS two-row header, store pills as a radio group joined to the GET search form, search pill, DS
+  wordmark, "Mi cuenta" / "Carrito (N)" actions); all checks green, visual check pending.

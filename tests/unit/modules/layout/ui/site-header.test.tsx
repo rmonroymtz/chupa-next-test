@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
 import { DesktopCategoryNav, MobileCategoryMenu } from '@/modules/layout/ui/category-nav';
@@ -32,31 +34,50 @@ function renderHeader(items: readonly MenuItem[] = MENU) {
 }
 
 describe('SiteHeader', () => {
-  it('is the banner landmark with a home logo link, sign-in and the cart slot', () => {
+  it('is the banner landmark with a home logo link, "Mi cuenta" and the cart slot', () => {
     renderHeader();
     const banner = screen.getByRole('banner');
 
     const home = within(banner).getByRole('link', { name: 'Chupaprecios' });
     expect(home.getAttribute('href')).toBe('/');
-    // Desktop pill and the entry inside the mobile drawer.
+    expect(within(home).getByRole('img', { name: 'Chupaprecios' })).toBeTruthy();
+    // DS actions: "Mi cuenta" keeps the sign-in target; the mobile drawer keeps its own entry.
+    const account = within(banner).getByRole('link', { name: 'Mi cuenta' });
+    expect(account.getAttribute('href')).toBe('/sign-in');
     const signIn = within(banner).getAllByRole('link', { name: 'Iniciar sesión' });
-    expect(signIn.map((link) => link.getAttribute('href'))).toEqual(['/sign-in', '/sign-in']);
+    expect(signIn.map((link) => link.getAttribute('href'))).toEqual(['/sign-in']);
     // Mini-cart trigger (T8): opens a dialog linking to the PWA cart and checkout.
     const cart = within(banner).getByRole('button', { name: /mini carrito/ });
     expect(cart.getAttribute('aria-haspopup')).toBe('dialog');
     expect(cart.dataset.slot).toBe('cart-trigger');
   });
 
-  it('has one GET search form to the legacy search page with the store tabs', () => {
+  it('has one GET search form to the legacy search page', () => {
     renderHeader();
-    const search = screen.getByRole('search');
+    const search = screen.getByRole('search') as HTMLFormElement;
 
     expect(search.getAttribute('action')).toBe('/search.html');
     expect(search.getAttribute('method')).toBe('get');
     const query = within(search).getByRole('searchbox', { name: 'Buscar productos' });
     expect(query.getAttribute('name')).toBe('query');
     expect(query.hasAttribute('required')).toBe(true);
-    const group = within(search).getByRole('group', { name: 'Tienda donde buscar' });
+    expect(query.getAttribute('placeholder')).toBe('Ingresa ASIN, SKU o Nombre del producto');
+    expect(
+      (search.querySelector('input[type="hidden"][name="page"]') as HTMLInputElement).value,
+    ).toBe('1');
+    const submit = within(search).getByRole('button', { name: 'Buscar' });
+    expect(submit.getAttribute('type')).toBe('submit');
+    expect(screen.getAllByRole('search')).toHaveLength(1);
+  });
+
+  it('store pills: a radio group in the top row that submits with the search form', () => {
+    renderHeader();
+    const banner = screen.getByRole('banner');
+    const search = screen.getByRole('search') as HTMLFormElement;
+
+    const group = within(banner).getByRole('radiogroup', { name: 'Tienda donde buscar' });
+    // Row 1, outside the search row: associated through the `form` attribute.
+    expect(search.contains(group)).toBe(false);
     const stores = within(group).getAllByRole('radio') as HTMLInputElement[];
     expect(stores.map((radio) => radio.value)).toEqual([
       'chupachoice',
@@ -65,15 +86,33 @@ describe('SiteHeader', () => {
       'target',
       'acme',
     ]);
+    expect(stores.every((radio) => radio.name === 'store' && radio.form === search)).toBe(true);
     expect(stores.filter((radio) => radio.checked).map((radio) => radio.value)).toEqual([
       'chupachoice',
     ]);
-    expect(within(search).getByRole('radio', { name: 'eBay' })).toBeTruthy();
-    expect(
-      (search.querySelector('input[type="hidden"][name="page"]') as HTMLInputElement).value,
-    ).toBe('1');
-    expect(within(search).getByRole('button', { name: 'Buscar' })).toBeTruthy();
-    expect(screen.getAllByRole('search')).toHaveLength(1);
+    expect([...new FormData(search)]).toEqual([
+      ['store', 'chupachoice'],
+      ['query', ''],
+      ['page', '1'],
+    ]);
+
+    fireEvent.click(within(group).getByRole('radio', { name: 'eBay' }));
+    expect(new FormData(search).getAll('store')).toEqual(['ebay']);
+  });
+
+  it('uses only the DS 768/1024 breakpoints in the header rows', () => {
+    renderHeader();
+    const banner = screen.getByRole('banner');
+    const classes = [banner, ...banner.querySelectorAll('*')]
+      .filter((element) => !element.closest('nav, details'))
+      .flatMap((element) => (element.getAttribute('class') ?? '').split(/\s+/));
+    expect(classes.filter((name) => /^(sm|xl|2xl):/.test(name))).toEqual([]);
+  });
+
+  it('the header logo is the DS wordmark (brand purple text, not black)', () => {
+    const svg = readFileSync(join(process.cwd(), 'public/images/layout/logo.svg'), 'utf8');
+    expect(svg).toContain('fill="#2a2031"');
+    expect(svg).not.toContain('fill="#000"');
   });
 
   it('desktop navigation: every level links to its category page', () => {

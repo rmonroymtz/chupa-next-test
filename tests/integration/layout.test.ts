@@ -103,6 +103,10 @@ function expectLayout(html: string) {
   const form = /<form[^>]*role="search"[^>]*>/.exec(html)?.[0] ?? '';
   expect(form).toContain('action="/search.html"');
   expect(form).toContain('method="get"');
+  // The DS store pills sit in the header top row and join the form by its id.
+  expect(form).toContain('id="site-search"');
+  expect(html.match(/<input type="radio" form="site-search"[^>]*name="store"/g)).toHaveLength(5);
+  expect(html).toContain('placeholder="Ingresa ASIN, SKU o Nombre del producto"');
   expect(html).toContain('data-slot="cart-trigger"');
   expect(html).toMatch(/<footer[^>]*>/);
   expect(html).toContain('href="/aviso-privacidad"');

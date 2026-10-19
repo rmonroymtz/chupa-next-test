@@ -1,91 +1,61 @@
 /*
- * Legacy search bar look: store tabs above the field, the selected tab and the
- * field border take the store color. Pure CSS (`:has(:checked)`), no JS.
+ * DS header search: store pills (top row) and the search pill (second row),
+ * mapped to the DS tokens (FIGMA-MAKE-HEADER-AUDIT §4-5, PWA
+ * `storeSelector.module.css` / `searchBar.module.css`). Pure CSS, no JS.
  */
-.form {
-  --store-color: var(--color-marketplace-chupachoice);
-}
 
-.form:has(input[value='amazon']:checked) {
-  --store-color: var(--color-marketplace-amazon);
-}
-
-.form:has(input[value='ebay']:checked) {
-  --store-color: var(--color-marketplace-ebay);
-}
-
-.form:has(input[value='target']:checked) {
-  --store-color: var(--color-marketplace-target);
-}
-
-.form:has(input[value='acme']:checked) {
-  --store-color: var(--color-marketplace-acme);
-}
-
-.tabs {
+/* Store selector: a subtle pill track of white pills; full width below 1024. */
+.stores {
   display: flex;
-  align-items: flex-end;
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
+  width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ds-surface-subtle);
 }
 
-.tab {
+.store {
   position: relative;
   display: flex;
   flex: 1 1 0;
   min-width: 0;
-  height: 2rem;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 0 8px;
   border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ds-surface);
   cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-@media (min-width: 640px) {
-  .tab {
-    height: 2.25rem;
-    padding: 4px 8px;
-  }
-}
-
-.tab img {
+.store img {
   width: auto;
   max-width: 100%;
   height: auto;
   max-height: 14px;
 }
 
-@media (min-width: 640px) {
-  .tab img {
-    max-height: 18px;
-  }
+.store:hover {
+  border-color: var(--color-ds-border);
 }
 
-@media (min-width: 1024px) {
-  .tab img {
-    max-height: 26px;
-  }
+/* Only the chosen store carries the brand border (#D84752, 4:1 on white) and the elevation. */
+.store:has(input:checked) {
+  border-color: var(--color-ds-accent);
+  box-shadow: var(--shadow-elevation-1);
 }
 
-.tab:has(input:checked) {
-  z-index: 1;
-  margin-bottom: -1px;
-  border-color: var(--store-color);
-  background-color: var(--color-ds-surface);
-  padding-bottom: 5px;
-}
-
-.tab:has(input:focus-visible) {
-  outline: 2px solid var(--store-color);
+.store:has(input:focus-visible) {
+  outline: 2px solid var(--color-ds-focus);
   outline-offset: 2px;
 }
 
-/* Visually hidden, still focusable and announced as a radio group. */
+/* Visually hidden, still focusable and announced as a radio. */
 .radio {
   position: absolute;
   width: 1px;
@@ -94,44 +64,94 @@
   pointer-events: none;
 }
 
-.field {
-  position: relative;
-}
+@media (min-width: 1024px) {
+  .stores {
+    display: inline-flex;
+    width: auto;
+  }
 
-.input {
-  width: 100%;
-  height: 48px;
-  padding: 0 3rem 0 1rem;
-  border: 1px solid var(--store-color);
-  border-radius: 0 3px 3px 3px;
-  background-color: var(--color-ds-surface);
-  font-size: 1rem;
-}
+  .store {
+    flex: 0 0 auto;
+    min-width: 72px;
+    height: 28px;
+    padding: 0 12px;
+  }
 
-.input::placeholder {
-  color: rgb(46 46 46);
-  font-weight: 300;
-}
-
-@media (min-width: 640px) {
-  .input::placeholder {
-    font-size: 18px;
+  .store img {
+    max-width: 72px;
+    max-height: 18px;
   }
 }
 
-.input:focus-visible {
-  outline: 2px solid var(--store-color);
-  outline-offset: 1px;
+@media (prefers-reduced-motion: reduce) {
+  .store {
+    transition: none;
+  }
+}
+
+/* Search pill: #f8f8f8 fill, #f0f0f0 border, leading magnifier (submit). */
+.field {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px 0 8px;
+  border: 1px solid var(--color-ds-border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ds-surface-subtle);
+}
+
+.field:has(.input:focus-visible) {
+  border-color: var(--color-ds-focus);
+  background-color: var(--color-ds-surface);
+  outline: 2px solid var(--color-ds-focus);
+  outline-offset: 2px;
 }
 
 .submit {
-  position: absolute;
-  top: 50%;
-  right: 0.5rem;
   display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  translate: 0 -50%;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
   place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-ds-neutral-950);
   cursor: pointer;
+}
+
+.submit:focus-visible {
+  outline: 2px solid var(--color-ds-focus);
+  outline-offset: 0;
+}
+
+/* 16px below 1024 so iOS Safari does not zoom in on focus; DS body-sm (13/18) on desktop. */
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-ds-text);
+  font-size: var(--text-body-lg);
+  line-height: var(--text-body-lg--line-height);
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-ds-text-secondary);
+  opacity: 1;
+}
+
+@media (min-width: 1024px) {
+  .field {
+    padding-right: 20px;
+  }
+
+  .input {
+    font-size: var(--text-body-sm);
+    line-height: var(--text-body-sm--line-height);
+  }
 }
