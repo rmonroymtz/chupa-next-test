@@ -55,6 +55,16 @@ class ScriptedGateway implements CartGateway {
     const { totalQuantity } = await answer(this.readStep);
     return { totalQuantity, subtotal: null, items: [] };
   }
+
+  async removeItemFromCart(
+    cartId: string,
+    itemUid: string,
+    auth: { signinToken: string | null },
+  ): Promise<MiniCart> {
+    this.calls.push({ op: `remove:${itemUid}`, cartId, token: auth.signinToken });
+    const { totalQuantity } = await answer(this.readStep);
+    return { totalQuantity, subtotal: null, items: [] };
+  }
 }
 
 async function answer(step: Step) {
@@ -238,5 +248,45 @@ describe('cartService reads', () => {
       status: 'ok',
       cart: { totalQuantity: 2, subtotal: null, items: [] },
     });
+  });
+});
+
+describe('cartService.removeCartItem', () => {
+  it('removes the item from the given cart with the token and returns the updated cart', async () => {
+    const gateway = new ScriptedGateway([], false, { totalQuantity: 1 });
+    const { service, metricsNamed } = setup(gateway);
+
+    expect(
+      await service.removeCartItem({ cartId: 'c', itemUid: 'MTIz', signinToken: TOKEN }),
+    ).toEqual({ status: 'ok', cart: { totalQuantity: 1, subtotal: null, items: [] } });
+    expect(gateway.calls).toEqual([{ op: 'remove:MTIz', cartId: 'c', token: TOKEN }]);
+    expect(metricsNamed('CartRemoveItem')).toEqual([
+      expect.objectContaining({ value: 1, dimensions: { Outcome: 'success' } }),
+    ]);
+  });
+
+  it('reports a cart Magento rejects as invalid_cart, without creating a cart', async () => {
+    const gateway = new ScriptedGateway([], false, 'invalid');
+    const { service, metricsNamed } = setup(gateway);
+
+    expect(
+      await service.removeCartItem({ cartId: 'c', itemUid: 'MTIz', signinToken: null }),
+    ).toEqual({ status: 'invalid_cart' });
+    expect(gateway.calls.map((call) => call.op)).toEqual(['remove:MTIz']);
+    expect(metricsNamed('CartRemoveItem')).toEqual([
+      expect.objectContaining({ value: 1, dimensions: { Outcome: 'invalid_cart' } }),
+    ]);
+  });
+
+  it('reports other failures as failed and never logs the token or the cart id', async () => {
+    const gateway = new ScriptedGateway([], false, 'failure');
+    const { service, logLines } = setup(gateway);
+
+    expect(
+      await service.removeCartItem({ cartId: 'secret-cart', itemUid: 'MTIz', signinToken: TOKEN }),
+    ).toEqual({ status: 'failed' });
+    expect(logLines.length).toBeGreaterThan(0);
+    expect(JSON.stringify(logLines)).not.toContain(TOKEN);
+    expect(JSON.stringify(logLines)).not.toContain('secret-cart');
   });
 });

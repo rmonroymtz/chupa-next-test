@@ -6,6 +6,7 @@ import { mapMiniCart } from '@/modules/cart/infrastructure/magento-cart-mapper';
 import { createMagentoClient } from '@/shared/graphql/client';
 import { setupMswServer } from '../../../../support/msw';
 import { createCapturingObservability } from '../../../../support/observability';
+import removeItemFixture from '../../../../fixtures/magento/remove-item-from-cart.json';
 
 const URL = 'https://magento.test/graphql';
 const TOKEN = 'secret.jwt.token';
@@ -170,6 +171,66 @@ describe('createMagentoCartGateway', () => {
     expect(captured[0]?.body.operationName).toBe('MiniCartQuery');
     expect(captured[0]?.body.query).toContain('subtotal_excluding_tax');
     expect(captured[0]?.authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it('removes an item with the PWA RemoveItemForMiniCart mutation and maps the updated cart', async () => {
+    const captured: Captured[] = [];
+    respondWith(removeItemFixture, captured);
+    const { gateway } = setup();
+
+    const cart = await gateway.removeItemFromCart('cart-1', 'MTIzNDY=', { signinToken: TOKEN });
+
+    expect(captured[0]?.body.operationName).toBe('RemoveItemForMiniCart');
+    expect(captured[0]?.body.variables).toEqual({ cartId: 'cart-1', itemId: 'MTIzNDY=' });
+    // The peregrine document: `input: { cart_id, cart_item_uid }`, answering the mini-cart fields.
+    expect(captured[0]?.body.query).toContain(
+      'removeItemFromCart(input: { cart_id: $cartId, cart_item_uid: $itemId })',
+    );
+    expect(captured[0]?.body.query).toContain('subtotal_excluding_tax');
+    expect(captured[0]?.authorization).toBe(`Bearer ${TOKEN}`);
+    expect(cart).toEqual({
+      totalQuantity: 2,
+      subtotal: { amount: 1298.5, currency: 'MXN' },
+      items: [
+        {
+          uid: 'MTIzNDU=',
+          name: 'Audífonos inalámbricos',
+          sku: 'B0TESTSKU1',
+          url: '/amazon-B0TESTSKU1-audifonos.html',
+          thumbnailUrl: 'https://chupaprecios.com.mx/media/catalog/product/a.jpg',
+          quantity: 2,
+          unitPrice: { amount: 649.25, currency: 'MXN' },
+          options: [],
+          outOfStock: false,
+        },
+      ],
+    });
+  });
+
+  it('maps a removal Magento rejects for the cart to invalid_cart, other errors to failure', async () => {
+    respondWith({ errors: [{ message: 'Could not find a cart with ID "stale"' }], data: null }, []);
+    const { gateway } = setup();
+    const invalid = await gateway
+      .removeItemFromCart('stale', 'MTIz', { signinToken: null })
+      .catch((caught: unknown) => caught);
+    expect((invalid as CartGatewayError).kind).toBe('invalid_cart');
+
+    // `RemoveItemFromCartOutput` has no `user_errors`: Magento answers a GraphQL error.
+    respondWith({ errors: [{ message: "The cart doesn't contain the item" }], data: null }, []);
+    const failed = await gateway
+      .removeItemFromCart('cart-1', 'MTIz', { signinToken: null })
+      .catch((caught: unknown) => caught);
+    expect(failed).toBeInstanceOf(CartGatewayError);
+    expect((failed as CartGatewayError).kind).toBe('failure');
+  });
+
+  it('fails when the removal answers no cart', async () => {
+    respondWith({ data: { removeItemFromCart: null } }, []);
+    const { gateway } = setup();
+    const error = await gateway
+      .removeItemFromCart('cart-1', 'MTIz', { signinToken: null })
+      .catch((caught: unknown) => caught);
+    expect((error as CartGatewayError).kind).toBe('failure');
   });
 });
 

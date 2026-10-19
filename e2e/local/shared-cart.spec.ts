@@ -60,20 +60,30 @@ test.describe('cart shared with PWA Studio (local stack)', () => {
     await page.reload();
     await expect(cartTrigger(page)).toHaveAccessibleName(/Tienes 2 artículos/);
 
+    // From 1160px (the default 1280px viewport) the trigger opens the PWA dropdown panel.
     await cartTrigger(page).click();
-    const dialog = page.getByRole('dialog', { name: /^Carrito/ });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByText(`Producto ${LOCAL_PRODUCTS.magento.sku}`)).toBeVisible();
-    await expect(dialog.getByRole('link', { name: 'Ir a pagar' })).toHaveAttribute(
+    const panel = page.getByRole('region', { name: 'Carrito' });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText(`Producto ${LOCAL_PRODUCTS.magento.sku}`)).toBeVisible();
+    await expect(panel.getByRole('link', { name: 'Ir a pagar' })).toHaveAttribute(
       'href',
       '/checkout',
     );
-    await expect(dialog.getByRole('link', { name: 'Editar carrito' })).toHaveAttribute(
+    await expect(panel.getByRole('link', { name: 'Editar carrito' })).toHaveAttribute(
       'href',
       '/cart',
     );
     await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
+    await expect(panel).toBeHidden();
+    await expect(cartTrigger(page)).toBeFocused();
+
+    // Removing the item empties the panel and the header count.
+    await cartTrigger(page).click();
+    await panel
+      .getByRole('button', { name: `Eliminar Producto ${LOCAL_PRODUCTS.magento.sku}` })
+      .click();
+    await expect(panel.getByText('No hay artículos en tu carrito.')).toBeVisible();
+    await expect(cartTrigger(page)).toHaveAccessibleName(/Tienes 0 artículos/);
   });
 
   test('scraped PDP: adds the vendor product (asin as sku) to the stored cart', async ({

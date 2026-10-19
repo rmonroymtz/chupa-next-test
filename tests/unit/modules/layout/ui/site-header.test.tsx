@@ -48,10 +48,16 @@ describe('SiteHeader', () => {
     // The drawer is a closed dialog until opened (hidden from the accessibility tree).
     const signIn = within(banner).getAllByRole('link', { name: 'Iniciar sesión', hidden: true });
     expect(signIn.map((link) => link.getAttribute('href'))).toEqual(['/sign-in']);
-    // Mini-cart trigger (T8): opens a dialog linking to the PWA cart and checkout.
+    // Mini-cart trigger (T7c): from 1160 a disclosure of the PWA dropdown, below a link to /cart.
     const cart = within(banner).getByRole('button', { name: /mini carrito/ });
-    expect(cart.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(cart.getAttribute('aria-expanded')).toBe('false');
+    expect(cart.getAttribute('aria-haspopup')).toBeNull();
     expect(cart.dataset.slot).toBe('cart-trigger');
+    expect(
+      within(banner)
+        .getByRole('link', { name: /^Carrito\. Tienes/ })
+        .getAttribute('href'),
+    ).toBe('/cart');
   });
 
   it('has one GET search form to the legacy search page', () => {

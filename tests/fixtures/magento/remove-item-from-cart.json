@@ -1,0 +1,28 @@
+{
+  "data": {
+    "removeItemFromCart": {
+      "cart": {
+        "id": "Wq9bTjZ4nBvXk2Lm8RcYp3HdFs6GtE1a",
+        "total_quantity": 2,
+        "prices": {
+          "subtotal_excluding_tax": { "currency": "MXN", "value": 1298.5 }
+        },
+        "items": [
+          {
+            "uid": "MTIzNDU=",
+            "quantity": 2,
+            "product": {
+              "uid": "NTY3OA==",
+              "name": "Audífonos inalámbricos",
+              "sku": "B0TESTSKU1",
+              "url_key": "amazon-B0TESTSKU1-audifonos",
+              "thumbnail": { "url": "https://chupaprecios.com.mx/media/catalog/product/a.jpg" },
+              "stock_status": "IN_STOCK"
+            },
+            "prices": { "price": { "currency": "MXN", "value": 649.25 } }
+          }
+        ]
+      }
+    }
+  }
+}

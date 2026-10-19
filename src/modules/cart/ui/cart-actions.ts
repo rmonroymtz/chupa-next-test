@@ -1,7 +1,11 @@
 'use server';
 
 import type { AddToCartResult, CartReadResult } from '@/modules/cart/application/cart-service';
-import { addToCartInputSchema, cartReadInputSchema } from '@/modules/cart/application/cart-input';
+import {
+  addToCartInputSchema,
+  cartReadInputSchema,
+  removeCartItemInputSchema,
+} from '@/modules/cart/application/cart-input';
 import type { MiniCart } from '@/modules/cart/application/ports';
 import { getCartService } from '@/modules/cart/infrastructure/cart.composition';
 import { getLogger } from '@/shared/observability/logger';
@@ -58,6 +62,22 @@ export async function getMiniCartAction(
   }
   try {
     return await getCartService().getMiniCart(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+/** Removes one mini-cart item; answers the updated cart (same cart id/token as the reads). */
+export async function removeCartItemAction(
+  input: unknown,
+): Promise<CartReadResult<{ cart: MiniCart }>> {
+  const parsed = removeCartItemInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('remove_cart_item');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCartService().removeCartItem(parsed.data);
   } catch {
     return { status: 'failed' };
   }

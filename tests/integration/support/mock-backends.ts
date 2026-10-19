@@ -406,6 +406,7 @@ const CART_OPERATIONS = new Set([
   'AddProductToCart',
   'getItemCount',
   'MiniCartQuery',
+  'RemoveItemForMiniCart',
 ]);
 
 /**
@@ -427,8 +428,20 @@ function answerCart(
   if (!items) {
     return {
       errors: [{ message: `Could not find a cart with ID "${cartId}"` }],
-      data: operation === 'AddProductToCart' ? { addProductsToCart: null } : { cart: null },
+      data:
+        operation === 'AddProductToCart'
+          ? { addProductsToCart: null }
+          : operation === 'RemoveItemForMiniCart'
+            ? null
+            : { cart: null },
     };
+  }
+  if (operation === 'RemoveItemForMiniCart') {
+    // Item uids are `item-<position>` (see the cart payload below), as Magento answers them.
+    const index = items.findIndex((_item, position) => `item-${position + 1}` === variables.itemId);
+    if (index === -1)
+      return { errors: [{ message: "The cart doesn't contain the item" }], data: null };
+    items.splice(index, 1);
   }
   if (operation === 'AddProductToCart') {
     const product = (variables.product ?? {}) as Record<string, unknown>;
@@ -448,26 +461,25 @@ function answerCart(
   if (operation === 'getItemCount') {
     return { data: { cart: { id: cartId, total_quantity: totalQuantity } } };
   }
-  return {
-    data: {
-      cart: {
-        id: cartId,
-        total_quantity: totalQuantity,
-        prices: { subtotal_excluding_tax: { currency: 'MXN', value: 100 * totalQuantity } },
-        items: items.map((item, index) => ({
-          uid: `item-${index + 1}`,
-          quantity: item.quantity,
-          product: {
-            uid: `product-${index + 1}`,
-            name: `Producto ${item.sku}`,
-            sku: item.sku,
-            url_key: `${item.vendor}-${item.sku}-producto`,
-            thumbnail: null,
-            stock_status: 'IN_STOCK',
-          },
-          prices: { price: { currency: 'MXN', value: 100 } },
-        })),
+  const cart = {
+    id: cartId,
+    total_quantity: totalQuantity,
+    prices: { subtotal_excluding_tax: { currency: 'MXN', value: 100 * totalQuantity } },
+    items: items.map((item, index) => ({
+      uid: `item-${index + 1}`,
+      quantity: item.quantity,
+      product: {
+        uid: `product-${index + 1}`,
+        name: `Producto ${item.sku}`,
+        sku: item.sku,
+        url_key: `${item.vendor}-${item.sku}-producto`,
+        thumbnail: null,
+        stock_status: 'IN_STOCK',
       },
-    },
+      prices: { price: { currency: 'MXN', value: 100 } },
+    })),
   };
+  return operation === 'RemoveItemForMiniCart'
+    ? { data: { removeItemFromCart: { cart } } }
+    : { data: { cart } };
 }
