@@ -641,3 +641,8 @@ lines in total.
   `overflow:hidden` viewport, PWA options, arrows, dots, skeleton carousel; reduced motion jumps; no horizontal
   overflow on the search page at 375/1024/1440); all required checks green, visual check pending. Work-unit commit
   on `feat/ds-09-embla-sliders` (from `main` `e48a0fc`, not pushed).
+- 2026-10-19: T9 commit `10d2ee1` plus `82b90d1` (`.gitignore` for the `AGENTS.md` written by `next dev`, user
+  approved). Assessed medium (`slice_budget_reached`, 617 lines); user granted review; native review (reliability
+  lens) approved and acknowledged (lineage `review-5490addf2e2d360c`), suggestions only: effect cleanup untested,
+  reduced-motion listener untested, skeleton loop flag differs from the loaded carousel. Reviewed boundary: `82b90d1`.
+  Next: user visual check of the sliders against localhost:10000; then the product gallery overflow at 375.
