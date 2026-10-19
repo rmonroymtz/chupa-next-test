@@ -53,12 +53,16 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
           <div className="order-last min-w-0 basis-full desktop:order-none desktop:ml-auto desktop:basis-auto">
             <CurrentStoreSelector />
           </div>
-          <div className="flex items-center gap-3.5 desktop:ml-auto desktop:gap-5">
+          {/* PWA `.actions`: 20px between the actions. Below 1160 the 40px boxes around the
+              20px icons already put 20px between the icons. */}
+          <div className="flex items-center desktop:ml-auto desktop:gap-5">
+            {/* PWA `SignInButton` / `accountTrigger` `.action`: 20px icon, 8px gap, 14px
+                text-primary label from 1160, brand anchor on hover. */}
             <a
               href={LEGACY_ROUTES.signIn}
-              className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-xs text-body-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0"
+              className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xs text-body-md leading-normal text-ds-text hover:text-ds-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0"
             >
-              <Icon name="user" size={16} className="text-ds-neutral-950 desktop:size-3.5" />
+              <Icon name="user" size={20} />
               <span className="whitespace-nowrap max-desktop:sr-only">Mi cuenta</span>
             </a>
             <CartTriggerSlot />
