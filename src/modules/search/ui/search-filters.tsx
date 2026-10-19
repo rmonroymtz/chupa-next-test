@@ -96,13 +96,17 @@ function OptionList({
   );
 }
 
-/** Desktop sidebar (from `lg`). */
+/**
+ * Sidebar from `lg` (1024px, the PWA FilterSidebar `lg_grid`). At exactly 1024 the PWA stacks it
+ * after the results; from 1025px it is the left column, capped at the viewport height minus 4rem
+ * with its own scroll (the PWA `.sidebar` is also `sticky`, but it never sticks there; not copied).
+ */
 export function SearchFiltersSidebar(props: SearchFiltersProps) {
   return (
     <aside
       data-search-filters="desktop"
       aria-label="Filtros de productos"
-      className="hidden lg:block"
+      className="order-2 hidden lg:block min-[1025px]:order-none min-[1025px]:max-h-[calc(100vh-4rem)] min-[1025px]:self-start min-[1025px]:overflow-y-auto"
     >
       <h2 className="mb-4 text-lg font-semibold">Filtros</h2>
       <FilterGroups {...props} />

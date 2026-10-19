@@ -56,7 +56,7 @@ export function ChupaChoiceSection({
   const label = storeLabel(store);
   return (
     <section data-search-section={store} aria-labelledby={`search-${store}`} className="mb-12">
-      <div className="mb-2 flex items-center justify-start gap-5">
+      <div className="mb-2 flex flex-wrap items-center justify-start gap-x-5">
         <h2 id={`search-${store}`} className="flex">
           <StoreLogo store={store} label={label} />
         </h2>
@@ -142,7 +142,7 @@ function ChupaChoiceItem({ item }: { readonly item: SearchItem }) {
         <div className="flex min-h-0 flex-1 flex-col">
           <h3 className="mb-auto text-left text-[12px] leading-none font-normal">{name}</h3>
           {price ? (
-            <div className="mt-4 flex items-end justify-between gap-2 max-[359px]:justify-start max-[359px]:gap-1.5">
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-2 max-[359px]:justify-start max-[359px]:gap-1.5">
               {discount > 0 ? (
                 <>
                   <div data-search-discount className="flex flex-col items-start gap-0.5">
