@@ -1,6 +1,6 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1–T6, T7a and T7c done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, `6fd60d3`, `fc393ac`, T7c correction commit on `feat/ds-07-mini-cart`), T1–T7a reviews approved, not pushed; T8 next; T7b pending (no customer session).
+Status (2026-10-18): T1–T6, T7a and T7c done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, `6fd60d3`, `fc393ac`, `4f1c268`), reviews approved, not pushed; T8 next; T7b pending (no customer session).
 
 ## Objective
 
@@ -485,3 +485,8 @@ lines in total.
   below, legacy PWA rows with the trash button, stock message, head-less empty/loading; item removal end to end
   over Magento `removeItemFromCart` via a new server action); all required checks green, e2e updated (not run),
   visual check pending. Correction commit on `feat/ds-07-mini-cart` on top of `fc393ac` (not pushed); T8 next.
+- 2026-10-18: T7c commit `4f1c268` on `feat/ds-07-mini-cart` (on top of T7a, not pushed). Assessed medium
+  (`slice_budget_reached`, 1505 lines: removal end to end + restyle + tests); user granted review; native review
+  approved with no findings and acknowledged (lineage `review-c78a73ae615c4c23`). To verify visually: the live PWA may
+  render the es_MX override strings ("Finalizar compra", "Subtotal: ", "Cantidad : N") instead of the DS defaults kept
+  here; trash button contrast at 50% opacity (WCAG 1.4.11).
