@@ -62,4 +62,10 @@ export interface CartGateway {
   ): Promise<{ totalQuantity: number; userErrors: readonly CartUserError[] }>;
   getCartCount(cartId: string, auth: CartAuth): Promise<number>;
   getMiniCart(cartId: string, auth: CartAuth): Promise<MiniCart>;
+  /**
+   * Removes one item (Magento `removeItemFromCart` by `cart_item_uid`) and
+   * answers the updated cart. Magento reports problems as GraphQL errors: the
+   * output has no `user_errors`.
+   */
+  removeItemFromCart(cartId: string, itemUid: string, auth: CartAuth): Promise<MiniCart>;
 }

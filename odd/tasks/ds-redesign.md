@@ -1,6 +1,6 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-17): T1 done, T2 next.
+Status (2026-10-18): T1–T6, T7a and T7c done (`a815c0e`, `6e1f382`, `569f972`, `b60bf1a`, `af201ed`, `6fd60d3`, `fc393ac`, `4f1c268`), reviews approved, not pushed; T8 next; T7b pending (no customer session).
 
 ## Objective
 
@@ -61,13 +61,365 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     products, chupachoice grid. Visual check on the dev server pending (user).
   - Commit: the T1 work-unit commit `feat(ds): adopt the design system tokens, fonts and grid` (hash recorded in the
     Progress line of the next task, a commit cannot contain its own hash).
-- [ ] T2 Shared primitives: Button (sizes 24–56, pill, CTA red, loading), Badge (V3 variants), Input/Select/Checkbox
-  states, DS icon set; replace inline buttons. Check: unit tests + build.
-- [ ] T3 Footer + missing assets (chupacredit, estafeta, profeco, logos diff). Check: unit/integration + visual.
-- [ ] T4 Promo bar (rotating, pause on hover, reduced motion, static fallback). Check: unit + visual.
-- [ ] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
-- [ ] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
-- [ ] T7 Account panel + mini-cart restyle (head, footer with subtotal + "Ir a pagar"). Check: unit + visual.
+- [x] T2 Shared primitives: Button (sizes 24–56, pill, CTA red, loading), Badge (V3 variants), Input/Select/Checkbox
+  states, DS icon set; replace inline buttons. Also fix the T1 review findings: always emit the DS theme vars used by
+  CSS modules (`@theme static` or equivalent) and add a structural test that removed legacy token names are unused.
+  Check: unit tests + build.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: Testing Library tests written first; RED = 4
+    test files failing (modules `@/shared/ui/*` not found), GREEN = 4 files / 37 tests. The legacy-token test went
+    GREEN directly against T1 and turned RED on a planted `bg-brand-red rounded-button` (2 offenders), then removed.
+  - Files: `src/shared/ui/` (`button.tsx`, `badge.tsx`, `input.tsx`, `select.tsx`, `checkbox.tsx`, `field.tsx`,
+    `icon.tsx`, `icon-catalog.ts`, `class-names.ts`), `src/app/globals.css` (`@theme static`),
+    `src/modules/layout/ui/icons.tsx`, `src/modules/cart/ui/add-to-cart.client.tsx`,
+    `src/modules/cart/ui/mini-cart.client.tsx`, `tests/unit/shared/ui/*` (button, badge, form-fields, icon),
+    `tests/unit/app/legacy-design-tokens.test.ts`.
+  - Decisions: shared atoms live in `src/shared/ui/` (cross-module, kebab-case files, Tailwind DS classes, no CSS
+    modules). Button variants follow the DS `primary`/`secondary`/`tertiary`, sizes `xs`/`sm`/`md`/`lg`/`xl` =
+    24/32/40/48/56; secondary/tertiary text uses `ds-link` #BE424B instead of the DS source's #D84752 (under 4.5:1
+    on white at 13–16px). Loading keeps the variant colour, hides the label with `opacity-0` (keeps width and the
+    accessible name) under a spinner, sets `aria-busy` and `disabled`. With `href`, Button renders `next/link`
+    (`prefetch={false}`, the repo avoids prefetching Magento-backed pages) for internal paths, a plain `<a>` for
+    external urls or `nativeAnchor` (edge-routed PWA Studio `/cart`, `/checkout`); a disabled/loading link drops its
+    `href` and gets `aria-disabled`. Badge = C2 `new`/`sale`/`featured`/`soldout`/`shipping`/`lastunits` + `neutral`,
+    `radius-xs`, all colors already existed as T1 tokens. Form fields share `useFieldA11y` (`useId`, `aria-invalid`
+    only on error, `aria-describedby` keeps the caller's ids); focus uses the DS reference pattern 2px `ds-focus`
+    outline + 2px offset on all three (INCONSISTENCIAS "Transversal"); Select gained `success` for parity, Checkbox
+    gained helper/error. Icon ports all 48 glyphs (41 board + 7 extras) as a typed `IconName` union, `aria-hidden` +
+    `focusable=false` unless `title` (then `role="img"` + `aria-label`). `icons.tsx` keeps its exports; `MenuIcon` and
+    `ChevronDownIcon` delegate to `Icon` (same feather glyphs, 2px stroke kept), the legacy user/search/social glyphs
+    stay until T3/T5. Migrated: the add-to-cart submit (primary lg, `loading`), mini-cart "Finalizar compra"
+    (primary lg) / "Ver carrito" and "Reintentar" (secondary lg). Not migrated: `search-pagination.tsx` and
+    `search-filters.tsx` have no `<button>`s (page links, a text link and a `<summary>`; no DS pagination molecule),
+    quantity steppers and the cart trigger/close are icon buttons, and `AvailabilityBadge` does not map to C2 (no
+    in-stock variant; soft fills with dark text). R3-pb-css-var-dependency: the DS `@theme` block is `@theme static`
+    (Tailwind v4 docs, "Generating all CSS variables"); the built CSS defines `--color-ds-cta-hover`,
+    `--color-ds-accent` and also unused ones such as `--color-ds-info-bg`. R3-no-token-coverage: the structural test
+    scans `src/**/*.{ts,tsx,css,js,mjs}` for the removed `brand-*`/`ch-*`/`feedback-*`/legacy `neutral-*` colors,
+    `--container-site`/`max-w-site`, `rounded-{box,input,button,badge,xl,2xl,3xl}`, `shadow-header` and the dropped
+    fonts, ignoring `ds-*`, `marketplace-*` and `--pb-brand-*`.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 113 files / 1066 tests pass;
+    integration 7 files / 102 tests pass; build pass. Visual check on the dev server pending (user): add-to-cart
+    spinner, mini-cart footer buttons (Ver carrito/Reintentar are now red outline instead of dark outline).
+  - Commit: the T2 work-unit commit `feat(ds): add the shared button, badge, form field and icon primitives` on
+    `feat/ds-02-primitives` (hash recorded in the next Progress line).
+- [x] T3 Footer + missing assets (chupacredit, estafeta, profeco, logos diff). Also fix T2 review finding
+  R3-disabled-link-onclick: a disabled/loading link `Button` must not run the caller `onClick` (test it). Check:
+  unit/integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: button RED = 2 failing (`a disabled link` /
+    `a loading link does not run the caller onClick`), GREEN = 18/18; footer RED = 3 failing of 11 (DS Icon social
+    glyph, grey `filter` payment logos, 1→2→4 grid in `container-padded`), GREEN = 11/11; icon RED = 2 failing
+    (catalog 50 with `facebook`/`instagram`, brand glyph fill), GREEN = 5/5. Content assertions kept and extended
+    (hours incl. "Horario:", both addresses, wordmark/AMVO alts, lazy images, copyright line).
+  - Files: `src/modules/layout/ui/site-footer.tsx` (rebuilt), `src/modules/layout/ui/icons.tsx` (legacy
+    Facebook/Instagram glyphs retired, only the footer used them), `src/shared/ui/icon-catalog.ts` (brand extras
+    `facebook`/`instagram` = the DS Footer organism glyphs, own fill/stroke), `src/shared/ui/button.tsx`,
+    `public/images/layout/payments/chupacredit.svg`, `public/images/layout/shipping/estafeta.svg`,
+    `tests/unit/modules/layout/ui/site-footer.test.tsx`, `tests/unit/shared/ui/button.test.tsx`,
+    `tests/unit/shared/ui/icon.test.tsx`. `footer-content.ts` unchanged.
+  - Decisions: DS organism layout: `grid-cols-1` → `md:grid-cols-2` (brand spans) → `lg:grid-cols-[1.1fr_1fr_1fr_1.2fr]`,
+    gaps 32/40 (DS space 8/10), padding 40/24 → 48/32, inside `container-padded` (1260, not the PWA's 1280). Groups:
+    brand + social; Centro de ayuda + Redes Sociales; Conócenos + AMVO (56px, 90% opacity); Atención a clientes +
+    both offices + payments. Type roles: titles `text-body-lg` bold inverse (body font, as the DS; was `font-display`),
+    text/links `text-body-md` neutral-300 → hover inverse + underline, copyright `text-body-sm` neutral-400 (4.8:1).
+    Social = 34px white pill buttons with an 18px dark DS `Icon`. Payment logos 22px high, max 46px wide,
+    `brightness-0 invert-[0.72]` (DS filter). Focus: white 2px outline (`ds-focus` #D84752 is 2.6:1 on #3B3B3B,
+    below the 3:1 non-text minimum). Headings stay `h2` (the PWA uses `h3`; `h2` is the right level under the page
+    `h1`). Images stay lazy. Disabled/loading link `Button` overrides `onClick` with `preventDefault` after the
+    caller props, so the handler never runs.
+  - Assets (byte-compare, all differ in bytes): `amex`/`mastercard` normalize identical to the PWA's repaired
+    6f0b069f versions (ours were never broken) → kept. `visa`: PWA moved to `visa.png` because its `visa.svg` was a
+    renamed PNG; ours is a real, valid SVG → kept. `kueski`, `mercadopago`, `oxxo`, `paypal`, `spei`, `stores/*`:
+    different exports of the same marks, all valid XML (`xmllint`) → kept. `amvo-white.svg` = `brand/amvo.svg` path
+    data (only ids differ) → kept. `logo-white.svg` vs `brand/chupaprecios-light.svg`: same artwork, sub-pixel export
+    differences (`10.037` vs `10.038`) and the same fills → kept. `logo.svg` (header only) uses `#000` where the DS
+    `chupaprecios.svg` uses brand purple `#2a2031` → left for T5 (header). Copied `chupacredit.svg` (payments) and
+    `estafeta.svg` (new `shipping/` folder) from the DS catalog; neither is rendered (the PWA footer renders
+    neither). `profeco.svg` not copied: `para-UX`, the PWA footer does not render it (INCONSISTENCIAS Footer row).
+  - Content differences vs the PWA footer (kept the Next content, not invented): the PWA lacks "Facturación",
+    Mercado Pago and Kueski Pay logos, "Horario:", the new-tab disclosure and Spanish copyright ("all rights
+    reserved"); the PWA adds a visible "Formas de pago" heading (Next keeps the `aria-label="Métodos de pago"` list),
+    writes "Preguntas Frecuentes (FAQ)", "Redes sociales", "Oficina central" / "Centro de desarrollo tecnológico"
+    without the colon, "Col." / "C.P." and the CDMX line without the trailing "Col.", and puts the whole hours line in
+    one sentence. The PWA has a checkout-only footer variant (Next has no checkout pages).
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 113 files / 1076 tests pass;
+    integration 7 files / 102 tests pass; build pass (footer utilities present in the built CSS); dev server
+    `/aviso-privacidad` 200 with the new footer markup. Visual check on the dev server pending (user): Kueski and
+    Mercado Pago are wide marks and render small under the DS 46px cap.
+  - Commit: the T3 work-unit commit `feat(layout): rebuild the footer on the design system` on `feat/ds-03-footer`
+    (hash recorded in the next Progress line).
+- [x] T4 Promo bar (rotating, pause on hover, reduced motion, static fallback). Check: unit + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: RED = 2 test files failing (modules
+    `@/modules/promo-bar/{infrastructure,ui}/*` not found; the 2 domain predicate tests were written with the type
+    file and passed directly), GREEN = 3 files / 15 tests. The integration `expectLayout` assertion (promo region
+    before `<header`, first slide text) was added together with the mount, not observed RED.
+  - Files: `src/modules/promo-bar/domain/promo-bar.ts` (slide/content types, `hasPromoContent`),
+    `src/modules/promo-bar/infrastructure/default-promo-bar-content.ts` (`getPromoBarContent()`, the 4 slides of the
+    Magento `top-banner-slider` block verbatim, interval 5000), `src/modules/promo-bar/ui/{promo-bar.tsx,
+    promo-slide.tsx,promo-bar-rotator.client.tsx}`, `src/app/layout.tsx` (mounted above `SiteHeaderContainer`),
+    `tests/unit/modules/promo-bar/{domain,infrastructure,ui}/*`, `tests/integration/layout.test.ts`.
+  - Decisions: static content only behind `getPromoBarContent()` (no `PROMO_BAR_ENDPOINT`/fetch: the API does not
+    exist; a future source only changes that function). Slides render on the server (`PromoBar`, `PromoSlide` with
+    `next/image` for the Kueski logo, `public/images/layout/payments/kueski.svg`, 16px high); only the rotation is a
+    client component receiving the rendered slides. All slides are stacked in one grid cell (`[grid-area:1/1]`) so
+    the bar keeps the tallest slide's height and never shifts the page while rotating; inactive slides are
+    `invisible opacity-0`, `aria-hidden` and `inert`; crossfade 400ms (DS `promoFade` 0.4s), `motion-reduce:
+    transition-none`. Rotation via one `setTimeout` per slide; paused while hovered or while focus is inside;
+    reduced motion is the initial (server) state, so no timer runs until `matchMedia` says otherwise, and none for a
+    single slide. `aria-live="off"` always (the DS has no controls). Region `<section aria-label="Promociones">`
+    (the DS uses "Avisos" with `aria-live="polite"`, which announces every rotation). Type `text-caption` (12/16, as
+    the brief; the DS CSS uses 14/20), `text-ds-text` #3B3B3B, `bg-ds-surface`, bottom `border-ds-border`, centered;
+    `container-padded py-2` (the container's 20px mobile margin is the DS 20 side padding, no double padding).
+    Not ported: the PWA hides the bar on `/checkout` (no checkout pages in Next).
+  - Known gap (WCAG 2.2.2 Pause, Stop, Hide): the bar auto-updates with no explicit pause control (the DS molecule
+    has none); hover/focus pause and reduced motion only partly cover it. Needs a product decision (e.g. a small
+    pause button) before calling it conformant.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 116 files / 1091 tests pass;
+    integration 7 files / 102 tests pass; build pass (`duration-400`, `grid-area:1/1`, `text-caption` in the built
+    CSS); dev server `/aviso-privacidad` 200 with the promo region markup. Visual check on the dev server pending
+    (user): bar height on mobile (tallest slide wraps), Kueski logo size inline.
+  - Commit: the T4 work-unit commit `feat(promo-bar): add the rotating promo bar above the header` on
+    `feat/ds-04-promo-bar` (hash recorded in the next Progress line).
+- [x] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. The trigger restyle needed `mini-cart.client.tsx`, outside
+    the first derived surface; the parent extended the surface (inside the authorized T5 scope).
+  - Test-first: header RED = 5 failing in `site-header.test.tsx` (no "Mi cuenta" link, old placeholder, no
+    `radiogroup`, `sm:w-[300px]`/`xl:w-[360px]` in the header, logo without `#2a2031`) + `search-form.test.tsx` failing
+    at import (`store-selector.client` missing); GREEN = layout unit 47/47. Cart RED = 1 failing (legacy `cart.svg`
+    `<img>` still in the trigger), GREEN = mini-cart 10/10. The integration additions (form `id`, 5 radios with
+    `form="site-search"`, placeholder) failed once on attribute order only (React emits `class` between `form` and
+    `name`; regex loosened), then passed.
+  - Files: `src/modules/layout/ui/site-header.tsx` (rebuilt), `store-selector.tsx` + `store-selector.client.tsx`
+    (new), `search-form.tsx`, `search-form-fields.tsx`, `current-search-form-fields.client.tsx`,
+    `search-form.module.css` (rewritten: DS pills + search pill, per-store colored tabs and `--store-color` deleted),
+    `cart-trigger-slot.tsx` (comment), `icons.tsx` (legacy `UserIcon`/`SearchIcon` and the `Svg` helper retired, only
+    the header used them), `src/modules/cart/ui/mini-cart.client.tsx` (trigger only), `public/images/layout/logo.svg`
+    (= DS `brand/chupaprecios.svg`, wordmark `#2a2031`), `tests/unit/modules/layout/ui/{site-header,search-form}.test.tsx`,
+    `tests/unit/modules/cart/ui/mini-cart.client.test.tsx`, `tests/integration/layout.test.ts`. `icon-catalog.ts`
+    unchanged (`user`, `search`, `shopping-cart` already there).
+  - Decisions: row 1 = mobile menu · logo · store pills · actions; below 1024 the pills wrap to their own full-width
+    line (`order-last basis-full`), from 1024 they sit between logo and actions (`ml-auto` both sides). Row 2 = search
+    pill. `container-padded` + `py-3`/`lg:py-5`, gaps 12/16 (DS 20/12 and 90/20 paddings). Bottom `border-ds-border`
+    instead of the elevation shadow (live PWA header). Only `md:`/`lg:`. Logo sized by width 102/125/136 (the DS lockup
+    is ~10.8:1; the audit's 136×24 box cannot hold it, the live PWA also sizes by width). Store pills: native radios
+    in a `role="radiogroup"` "Tienda donde buscar" outside the form, joined by `form="site-search"` (no JS; submitted
+    params unchanged `store`/`query`/`page=1`, asserted with `FormData`); same stores, order and default; current
+    store from the url (`CurrentStoreSelector`, no Suspense, same as the fields); checked pill = `ds-accent` #D84752
+    border (4:1 on white) + elevation-1; focus 2px `ds-focus` outline. Search pill `ds-surface-subtle` #f8f8f8 +
+    `ds-border-subtle` #f0f0f0, 40px, leading DS `search` icon as the submit ("Buscar"), placeholder "Ingresa ASIN, SKU
+    o Nombre del producto" in `ds-text-secondary`, focus outline on the pill when the input is focused. "Mi cuenta"
+    (DS `user`, `/sign-in`) and the cart (DS `shopping-cart`) show labels from 1024 (Inter 13/18, cart medium); below,
+    icons only in 40px targets ("Mi cuenta" `sr-only`; the cart keeps its `aria-label`). The cart count is one element:
+    a badge below 1024, "(N)" from 1024 (CSS parens), still hidden at 0.
+  - Spec deviations: mobile input text 16px (not 12/16) so iOS Safari does not zoom on focus; placeholder #6e6e6e (DS
+    text-secondary) instead of #7e7e7e; store list kept (ChupaChoice, Amazon, eBay, Target, Acme; Make adds Walmart);
+    mobile pills show logos only (no 56px icon + label columns); layout switch at 1024 (PWA 1160); empty cart shows
+    "Carrito" without "(0)" (the existing count contract hides it at 0); no "Categorías" (T6). A11y notes: the
+    magnifier precedes the input in focus order (leading, as the spec); on mobile the pills come before the actions in
+    DOM while they render below them; the cart `aria-label` (kept by contract) does not start with the visible "Carrito
+    (N)" (WCAG 2.5.3 label-in-name, "carrito" is contained). `public/images/layout/cart.svg` is now unused (outside the
+    surface, not deleted).
+  - Changed assertions: site-header "banner" test expects "Mi cuenta" → `/sign-in` and a single drawer "Iniciar
+    sesión" (was two); the store checks moved out of the search-form test into a new pills test (`radiogroup` in the
+    banner, not `group` inside the form, plus `radio.form`, `FormData` and selecting eBay); added placeholder and
+    `type="submit"` checks, the breakpoint test and the logo color test. search-form test reads the radios from the
+    radiogroup and also asserts the submitted `FormData`. mini-cart: new "Carrito (N)" test. layout integration: form
+    `id`, 5 associated radios, placeholder. No behavioral assertion removed.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 116 files / 1095 tests pass;
+    integration 7 files / 102 tests pass; build pass (built CSS has the `content:"("` parens); dev server `/`,
+    `/aviso-privacidad` 200 with chupachoice checked, `/search.html?query=test&store=amazon` 200 with amazon checked,
+    new header and "Carrito" markup. Visual check on the dev server pending (user).
+  - Commit: the T5 work-unit commit `feat(layout): rebuild the header and search on the design system` on
+    `feat/ds-05-header-search` (hash recorded in the next Progress line).
+- [x] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: RED = 3 layout test files failing at import
+    (`categories-dropdown.client`, `nav-drawer.client` missing; the updated `site-header.test.tsx` imports them),
+    31 other layout tests passing; GREEN = layout unit 10 files / 57 tests. The integration additions (closed
+    disclosure + `<dialog>` markup, no megamenu) passed on the first run; the existing position-order assertion failed
+    once (see changed assertions) and was rescoped.
+  - Files: `src/modules/layout/ui/categories-dropdown.client.tsx` (new), `categories-dropdown.tsx` (new, invisible
+    same-footprint placeholder), `nav-drawer.client.tsx` (new), `nav-drawer.tsx` (new, placeholder),
+    `site-header.tsx` (dropdown slot right after the logo, bottom category bar removed), `site-header.container.tsx`;
+    deleted `category-nav.tsx` (megamenu + `<details>` menu), `category-nav-scroller.client.tsx`, `icons.tsx` (its
+    `MenuIcon`/`ChevronDownIcon` only served the megamenu; DS `Icon` used directly) and
+    `tests/unit/modules/layout/ui/category-nav-scroller.test.tsx`; tests
+    `tests/unit/modules/layout/ui/{categories-dropdown,nav-drawer,site-header}.test.tsx`,
+    `tests/integration/layout.test.ts`. No data change: the `HeaderMenu` query already fetches three levels below the
+    root (dropdown uses two, the drawer all three); query, mapping, caching (`no-store`, `force-dynamic`, React
+    `cache()` = one call per request) and category urls unchanged. No CSS module (Tailwind DS classes only).
+  - Decisions: desktop (from 1024) = "Categorías" button (DS `menu` 18 + Inter semibold 14/20, gap 6) right of the
+    logo (gap 20, audit §4), a disclosure (`aria-expanded`/`aria-controls`, no `role="menu"`). Panel 740 wide, 12px
+    under the row, `radius-md`, `border-ds-border`, `elevation-2`: left list 264 (DS `grid` placeholder icon + name +
+    chevron, active row `ds-surface-subtle`, chevron `ds-link`), right detail = title link (`ds-link`, 16 semibold),
+    children in 2 columns filled by column (CSS `columns`, INCONSISTENCIAS "orden de columnas"), "Ver todo en {cat}"
+    + DS `arrow-right`. Hover, focus, Up/Down/Home/End pick the active category; Right enters its detail, Left
+    returns. Each detail follows its row in the DOM (absolutely placed in the right column), so Tab from a row enters
+    the subcategories it revealed instead of cycling every row first. Escape closes and focuses the button; a
+    pointerdown outside or focus leaving closes. Mobile/tablet (< 1024) = the menu button (hamburger 22, "Categorías"
+    label visible from 768 as the PWA `navTrigger`, sr-only below) opening a native modal `<dialog>` (`showModal`
+    focus trap, `aria-modal`, `aria-label="Menú"`), left side, `w-full max-w-[24rem]`, `ds-overlay` backdrop:
+    header 72px (wordmark home link + "Cerrar menú" DS `x`), Venia-style drill-down (a category with subcategories is
+    a button opening its own view with "Volver" + `h2` + "Ver todo en {cat}"; leaves are 56px links), footer auth bar
+    64px with "Iniciar sesión" (`ds-link`, DS `user`). Focus: close button on open, the new view's "Volver" on drill,
+    the opened branch on back, the menu button on close; Escape = the dialog `cancel` event; backdrop click closes;
+    `body` overflow hidden while open and restored; reopens at the top level. Both components render every link on
+    the server (closed panel, inactive details and drawer views are `hidden`), so all category links stay in the
+    markup as with the megamenu (e2e `nav[aria-label="Categorías"|"Menú principal"]` locators still hold). Empty
+    menu: the dropdown renders nothing (invisible placeholder keeps the width), the drawer keeps sign-in.
+  - Spec deviations: links keep today's category urls (`/{url_path}.html`), not the PWA's
+    `/search.html?query=<url_path>&store=` targets (brief rule); layout switch at 1024 (PWA 1160, as T5); the DS
+    `grid` icon is a placeholder on every row (no per-category icons in the data, same gap as the PWA); no slide
+    animation on the drawer (native dialog, no motion); no store/currency switchers in the drawer footer (Next has
+    none); the dropdown opens on click only (as the PWA). A11y notes: closed `<dialog>` content is outside the
+    accessibility tree until opened; the drawer stays open if the viewport grows past 1024 while open (its button is
+    then hidden; Escape/backdrop still close it).
+  - Changed/deleted assertions: `site-header.test.tsx` "banner" now finds the drawer "Iniciar sesión" with
+    `hidden: true` (closed `<dialog>`; still exactly one, still `/sign-in`); the breakpoint test skips `nav, dialog`
+    (was `nav, details`); the four megamenu/`<details>` tests ("desktop navigation: every level…", "without categories
+    keeps the reserved bar" incl. its `h-12` check, "mobile navigation is a native disclosure…" incl. `SUMMARY` and
+    the exact href list, "mobile navigation still offers sign-in…") were replaced by the dropdown/drawer tests, which
+    assert the same hrefs at every level (dropdown: levels 1–2, drawer: levels 1–3 + `/sign-in`) and sign-in when
+    the menu is empty; added "row 1 order" and "no megamenu" tests. Deleted the 7 scroller tests with the scroller.
+    `layout.test.ts`: the "ordered by position" check now reads the indexes inside the dropdown `<nav>` (the drawer,
+    first in the DOM, lists a branch as a button and its link in a later view, so page-wide first occurrences no longer
+    follow menu order); its `electronica/audio`, `Interna` and single `HeaderMenu` call assertions unchanged; the
+    failure-case comment updated (assertions unchanged). Added: closed disclosure/dialog markup, no scroller or
+    `<details>`.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 117 files / 1105 tests pass;
+    integration 7 files / 102 tests pass; build pass (`w-66`, `left-66`, `columns-2`, `h-18`, `w-[46.25rem]`,
+    `max-w-[24rem]` in the built CSS); impeccable detector: no findings; dev server `/` and `/computo.html` 200 with
+    12 dropdown rows and the closed drawer markup. Visual check on the dev server pending (user): panel width/position
+    at 1024, detail height with many subcategories (scrolls inside the panel), drawer on phone/tablet.
+  - Size: ~860 added / ~450 deleted (two interactive components with their tests; deletions are the dead megamenu,
+    scroller, legacy icons and their tests). Over the 400 heuristic as one coherent work unit, not split.
+  - Commit: the T6 work-unit commit `feat(layout): replace the megamenu with the categories dropdown and nav drawer`
+    on `feat/ds-06-categories-nav` (hash recorded in the next Progress line).
+- [x] T7a Mini-cart restyle (head, footer with subtotal + "Ir a pagar") (user, 2026-10-18: mini-cart first). Check: unit + visual. Also fix the T6 review warnings: the dropdown Escape handler must respect `event.defaultPrevented` (no clash with the mini-cart), close the dropdown when focus leaves to nothing (window blur), and close the drawer when the viewport reaches 1024; make the drawer overflow restore idempotent.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: baseline cart + layout unit 8 files / 63 tests
+    green; RED = 10 failing of 71 (mini-cart: DS panel head/footer, singular title + "Agotado", Escape marked handled,
+    loading head, empty state without CTAs; dropdown: prevented Escape ignored, blur to nothing closes, focusable
+    root keeps panel clicks inside; drawer: viewport ≥1024 closes + listener cleanup, idempotent overflow restore);
+    GREEN = 8 files / 71 tests.
+  - Files: `src/modules/cart/ui/mini-cart.client.tsx` (panel only; trigger untouched), `src/modules/cart/ui/mini-cart-item.tsx`
+    (new row component), `src/modules/layout/ui/categories-dropdown.client.tsx`, `src/modules/layout/ui/nav-drawer.client.tsx`,
+    `tests/unit/modules/cart/ui/mini-cart.client.test.tsx`, `tests/unit/modules/layout/ui/{categories-dropdown,nav-drawer}.test.tsx`,
+    `e2e/local/shared-cart.spec.ts` (labels only).
+    No action, store or data change.
+  - Decisions: the mini cart stays a native modal `<dialog>` (`showModal`, backdrop click, close button, focus back
+    to the trigger) but becomes the DS `.miniCart` surface: floating 360px (`min(22.5rem, 100vw-1.5rem)`), 12px from
+    the top-right, max height `min(35rem, 100dvh-1.5rem)`, `radius-lg`, `border-ds-border-subtle`, `elevation-3`
+    (was a full-height right sheet). Head: `h2` title (14 bold uppercase, the dialog name), "Editar carrito" (13
+    semibold `ds-link`, plain `<a href="/cart">`, edge-routed) only when there are items (PWA hides it when empty and
+    disables it while loading), close = DS `x` icon. Body: scrolling rows (`MiniCartItem`: 80px thumbnail, name link,
+    options, "Agotado", "Cantidad: N" + unit price). Footer (sticky, not scrolled): "Subtotal (N art.):" + price
+    (15 bold) and full-width primary lg "Ir a pagar" (`/checkout`, `nativeAnchor`). Loading/empty/error centered;
+    "Reintentar" now secondary md. Escape: the dialog `onKeyDown` closes it and calls `preventDefault`, so the
+    document listener of the dropdown skips it (React's root listener runs before the document one).
+    No quantity stepper or remove button: Next has no cart mutation (port/actions only add and read), the brief
+    keeps Magento/API changes out of scope, and the PWA mini-cart itself only removes (stepper rows pending there
+    as sub-slice 4b); quantity and removal stay in the PWA cart via "Editar carrito". No analytics events exist in
+    the Next mini cart (the PWA `CART_REMOVE_ITEM` belongs to remove), so none were added or lost.
+    T6 warnings: R3-dropdown-escape-focus (document Escape ignores `defaultPrevented`); R3-dropdown-blur-focus-null
+    (blur to `null` closes; the root is `tabIndex={-1}` + `outline-none`, so clicks on non-focusable panel content,
+    and on links/buttons in Safari, move focus to the root instead of to nothing); R3-drawer-viewport-grow (while
+    open, a `(min-width: 1024px)` `change` listener closes through `dialog.close()`, removed on close/unmount);
+    R3-drawer-overflow-restore (`overflowRef` is `null` when unlocked; lock saves once, unlock restores once).
+  - Renamed/removed labels: dialog title "Carrito de compras" → "Carrito" / "Carrito (N artículos|artículo)";
+    "Finalizar compra" → "Ir a pagar" (same `/checkout`); "Ver carrito" (footer button) → "Editar carrito" (head
+    link, same `/cart`); "N productos" line removed (count moved into the title); "Subtotal: $X" → "Subtotal (N art.):"
+    + price; the close glyph "×" → DS `x` icon (name "Cerrar carrito" unchanged). Kept: "Cargando tu carrito...",
+    "No pudimos cargar tu carrito.", "Reintentar", "No hay artículos en tu carrito.", "Agotado", "Cantidad: N".
+  - Changed assertions: mini-cart "opens a dialog with items, subtotal and links…" replaced by "opens the DS panel…":
+    dialog name `Carrito de compras` → `Carrito (3 artículos)`, `3 productos` → title, `Subtotal:` → `Subtotal (3
+    art.):` in the footer, `Finalizar compra` → `Ir a pagar` (/checkout), `Ver carrito` → `Editar carrito` (/cart) in
+    the head; item link/options/quantity kept and scoped to the row, unit price and absence of the old links added.
+    "shows the legacy empty message" additionally asserts no "Ir a pagar"/"Editar carrito". No assertion removed.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 117 files / 1113 tests pass;
+    integration 7 files / 102 tests pass; build pass (panel arbitrary values in the built CSS); dev server `/` 200.
+    `e2e/local/shared-cart.spec.ts` (surface extended by the parent mid-task, derivation gap inside the task):
+    dialog name `Carrito de compras` → `/^Carrito/`, `Finalizar compra` → `Ir a pagar` (`/checkout`), `Ver carrito`
+    → `Editar carrito` (`/cart`); every step kept (open, product text, both hrefs, Escape closes). It typechecks and
+    lints; not run (its global setup builds and starts a standalone Next + mock backends). Visual check on the dev server pending (user): floating panel
+    at 375/1024/1440, long item lists scrolling under the sticky footer, uppercase title truncation.
+- [x] T7c Mini-cart parity fix (user, 2026-10-18: "no se ve igual que la PWA"; "que quede igual al de PWA", remove button included): non-modal dropdown anchored under the cart trigger with a fade (no backdrop, no close button), PWA item rows (legacy look: 80px object-cover 4px radius image link, name 400, stacked 12px quantity and bold price, 20px row gap, no dividers, 32px trash remove button), empty state without header, below 1160px the trigger links to /cart, CTA 700/2px border, panel-level stock message, no option lines. Remove uses a new server action over Magento `removeItemFromCart` (no Magento change). Check: unit + integration + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: baseline cart + layout unit 18 files / 150
+    tests green; RED = 32 failing of 175 (19 files): remove schema (6), service `removeCartItem` (3), gateway
+    `RemoveItemForMiniCart` + error mapping (3, MSW + fixture), `removeCartItemAction` (3, new file), mini cart
+    (16: disclosure without dialog/haspopup, <1160 link + ≥1160 container classes, non-modal panel/PWA rows/no
+    options/trash names/CTA classes, stock message, Escape + focus back, outside pointer, scroll lock, head-less
+    loading/empty, refresh fade, remove busy → list + count, last item, failure alert, invalid cart), site header (1).
+    GREEN = 19 files / 175 (one RED test fixed on the test side: the metrics helper is `metricsNamed`, not `metrics`).
+  - Files: `src/modules/cart/{application/{cart-input,cart-service,ports}.ts,infrastructure/{cart.queries,magento-cart-gateway}.ts,ui/{cart-actions.ts,mini-cart.client.tsx,mini-cart-item.tsx}}`;
+    tests `tests/unit/modules/cart/{application/{cart-input,cart-service}.test.ts,infrastructure/magento-cart-gateway.test.ts,ui/{cart-actions.test.ts (new),mini-cart.client.test.tsx}}`,
+    `tests/unit/modules/layout/ui/site-header.test.tsx`, `tests/integration/pdp.test.ts`,
+    `tests/integration/support/mock-backends.ts` (mock `RemoveItemForMiniCart` for the local stack),
+    `tests/fixtures/magento/remove-item-from-cart.json` (new, shape of the peregrine document), `e2e/local/shared-cart.spec.ts`.
+  - Remove end to end: `REMOVE_ITEM_MUTATION` = venia-ui `MiniCart/miniCart.gql.js` `RemoveItemForMiniCart($cartId,
+    $itemId) { removeItemFromCart(input: { cart_id, cart_item_uid }) { cart { …mini-cart fields } } }` (the PWA also
+    selects `CartPageFragment`, dropped: it only feeds the PWA cart page cache; shared `MINI_CART_FIELDS` with
+    `MiniCartQuery`). Magento `RemoveItemFromCartOutput` has only `cart` (PWA `lastCachedGraphQLSchema.json`): no
+    `user_errors`; GraphQL errors map to `invalid_cart` (peregrine messages) or `failure`. Port
+    `removeItemFromCart(cartId, itemUid, auth): MiniCart`; use case `removeCartItem` → `ok {cart}` | `invalid_cart` |
+    `failed`, metric `CartRemoveItem{Outcome}`, never logs cart id/token, never recreates a cart; input
+    `removeCartItemInputSchema` (cart id + token as the reads, base64 uid ≤256); action `removeCartItemAction` (same
+    browser cart id/token as `getMiniCartAction`). The panel updates from the mutation response (as the PWA Apollo
+    cache) and writes the count with `cartCountStore.set` (as add to cart). One removal at a time: every trash
+    button is `aria-disabled` (the removing one also `aria-busy`, its row PWA `root_disabled`: `p-4`, #EAEBEB divider,
+    50%) so focus is not lost; focus moves to the panel when the removed button goes away. Failure: the PWA shows a
+    toast with Magento's message; Next has no toast system, so an inline `role="alert"` "No pudimos eliminar el
+    artículo. Inténtalo de nuevo." stays in the panel and the row comes back. Accessible name "Eliminar {name}" (PWA
+    "Eliminar"). No `CART_REMOVE_ITEM` analytics (Next has no analytics layer).
+  - Panel: non-modal disclosure. ≥1160 (`min-[1160px]:`, PWA-parity exception to the DS 768/1024 rule) a
+    `relative` container holds the trigger (`aria-expanded`, `aria-controls`, no `aria-haspopup`) and a `<section
+    aria-label="Carrito">` at `absolute top-full right-0 z-[70] h-0`, fade 224ms `cubic-bezier(0,0,0.2,1)` in /
+    192ms `cubic-bezier(0.4,0,1,1)` out (visibility transitions too, so the fade-out is visible; the PWA only
+    transitions opacity), `inert` + `aria-hidden` when closed, reduced motion = no transition; contents 360px,
+    `mt-3`, max 35rem, `radius-lg`, subtle border, elevation 3; height fitted to the viewport with the PWA 15px
+    margin on open/resize; page scroll locked (`body` overflow) while open; Escape (inside, not already handled)
+    closes, `preventDefault`s and focuses the trigger; pointer down outside closes; closes if the viewport drops
+    below 1160. No backdrop, no close button. <1160 the trigger is a plain link to `/cart` (name "Carrito. Tienes N
+    artículos en tu carrito.", starts with the visible label). Trigger look kept from T5 (icon 16/14, label from
+    1024, badge below 1024); the PWA trigger differs (20px icon, label "Carrito (N)" only ≥1160, no badge, shows
+    "(0)").
+  - Content: head `px-4 pt-4 pb-3`, `items-baseline`, title 14/700/0.02em uppercase (no truncate), "Editar carrito"
+    13/600 `ds-link` (disabled 50%, no href, while loading/removing). Stock message (PWA `StockStatusMessage`, es_MX
+    text) only with an out-of-stock item: 4px #F87171 left border, 14/600 #B91C1C, 16px insets (venia red-400/700,
+    legacy `xs` spacing = 1rem); the row-level "Agotado" is gone (the PWA row computes it but never renders it).
+    Rows (legacy PWA `item.module.css`): `flex items-center justify-between mb-5`, no dividers; 80px `object-cover`
+    4px image with `mb-4` in a product link (`tabIndex=-1`, `aria-hidden`: one link per product); info `mx-4`; name
+    14/400 #333F47 leading 1, 2 lines; no option lines; "Cantidad: N" 12px #767B7F with the price stacked under it
+    (12/700 #333F47, currency 12/400 via `formatToParts`); trash 32×32, 16px Feather `Trash2` (inline SVG: the DS
+    icon catalog has no trash glyph and its test pins 50 icons), 1px #7E7E7E, 8px radius (pwa-ch-theme `md`),
+    #959A9D, 50% (100% on keyboard focus). None of these grays has an identical DS token. Footer sticky `px-4 pt-3
+    pb-4`, subtotal 15/700 with the price fading to 50% (384ms) while loading/removing; "Ir a pagar" `border-2!
+    font-bold!` at the call site (the PWA high-priority style lives in a Venia Button override, not in the DS
+    `atoms/Button`, so the shared Button stays as is), disabled while busy. Empty: only the centered message
+    (no head/footer). First load: only the centered "Cargando tu carrito..." status; reopening keeps the last cart
+    and fades the subtotal (PWA cache-and-network). Error + "Reintentar" kept (resilience extra; the PWA shows the
+    empty message).
+  - Changed assertions: mini cart "is the DS action": `aria-haspopup` `dialog` → null, plus `aria-expanded=false`
+    and `aria-controls` → the panel. "opens the DS panel" → "opens a non-modal panel": `getByRole('dialog')` →
+    `getByRole('region', {name: 'Carrito'})` (no dialog, no `aria-modal`), `Talla: M` present → absent, close
+    button "Cerrar carrito" present/used → absent (toggle via the trigger), added image link/`object-cover`,
+    "Eliminar Playera", CTA classes, closed panel `aria-hidden`. "marks an out-of-stock item…": "Agotado" present →
+    absent, replaced by the PWA stock message. "Escape closes…": also asserts focus back on the trigger. "keeps the
+    title and close button … while loading" → "shows only the centered status" (no heading, no close button).
+    "shows the legacy empty message" → also no heading. Site header: `aria-haspopup` `dialog` → `aria-expanded`
+    `false` + the `/cart` link. Integration `pdp.test.ts`: `<button … aria-haspopup="dialog" … data-slot="cart-trigger">`
+    → `aria-expanded="false"`, plus `<a href="/cart" … data-slot="cart-link">`. E2E: `getByRole('dialog', {name:
+    /^Carrito/})` → `getByRole('region', {name: 'Carrito'})`; added focus-back and a remove step (empty panel, count
+    0). No assertion deleted without a replacement.
+  - Unresolved parity note (visual check): the PWA `src/overrides/@magento/venia-ui/i18n/es_MX.json` still maps
+    `miniCart.goToCheckout` → "Finalizar compra", `miniCart.subtotal` → "Subtotal: " and `productList.quantity` →
+    "Cantidad : {quantity}"; if that file is loaded for the es_MX store, the live PWA shows those strings instead
+    of the DS defaults ("Ir a pagar", "Subtotal (N art.):", "Cantidad: N") kept here.
+  - Size: ~890 added / ~270 deleted incl. tests (remove end to end + restyle as one coherent work unit), over the
+    400 heuristic, not split.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 118 files / 1138 tests pass;
+    integration 7 files / 102 tests pass; build pass (`1160px`, `z-[70]`, `w-[360px]`, `border-2!`, `#7e7e7e` in the
+    built CSS); dev server `/` 200 (not restarted). E2E spec typechecks and lints, not run (its global setup starts
+    its own servers). Visual check pending (user): dropdown at 1160/1440 under the trigger, fade, rows vs the PWA,
+    the trash button contrast (50% gray, PWA parity, under WCAG 1.4.11 3:1), long lists in the fitted height.
+- [ ] T7b Account panel (avatar, name, items, sign-out in #BE424B). Pending: Next has no customer session yet (account pages stay on the PWA until phase 4).
 - [ ] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
 
 ## Delivery strategy
@@ -81,3 +433,63 @@ lines in total.
   the full 8-task scope.
 - 2026-10-17: T1 done (DS tokens, Inter/Roboto Flex, DS radius/elevation, 1260 grid); all checks green, visual check
   pending.
+- 2026-10-18: T1 commit `a815c0e` on `feat/ds-01-tokens-grid` (not pushed). Assessed medium (`slice_budget_reached`);
+  user granted review; native review approved and acknowledged (lineage `review-9ebb102963f675ca`) with two advisory
+  findings, both carried into T2: R3-pb-css-var-dependency (WARNING: `page-builder.module.css` reads
+  `--color-ds-cta`/`-cta-hover`/`-accent` without fallback, and Tailwind v4 only emits theme vars that some scanned
+  utility uses; fix with `@theme static` or explicit emission) and R3-no-token-coverage (SUGGESTION: add a structural
+  test that removed legacy token names are unreferenced in `src`).
+- 2026-10-18: T2 done (shared Button/Badge/Input/Select/Checkbox/Icon in `src/shared/ui`, cart CTAs migrated, DS
+  theme vars always emitted, legacy-token structural test); all checks green, visual check pending.
+- 2026-10-18: T2 commit `6e1f382` on `feat/ds-02-primitives` (stacked on T1, not pushed). Assessed medium
+  (`slice_budget_reached`, 1172 lines: icon catalog + tests); user granted review; native review approved and
+  acknowledged (lineage `review-b69e8d9adcb35b8f`) with one advisory WARNING carried into T3:
+  R3-disabled-link-onclick (`src/shared/ui/button.tsx:144-149` spreads the caller `onClick` on a disabled/loading link).
+- 2026-10-18: T3 done (DS footer, social glyphs in the DS Icon catalog, chupacredit/estafeta assets, disabled
+  link `onClick` fix); all checks green, visual check pending.
+- 2026-10-18: T3 commit `569f972` on `feat/ds-03-footer` (stacked on T2, not pushed). Assessed high (path match
+  `payments/chupacredit.svg`); user granted review; four-lens native review approved and acknowledged (lineage
+  `review-a3ba6a0b2adbb8f9`), suggestions only (follow-ups, not blocking): R2-001 stale `icon-catalog.ts` header
+  comment (counts), R2-002 comment why the fourth footer column stacks service/offices/payments, R2-003 compose footer
+  link classes with `cx`, R3-footer-social-icon-unproven (assert Instagram icon too), R3-disabled-link-click-nav
+  (Enter on href-less anchor not exercised; unreachable).
+- 2026-10-18: T4 done (rotating DS promo bar above the header, static content from the Magento block, server-rendered
+  slides, pause on hover/focus, reduced motion); all checks green, visual check pending; WCAG 2.2.2 pause control
+  open for a product decision.
+- 2026-10-18: T4 commit `b60bf1a` on `feat/ds-04-promo-bar` (stacked on T3, not pushed). Assessed medium
+  (`slice_budget_reached`); user granted review; native review approved and acknowledged (lineage
+  `review-5ba5a2963af88388`), suggestions only (test follow-ups): R3-reduced-motion-change-unproved (live
+  `matchMedia` change + cleanup untested), R3-slide-shrink-clamp-unproved, R3-cta-hover-focus-only-partial. Open
+  decision for the user/UX: WCAG 2.2.2 pause control (the DS molecule has none).
+- 2026-10-18: T5 done (DS two-row header, store pills as a radio group joined to the GET search form, search pill, DS
+  wordmark, "Mi cuenta" / "Carrito (N)" actions); all checks green, visual check pending.
+- 2026-10-18: T5 commit `af201ed` on `feat/ds-05-header-search` (stacked on T4, not pushed). Edit surface extended by
+  the parent mid-task with `src/modules/cart/ui/mini-cart.client.tsx` (the cart trigger markup lives there; parent
+  derivation gap, inside the authorized task). Assessed medium (`slice_budget_reached`); user granted review; native
+  review approved with no findings and acknowledged (lineage `review-7f11df9f2c7b1058`). Follow-ups: delete unused
+  `public/images/layout/cart.svg`; cart `aria-label` does not start with the visible "Carrito (N)" (WCAG 2.5.3).
+- 2026-10-18: T6 done (desktop "Categorías" two-panel dropdown, light native-dialog drawer with drill-down below 1024,
+  megamenu, scroller and `<details>` menu removed); all checks green, visual check pending.
+- 2026-10-18: T6 commit `6fd60d3` on `feat/ds-06-categories-nav` (stacked on T5, not pushed). Assessed medium
+  (`slice_budget_reached`, 1390 lines incl. deleted megamenu + tests); user granted review; native review approved and
+  acknowledged (lineage `review-108e8b9fc7ff6077`) with three advisory WARNINGs and one SUGGESTION, carried into T7:
+  R3-dropdown-escape-focus, R3-dropdown-blur-focus-null, R3-drawer-viewport-grow, R3-drawer-overflow-restore.
+- 2026-10-18: T7a done (DS mini-cart panel: head title + "Editar carrito", item rows, footer subtotal + "Ir a pagar";
+  T6 warnings fixed: prevented Escape ignored, blur to nothing closes, drawer closes at 1024, idempotent overflow);
+  all required checks green, local e2e cart spec relabeled (not run), visual check pending.
+- 2026-10-18: T7a commit `fc393ac` on `feat/ds-07-mini-cart` (stacked on T6, not pushed). Edit surface extended by the
+  parent mid-task with `e2e/local/shared-cart.spec.ts` (relabel only; not run, its global setup starts its own
+  servers). Assessed medium (`slice_budget_reached`); user granted review; native review approved with no findings and
+  acknowledged (lineage `review-c948bd2ec5869d03`).
+- 2026-10-18: T7c done (mini cart matched to the PWA: non-modal dropdown under the trigger from 1160, link to /cart
+  below, legacy PWA rows with the trash button, stock message, head-less empty/loading; item removal end to end
+  over Magento `removeItemFromCart` via a new server action); all required checks green, e2e updated (not run),
+  visual check pending. Correction commit on `feat/ds-07-mini-cart` on top of `fc393ac` (not pushed); T8 next.
+- 2026-10-18: T7c commit `4f1c268` on `feat/ds-07-mini-cart` (on top of T7a, not pushed). Assessed medium
+  (`slice_budget_reached`, 1505 lines: removal end to end + restyle + tests); user granted review; native review
+  approved with no findings and acknowledged (lineage `review-c78a73ae615c4c23`). To verify visually: the live PWA may
+  render the es_MX override strings ("Finalizar compra", "Subtotal: ", "Cantidad : N") instead of the DS defaults kept
+  here; trash button contrast at 50% opacity (WCAG 1.4.11).
+- 2026-10-18: branches pushed; stacked PRs opened (user): #25 T1 (base `main`), #26 T2, #27 T3, #28 T4, #29 T5,
+  #30 T6, #31 T7a+T7c (each based on the previous branch; GitHub retargets after each merge). Slices over 400 lines
+  (#26, #28, #30, #31) are single work units, rationale in each PR's Chain Context. Merge in order.

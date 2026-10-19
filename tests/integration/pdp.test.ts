@@ -653,7 +653,9 @@ describe('PDP — add to cart (shared cart with PWA Studio)', () => {
   it('renders the mini-cart trigger in the header', async () => {
     const page = await get(`/${EXISTING}`, BROWSER_UA);
 
-    expect(page.html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*data-slot="cart-trigger"/);
+    // From 1160px a disclosure button of the PWA dropdown; below, a link to the PWA cart.
+    expect(page.html).toMatch(/<button[^>]*aria-expanded="false"[^>]*data-slot="cart-trigger"/);
+    expect(page.html).toMatch(/<a[^>]*href="\/cart"[^>]*data-slot="cart-link"/);
   });
 });
 

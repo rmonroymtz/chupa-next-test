@@ -1,21 +1,25 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { LEGACY_ROUTES } from '@/modules/layout/domain/legacy-routes';
+import { Icon } from '@/shared/ui/icon';
 import { CartTriggerSlot } from './cart-trigger-slot';
-import { UserIcon } from './icons';
 import { SearchForm } from './search-form';
+import { CurrentStoreSelector } from './store-selector.client';
 
 interface SiteHeaderProps {
-  /** Mobile menu button (left of the logo, hidden from `lg`). */
+  /** Menu button + navigation drawer (left of the logo, below 1024). */
   readonly mobileNavigation: ReactNode;
-  /** Desktop category bar (below the toolbar, from `lg`). */
+  /** "Categorías" dropdown (right of the logo, from 1024). */
   readonly desktopNavigation: ReactNode;
 }
 
 /**
- * Legacy PWA Studio header: logo, search with store tabs, sign-in and cart,
- * then the category bar. One search form placed by the grid (below the
- * toolbar on mobile, centered on desktop), so it is never duplicated.
+ * DS header (FIGMA-MAKE-HEADER-AUDIT §4-5, colors and type mapped to the DS
+ * tokens). Row 1: menu button (below 1024), logo, "Categorías" (from 1024),
+ * store pills and the "Mi cuenta" / cart actions; below 1024 the pills wrap to
+ * their own line under the logo row. Row 2: the full-width search pill. One
+ * search form, never duplicated; the pills join it through its id. No
+ * horizontal category bar: like the PWA, categories open from "Categorías".
  *
  * Links go to pages PWA Studio still serves: plain anchors (see
  * `legacy-routes.ts`).
@@ -23,40 +27,45 @@ interface SiteHeaderProps {
  * The logo is eager (above the fold) but not `priority`/`preload`: on product
  * and CMS pages the LCP element is the product image or the hero banner, and a
  * high-priority logo would compete with it. Width and height attributes keep
- * its box reserved before it loads.
+ * its box reserved before it loads. It is sized by width (102/125/136): the DS
+ * wordmark is a wide lockup, so the audit's 24px height would make it ~2x wider.
  */
 export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-white shadow-elevation-1">
-      <div className="container-padded grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 pt-5 pb-4 lg:grid-cols-12">
-        <div className="flex min-w-0 items-center gap-2 lg:col-span-3">
+    <header className="sticky top-0 z-40 border-b border-ds-border bg-ds-surface text-ds-text">
+      <div className="container-padded flex flex-col gap-3 py-3 lg:gap-4 lg:py-5">
+        <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap lg:gap-5">
           {mobileNavigation}
-          <a href={LEGACY_ROUTES.home} className="flex min-w-0 items-center">
+          <a
+            href={LEGACY_ROUTES.home}
+            className="flex min-w-0 flex-1 justify-center rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus lg:flex-none lg:justify-start"
+          >
             <Image
               src="/images/layout/logo.svg"
               alt="Chupaprecios"
-              width={398}
+              width={394}
               height={37}
               loading="eager"
-              className="h-auto w-[230px] max-w-full sm:w-[300px] xl:w-[360px]"
+              className="h-auto w-[102px] md:w-[125px] lg:w-[136px]"
             />
           </a>
+          {desktopNavigation}
+          <div className="order-last basis-full lg:order-none lg:ml-auto lg:basis-auto">
+            <CurrentStoreSelector />
+          </div>
+          <div className="flex items-center gap-3.5 lg:ml-auto lg:gap-5">
+            <a
+              href={LEGACY_ROUTES.signIn}
+              className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-xs text-body-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus lg:min-w-0"
+            >
+              <Icon name="user" size={16} className="text-ds-neutral-950 lg:size-3.5" />
+              <span className="sr-only lg:not-sr-only">Mi cuenta</span>
+            </a>
+            <CartTriggerSlot />
+          </div>
         </div>
-        <div className="col-span-2 row-start-2 lg:col-span-6 lg:row-start-1 lg:px-8">
-          <SearchForm />
-        </div>
-        <div className="flex items-center justify-end gap-3 lg:col-span-3">
-          <a
-            href={LEGACY_ROUTES.signIn}
-            className="hidden h-12 min-w-36 items-center gap-2 rounded-full border border-ds-neutral-400 px-4 text-xs lg:flex"
-          >
-            <UserIcon className="size-[30px]" />
-            Iniciar sesión
-          </a>
-          <CartTriggerSlot />
-        </div>
+        <SearchForm />
       </div>
-      {desktopNavigation}
     </header>
   );
 }

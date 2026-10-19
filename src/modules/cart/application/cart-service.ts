@@ -34,10 +34,20 @@ export interface CartReadCommand extends CartAuth {
   readonly cartId: string;
 }
 
+export interface RemoveCartItemCommand extends CartReadCommand {
+  readonly itemUid: string;
+}
+
 export interface CartService {
   addToCart(command: AddToCartCommand): Promise<AddToCartResult>;
   getCartCount(command: CartReadCommand): Promise<CartReadResult<{ totalQuantity: number }>>;
   getMiniCart(command: CartReadCommand): Promise<CartReadResult<{ cart: MiniCart }>>;
+  /**
+   * Removes an item and answers the updated cart (the PWA mini cart reads it
+   * from the mutation, no second query). A cart Magento rejects is reported
+   * as `invalid_cart` and never recreated: there is nothing to remove from.
+   */
+  removeCartItem(command: RemoveCartItemCommand): Promise<CartReadResult<{ cart: MiniCart }>>;
 }
 
 export interface CartServiceDeps {
@@ -128,8 +138,29 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
     }
   }
 
+  async function removeCartItem({
+    cartId,
+    itemUid,
+    signinToken,
+  }: RemoveCartItemCommand): Promise<CartReadResult<{ cart: MiniCart }>> {
+    const signedIn = signinToken !== null;
+    try {
+      const cart = await gateway.removeItemFromCart(cartId, itemUid, { signinToken });
+      metrics.emitMetric({ name: 'CartRemoveItem', value: 1, dimensions: { Outcome: 'success' } });
+      logger.info({ outcome: 'success', signedIn }, 'remove cart item');
+      return { status: 'ok', cart };
+    } catch (caught) {
+      const invalid = caught instanceof CartGatewayError && caught.kind === 'invalid_cart';
+      const outcome = invalid ? 'invalid_cart' : 'failure';
+      metrics.emitMetric({ name: 'CartRemoveItem', value: 1, dimensions: { Outcome: outcome } });
+      logger.warn({ outcome, signedIn }, 'remove cart item failed');
+      return { status: invalid ? 'invalid_cart' : 'failed' };
+    }
+  }
+
   return {
     addToCart,
+    removeCartItem,
     getCartCount: ({ cartId, signinToken }) =>
       read('count', signinToken !== null, async () => ({
         totalQuantity: await gateway.getCartCount(cartId, { signinToken }),

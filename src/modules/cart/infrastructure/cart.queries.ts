@@ -7,6 +7,7 @@
  * - `getItemCount`: venia-ui `Header/cartTrigger.gql.js` (`CartTriggerFragment`).
  * - `MiniCartQuery`: venia-ui `MiniCart/miniCart.gql.js` (`MiniCartFragment`,
  *   `ProductListFragment`), without the variant thumbnails it does not show.
+ * - `RemoveItemForMiniCart`: venia-ui `MiniCart/miniCart.gql.js` (`REMOVE_ITEM_MUTATION`).
  */
 
 export const CREATE_CART_MUTATION = /* GraphQL */ `
@@ -39,9 +40,8 @@ export const ITEM_COUNT_QUERY = /* GraphQL */ `
   }
 `;
 
-export const MINI_CART_QUERY = /* GraphQL */ `
-  query MiniCartQuery($cartId: String!) {
-    cart(cart_id: $cartId) {
+/** `MiniCartFragment` + `ProductListFragment` fields the Next mini cart shows. */
+const MINI_CART_FIELDS = /* GraphQL */ `
       id
       total_quantity
       prices {
@@ -76,6 +76,24 @@ export const MINI_CART_QUERY = /* GraphQL */ `
           }
         }
       }
+`;
+
+export const MINI_CART_QUERY = /* GraphQL */ `
+  query MiniCartQuery($cartId: String!) {
+    cart(cart_id: $cartId) {${MINI_CART_FIELDS}    }
+  }
+`;
+
+/**
+ * venia-ui `MiniCart/miniCart.gql.js` (`REMOVE_ITEM_MUTATION`): same operation
+ * name and input; it answers the mini-cart fields so the panel updates from
+ * the response, as the PWA Apollo cache does (without `CartPageFragment`,
+ * which only feeds the PWA cart page cache).
+ */
+export const REMOVE_ITEM_MUTATION = /* GraphQL */ `
+  mutation RemoveItemForMiniCart($cartId: String!, $itemId: ID!) {
+    removeItemFromCart(input: { cart_id: $cartId, cart_item_uid: $itemId }) {
+      cart {${MINI_CART_FIELDS}      }
     }
   }
 `;

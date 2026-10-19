@@ -95,9 +95,18 @@ function expectLayout(html: string) {
   expect(html).toContain('href="#main-content"');
   expect(html).toContain('id="main-content"');
   expect(html).toMatch(/<header[^>]*>/);
+  // The promo bar region sits above the header, its first slide server-rendered.
+  const promo = html.indexOf('<section aria-label="Promociones"');
+  expect(promo).toBeGreaterThan(-1);
+  expect(promo).toBeLessThan(html.indexOf('<header'));
+  expect(html).toContain('Envío gratis');
   const form = /<form[^>]*role="search"[^>]*>/.exec(html)?.[0] ?? '';
   expect(form).toContain('action="/search.html"');
   expect(form).toContain('method="get"');
+  // The DS store pills sit in the header top row and join the form by its id.
+  expect(form).toContain('id="site-search"');
+  expect(html.match(/<input type="radio" form="site-search"[^>]*name="store"/g)).toHaveLength(5);
+  expect(html).toContain('placeholder="Ingresa ASIN, SKU o Nombre del producto"');
   expect(html).toContain('data-slot="cart-trigger"');
   expect(html).toMatch(/<footer[^>]*>/);
   expect(html).toContain('href="/aviso-privacidad"');
@@ -114,8 +123,11 @@ describe('site layout', () => {
     expect(page.html).toContain('<meta name="robots" content="index, follow"/>');
     expectLayout(page.html);
     // Ordered by position, include_in_menu respected, category page urls at every level.
-    const electronica = page.html.indexOf(CATEGORY_LINK('electronica'));
-    const juguetes = page.html.indexOf(CATEGORY_LINK('juguetes'));
+    // Order checked in the desktop dropdown (the drawer lists a category with
+    // subcategories as a drill-down button, its link sits in its own view).
+    const dropdown = /<nav aria-label="Categorías"[\s\S]*?<\/nav>/.exec(page.html)?.[0] ?? '';
+    const electronica = dropdown.indexOf(CATEGORY_LINK('electronica'));
+    const juguetes = dropdown.indexOf(CATEGORY_LINK('juguetes'));
     expect(electronica).toBeGreaterThan(-1);
     expect(juguetes).toBeGreaterThan(electronica);
     expect(page.html).not.toContain('Interna');
@@ -124,6 +136,14 @@ describe('site layout', () => {
     expect(page.html).not.toContain('href="/search.html');
     // One menu query per request, shared by the desktop and mobile navigation.
     expect(backends.callsTo('magento', 'HeaderMenu')).toHaveLength(1);
+    // Desktop: the closed "Categorías" disclosure (no horizontal megamenu);
+    // mobile: the menu button and its closed modal drawer.
+    expect(page.html).toMatch(/<button type="button" aria-expanded="false" aria-controls="[^"]+"/);
+    expect(page.html).toMatch(/<nav aria-label="Categorías"/);
+    expect(page.html).toMatch(/<button type="button" aria-haspopup="dialog" aria-expanded="false"/);
+    expect(page.html).toMatch(/<dialog aria-label="Menú" aria-modal="true"/);
+    expect(page.html).not.toContain('Desplazar categorías');
+    expect(page.html).not.toMatch(/<details/);
   });
 
   it('CMS page: header and footer around the Page Builder content, 200', async () => {
@@ -171,7 +191,8 @@ describe('site layout', () => {
       expect(page.status).toBe(200);
       expectLayout(page.html);
       expect(page.html).not.toContain(CATEGORY_LINK('electronica'));
-      // Desktop bar keeps its reserved height; the mobile drawer keeps sign-in.
+      // No "Categorías" dropdown (an invisible placeholder keeps its width); the
+      // mobile drawer keeps sign-in.
       expect(page.html).not.toContain('aria-label="Categorías"');
       expect(page.html).toContain('aria-label="Menú principal"');
     }
