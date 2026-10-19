@@ -93,10 +93,10 @@ function SliderSkeleton({ title, accent }: { readonly title: string; readonly ac
   return (
     <div data-recommendation-loading>
       <SliderTitle title={title} accent={accent} />
-      {/* The carousel's columns: 2 on phones, 4 from 641px, 5 from 961px. */}
+      {/* The slider's columns (PWA `RandomSliders`): 2 on phones, 3 from 640px, 5 from 1024px. */}
       <div
         aria-hidden="true"
-        className="grid grid-cols-2 gap-4 min-[641px]:grid-cols-4 min-[961px]:grid-cols-5"
+        className="grid grid-cols-2 gap-[10px] min-[640px]:grid-cols-3 min-[1024px]:grid-cols-5"
       >
         {Array.from({ length: SKELETON_CARDS }, (_, index) => (
           <div
@@ -116,7 +116,7 @@ function SliderSkeleton({ title, accent }: { readonly title: string; readonly ac
 
 function skeletonVisibility(index: number): string {
   if (index < 2) return 'flex';
-  return index < 4 ? 'hidden min-[641px]:flex' : 'hidden min-[961px]:flex';
+  return index < 3 ? 'hidden min-[640px]:flex' : 'hidden min-[1024px]:flex';
 }
 
 /** A slider must never fail the page: any failure means no products. */

@@ -3,8 +3,11 @@ import { MagentoProductPrice } from '@/modules/product/ui/magento-product-price'
 import { PRODUCT_GRID_IMAGE_SIZES, ProductCard, ProductGrid } from '@/shared/ui/product-card';
 import styles from './page-builder.module.css';
 
-// Carousel: 2 cards on phones, 4 from 641px, 5 from 961px.
-const CAROUSEL_IMAGE_SIZES = '(min-width: 961px) 20vw, (min-width: 641px) 25vw, 50vw';
+// Page Builder carousel (PWA react-slick `Products`): 2 cards up to 640px, 3 to 960px, 4 to 1279px, 5 from 1280px.
+const CAROUSEL_IMAGE_SIZES =
+  '(min-width: 1280px) 20vw, (min-width: 961px) 25vw, (min-width: 641px) 34vw, 50vw';
+// Recommendation sliders (PWA `RandomSliders` embla track): 2 cards below 640px, 3 to 1023px, 5 from 1024px.
+const SLIDER_IMAGE_SIZES = '(min-width: 1024px) 20vw, (min-width: 640px) 34vw, 50vw';
 
 /** A card with an optional review rating (0–5) and brand (search results). */
 type ListedProductCard = ProductCardData & {
@@ -41,7 +44,7 @@ export function ProductCards({
             ? { src: product.image.url, alt: product.image.label ?? product.name }
             : null
         }
-        imageSizes={appearance === 'grid' ? PRODUCT_GRID_IMAGE_SIZES : CAROUSEL_IMAGE_SIZES}
+        imageSizes={imageSizes(appearance, card)}
         price={
           <MagentoProductPrice product={product} variant={card === 'slider' ? 'slider' : 'card'} />
         }
@@ -53,5 +56,15 @@ export function ProductCards({
     </li>
   ));
   if (appearance === 'grid') return <ProductGrid>{items}</ProductGrid>;
-  return <ul className={styles.productCarousel}>{items}</ul>;
+  const trackClass =
+    card === 'slider' ? `${styles.productCarousel} ${styles.sliderCarousel}` : styles.productCarousel;
+  return <ul className={trackClass}>{items}</ul>;
+}
+
+function imageSizes(
+  appearance: ProductCardsProps['appearance'],
+  card: NonNullable<ProductCardsProps['card']>,
+): string {
+  if (appearance === 'grid') return PRODUCT_GRID_IMAGE_SIZES;
+  return card === 'slider' ? SLIDER_IMAGE_SIZES : CAROUSEL_IMAGE_SIZES;
 }

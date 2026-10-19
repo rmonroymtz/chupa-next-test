@@ -483,6 +483,20 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     `1lh`, `#d1d5db` in the built CSS); dev server (not restarted): `/herramientas.html` 200 (1 product grid, 12
     shared cards, `$4,434.60`), `/search.html?query=test&store=amazon` 200 (1 grid, 26 cards, 10 compare-at
     prices). Visual check pending (user).
+  - Carousel parity (2026-10-19, user decision "Igualalos a la PWA"; supersedes the per-view counts kept above):
+    Page Builder carousel as the PWA react-slick `Products` settings
+    (`node_modules/@magento/pagebuilder/lib/ContentTypes/Products/products.js:65-67,133-163`, breakpoints are
+    `max-width` per `react-slick/lib/slider.js:126-158`, the last one `min-width: 1280px`; no gap between slides,
+    `src/overrides/@magento/pagebuilder/lib/ContentTypes/Slider/slider.module.css:79-84`): 2 cards up to 640px, 3
+    from 641px, 4 from 961px, 5 from 1280px, gap 0 (was 2/4/5 at 641/961, 1rem gap); image `sizes` follow (20/25/34/
+    50vw). Recommendation sliders as the PWA `RandomSliders/ProductCarousel/productCarousel.module.css:44-65` (gap
+    10px, slide `calc(20% - 8px)`, `-lg` = max 1023px → `calc(33.33% - 7px)`, `-sm` = max 639px → `calc(50% - 5px)`,
+    screens in `packages/@chupaprecios/pwa-ch-theme/tailwind.preset.js:527-541`): 2 cards below 640px, 3 from 640px,
+    5 from 1024px, via a `sliderCarousel` modifier on the shared track; skeleton grid 2/3/5 with a 10px gap; image
+    `sizes` 20/34/50vw. Not ported (CSS-only scroll track, no client JS): the PWA embla arrows and dots, the CMS
+    `data-show-arrows` slick arrows and the `continuous` center-mode peek. Test-first: RED 3 new tests failing
+    (Page Builder per-view CSS + sizes, slider modifier + sizes, skeleton 2/3/5); GREEN. Changed assertions: none
+    (new tests only).
 
 ## Delivery strategy
 
@@ -563,5 +577,7 @@ lines in total.
 - 2026-10-19: T8 commit `3a5ca39` on `feat/ds-08-product-cards` (from `main` `c371707`, not pushed). Assessed medium
   (`slice_budget_reached`); user granted review; native review approved and acknowledged (lineage
   `review-d9b2e154b9490d5d`), suggestions only (Rating and Price invalid-input tests). Open decisions for the user:
-  listing grid follows the live PWA 2/4 (DS/Figma say 5, `para-UX`); carousel per-view counts kept (PWA Page Builder
-  2/3/4/5, recommendation sliders 2/3/5 with 10px gap differ from Next 2/4/5).
+  listing grid follows the live PWA 2/4 (DS/Figma say 5, `para-UX`).
+- 2026-10-19: user decision "Igualalos a la PWA": carousel cards per view matched to the live PWA (Page Builder
+  2/3/4/5 at 641/961/1280 with no gap; recommendation sliders 2/3/5 at 640/1024 with a 10px gap). Fix commit on
+  `feat/ds-08-product-cards` on top of `00d39c3` (not pushed); visual check pending.
