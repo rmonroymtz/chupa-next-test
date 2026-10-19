@@ -700,6 +700,52 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     1440: footer text equal to the PWA except the copyright line; same images in the same order; footer height
     1282 vs 1281 (375) and 696 vs 693 (1440); phone weight 400 in both. Screenshots
     `footer-{375,1440}-{next,pwa}-t12b.png` in the session scratchpad.
+  - "Facturación" restored afterwards (user: "regresalo", commit `0022d09`). Review of the T12 range (316 lines,
+    medium), user granted: reliability lens approved and acknowledged (lineage `review-7679e765063b4a17`),
+    suggestions only (footer heading sibling test, sliders loop mock). Merged in PR #37 (`56ff003`).
+- [x] T13 Header account and cart actions as the PWA (user, 2026-10-19: "Igual que la PWA", overrides the Figma Make
+  sizes from T5/T7c). Route: delegated (writer trigger: 2+ non-trivial files). Scope, from the `CHUP-redesign`
+  source (measured on localhost:10000 at 1440: account label 14px, "Carrito (N)" 16px, icons about 20px, cart label
+  red when the cart has items): desktop and tablet account/cart triggers (label size, weight, icon size, gap, color,
+  the red has-items state). The "Mi cuenta" text stays (no customer session yet; the PWA shows "Iniciar sesión"
+  when signed out). Out of scope: the pill row scroll warning, header paddings and pill x offsets from T11b.
+  Check: RED/GREEN on the label/icon classes and the has-items state, typecheck/lint/test/integration/build,
+  Playwright at 1024/1440 (empty and with one item) vs localhost:10000.
+  - PWA source (`CHUP-redesign`): `Header/cartTrigger.js` + `.module.css`, `Header/accountTrigger.js` + `.module.css`,
+    ChupaChoice `Header/SignInButton.js` + `.module.css` (the signed-out action the live header renders), header
+    `.actions`. All three `.action` rules: inline-flex, gap `--ds-space-2` (8px), 14px, `--ds-color-text-primary`
+    (#3B3B3B), hover `--ds-color-brand-anchor` (#D84752), DS `Icon` `size={20}` (stroke 1.5) at every width, label
+    hidden below 1160; `.actions` gap `--ds-space-5` (20px) at every width. Cart label `Carrito ({count})`, also
+    "(0)", "99+" past 99.
+  - PWA vs brief (followed the PWA): the label is 14px, not 16px, and there is no red has-items state: the label
+    stays #3B3B3B with items in the source and live (measured empty and with one item); the only red is the hover
+    color, the brand anchor #D84752 (Next `ds-accent`, not the #BE424B CTA red). Below 1160 the PWA shows no count.
+  - Changes: `site-header.tsx` ("Mi cuenta": 20px icon in the link color, `gap-2`, `text-body-md leading-normal`,
+    `text-ds-text`, `hover:text-ds-accent` instead of underline; actions wrapper without a gap below 1160 because the
+    40px boxes around 20px icons already give 20px between icons, `desktop:gap-5` kept); `mini-cart.client.tsx`
+    (same trigger classes, font-medium dropped; the dropdown button shows one "Carrito (N)" label from 1160, also
+    "(0)", with the count in `cart-count`; the /cart link below 1160 is the 20px icon plus the count badge, now
+    `cart-badge`, only with items; the CSS-parens count that doubled as badge is gone, `countLabel` keeps "99+").
+  - Test-first: RED = 7 failing (header account classes; cart "(0)", single "Carrito (2)" label, trigger classes,
+    no has-items color change, link icon + badge, "(0)" after removing the last item); GREEN = layout + cart +
+    shared unit 33 files / 316 tests. Changed assertions: no-cart test `cart-count` null → "0" plus no `cart-badge`
+    (PWA shows "(0)"); "Carrito (N)" test drops the separate "Carrito" text and the CSS-parens classes, asserts the
+    "Carrito (2)" text (one label as the PWA); /cart link test asserts the 20px icon and `cart-badge` "2" instead
+    of the hidden "Carrito" text (the link is icon-only, the label never showed there); last-item removal test
+    `cart-count` null → "0" plus no badge. Added the header account look test, the cart look test and the no
+    has-items color test.
+  - Measured (Playwright, `/`, Next vs PWA): 1440 labels 14px / 400 / 21px / rgb(59,59,59) in both, icons 20x20
+    #3B3B3B, icon to label 8px, 20px between actions, "Carrito (0)" 96 vs 95px wide, "Carrito (1)" x 1258 width 92
+    in both, label color unchanged with the item in both; 1024 icon-only 20x20 in both, 20px between icons (before
+    16px icons, 38px apart), cart icon 10px inside the content edge (40px touch box; PWA 0), y 56 vs 54; Next
+    badge "1" (PWA none). `scrollWidth === innerWidth` everywhere. Before (Next): 13px labels, cart 500, 14px
+    icons from 1160, 6px gap, "(0)" hidden. Screenshots `visual/header-actions-<width>-<empty|item>-<next|pwa>-t13.png`
+    (before: `-base.png`) in the session scratchpad.
+  - Kept (differences): "Mi cuenta" (PWA "Iniciar sesión" signed out, x 1142 vs 1123); 40px minimum boxes (PWA
+    21px high, 20px wide below 1160); the count badge below 1160 (open decision: the PWA shows no count there);
+    the cart `aria-label` still does not start with the visible label (T5 follow-up, WCAG 2.5.3).
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 130 files / 1197 tests pass;
+    integration 7 files / 102 tests pass; build pass, no warnings (dev server still 200); Playwright as above.
 
 ## Delivery strategy
 
@@ -807,3 +853,12 @@ lines in total.
 - 2026-10-19: T12b done (user: "sí, iguala el footer a la PWA"): footer copy, links and payment logos as the live
   PWA footer; Spanish copyright kept (the PWA one is untranslated). All required checks green. Work-unit commit on
   `feat/ds-12-polish` (after `5477b98`, not pushed).
+- 2026-10-19: T13 done (user: "Igual que la PWA"): header "Mi cuenta" and cart actions as the PWA source (14/400
+  text-primary labels, 20px icons, 8px icon gap, 20px between actions, "Carrito (N)" with "(0)", accent only on
+  hover; no red has-items state exists in the PWA). Below-1160 count badge kept pending a decision. All required
+  checks green. Work-unit commit on `feat/ds-13-header-actions` (from `main` `56ff003`, not pushed).
+- 2026-10-19: store pill row at 375 (review warning `R3-store-track-scroll`, hidden-scrollbar in-row scroll) stays as
+  is: the user said a future fix will come with a new design not shared yet ("se va aplicar un fix a futuro con un
+  diseño nuevo aun no me lo comparten"). Do not change it until that design arrives.
+- 2026-10-19: T13 open decision closed: the red cart count badge below 1160 (tablet and mobile) stays, although the
+  PWA shows only the icon there (user: "dejalo"). Intentional difference from the PWA.

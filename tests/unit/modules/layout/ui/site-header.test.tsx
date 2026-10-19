@@ -67,6 +67,27 @@ describe('SiteHeader', () => {
     ).toBe('/cart');
   });
 
+  it('draws "Mi cuenta" as the PWA account action: 20px icon, 8px gap, 14/400 label, accent on hover', () => {
+    renderHeader();
+    const account = within(screen.getByRole('banner')).getByRole('link', { name: 'Mi cuenta' });
+    const classes = account.className.split(' ');
+    // PWA `SignInButton.module.css` / `accountTrigger.module.css` `.action`.
+    expect(classes).toEqual(
+      expect.arrayContaining(['gap-2', 'text-body-md', 'leading-normal', 'text-ds-text', 'hover:text-ds-accent']),
+    );
+    expect(classes).not.toContain('text-body-sm');
+    expect(classes).not.toContain('hover:underline');
+    // Icon `size={20}` at every width, in the link color (currentColor).
+    const icon = account.querySelector('svg')!;
+    expect(icon.getAttribute('width')).toBe('20');
+    expect(icon.getAttribute('class') ?? '').not.toMatch(/size-|text-ds-/);
+    // PWA `.actions` gap ds-space-5 between the icons below 1160 (40px boxes around 20px
+    // icons, so no extra gap) and between the actions from 1160.
+    const actions = account.parentElement!;
+    expect(actions.className.split(' ')).toEqual(expect.arrayContaining(['desktop:gap-5']));
+    expect(actions.className).not.toMatch(/(^| )gap-(?!0)/);
+  });
+
   it('has one GET search form to the legacy search page', () => {
     renderHeader();
     const search = screen.getByRole('search') as HTMLFormElement;

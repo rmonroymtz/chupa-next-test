@@ -84,13 +84,15 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('MiniCart', () => {
-  it('shows no count and asks Magento nothing when there is no cart', async () => {
+  it('shows "Carrito (0)" and asks Magento nothing when there is no cart', async () => {
     await act(async () => render(<MiniCart />));
     expect(actions.getCartCountAction).not.toHaveBeenCalled();
     expect(trigger().getAttribute('aria-label')).toBe(
       'Alternar mini carrito. Tienes 0 artículos en tu carrito.',
     );
-    expect(screen.queryByTestId('cart-count')).toBeNull();
+    // PWA `cartTrigger.label` "Carrito ({count})" shows (0) too; the badge below 1160 does not.
+    expect(screen.getByTestId('cart-count').textContent).toBe('0');
+    expect(screen.queryByTestId('cart-badge')).toBeNull();
   });
 
   it('loads the count of the PWA cart on mount', async () => {
@@ -164,12 +166,42 @@ describe('MiniCart', () => {
     // DS shopping-cart glyph (decorative) instead of the legacy cart image.
     expect(button.querySelector('img')).toBeNull();
     expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
-    // Visible "Carrito" label followed by the count, shown as "(2)" from 1160 (CSS parens).
-    expect(within(button).getByText('Carrito')).toBeTruthy();
+    // PWA `cartTrigger.label`: one "Carrito (N)" text, no badge inside the dropdown trigger.
     const count = within(button).getByTestId('cart-count');
     expect(count.textContent).toBe('2');
-    expect(count.className).toContain("desktop:before:content-['(']");
-    expect(count.className).toContain("desktop:after:content-[')']");
+    expect(count.parentElement?.textContent).toBe('Carrito (2)');
+    expect(within(button).queryByTestId('cart-badge')).toBeNull();
+  });
+
+  it('looks like the PWA cart action: 20px icon, 8px gap, 14/400 text-primary label, accent on hover', async () => {
+    await act(async () => render(<MiniCart />));
+    const button = trigger();
+    const classes = () => button.className.split(' ');
+    // PWA `cartTrigger.module.css` `.action`: gap ds-space-2, 14px, text-primary, hover brand anchor.
+    expect(classes()).toEqual(
+      expect.arrayContaining(['gap-2', 'text-body-md', 'leading-normal', 'text-ds-text', 'hover:text-ds-accent']),
+    );
+    expect(classes()).not.toContain('font-medium');
+    expect(classes()).not.toContain('text-body-sm');
+    expect(classes()).not.toContain('hover:underline');
+    // Icon `size={20}` at every width, drawn in the trigger color (currentColor).
+    const icon = button.querySelector('svg')!;
+    expect(icon.getAttribute('width')).toBe('20');
+    expect(icon.getAttribute('class') ?? '').not.toMatch(/size-|text-ds-/);
+    const label = within(button).getByTestId('cart-count').parentElement!;
+    expect(label.className.split(' ')).toEqual(
+      expect.arrayContaining(['hidden', 'whitespace-nowrap', 'desktop:inline']),
+    );
+    expect(label.className).not.toMatch(/font-|text-ds-/);
+  });
+
+  it('keeps the PWA label color with items: no red has-items state (only hover)', async () => {
+    await act(async () => render(<MiniCart />));
+    const empty = { button: trigger().className, label: screen.getByTestId('cart-count').parentElement!.className };
+    act(() => cartCountStore.set(3));
+    expect(trigger().className).toBe(empty.button);
+    expect(screen.getByTestId('cart-count').parentElement!.className).toBe(empty.label);
+    expect(trigger().className).not.toMatch(/(^| )text-ds-(accent|cta|link)/);
   });
 
   it('links to /cart below 1160px and opens the dropdown from 1160px (PWA cart trigger)', async () => {
@@ -180,8 +212,10 @@ describe('MiniCart', () => {
     const link = screen.getByRole('link', { name: /^Carrito\. Tienes 2 artículos/ });
     expect(link.getAttribute('href')).toBe('/cart');
     expect(link.className).toContain('desktop:hidden');
-    expect(within(link).getByText('Carrito')).toBeTruthy();
-    expect(within(link).getByText('2')).toBeTruthy();
+    // Icon-only below 1160 (PWA), plus the count badge (Next extra, see T13).
+    expect(link.querySelector('svg')?.getAttribute('width')).toBe('20');
+    expect(within(link).getByTestId('cart-badge').textContent).toBe('2');
+    expect(within(link).queryByTestId('cart-count')).toBeNull();
 
     const container = trigger().closest<HTMLElement>('[data-slot="mini-cart"]')!;
     expect(container.className).toContain('hidden');
@@ -424,7 +458,7 @@ describe('MiniCart', () => {
       expect(root.contains(document.activeElement)).toBe(true);
     });
 
-    it('shows the empty message and no count after removing the last item', async () => {
+    it('shows the empty message and "Carrito (0)" after removing the last item', async () => {
       const root = await openWith(CART);
       actions.removeCartItemAction.mockResolvedValue({
         status: 'ok',
@@ -437,7 +471,8 @@ describe('MiniCart', () => {
 
       expect(within(root).getByText('No hay artículos en tu carrito.')).toBeTruthy();
       expect(within(root).queryByRole('heading')).toBeNull();
-      expect(screen.queryByTestId('cart-count')).toBeNull();
+      expect(screen.getByTestId('cart-count').textContent).toBe('0');
+      expect(screen.queryByTestId('cart-badge')).toBeNull();
     });
 
     it('keeps the item and shows an inline alert when the removal fails', async () => {

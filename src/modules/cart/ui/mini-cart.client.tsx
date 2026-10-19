@@ -40,8 +40,14 @@ const STOCK_MESSAGE =
   'Un artículo en tu carrito está agotado actualmente y debe eliminarse para proceder al pago.';
 const REMOVE_ERROR = 'No pudimos eliminar el artículo. Inténtalo de nuevo.';
 
+/**
+ * PWA `cartTrigger.module.css` `.action`: 20px icon, 8px gap, 14px
+ * text-primary label ("Carrito (N)", also "(0)") from 1160, brand anchor on
+ * hover. The label keeps its color with items (the PWA has no has-items state).
+ * Below 1160 icon only, plus the count badge (a Next extra).
+ */
 const TRIGGER_CLASSES =
-  'relative inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xs text-body-sm font-medium text-ds-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0';
+  'relative inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center gap-2 rounded-xs text-body-md leading-normal text-ds-text hover:text-ds-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0';
 
 type Contents =
   | { readonly kind: 'loading' }
@@ -256,7 +262,16 @@ export function MiniCart() {
         data-slot="cart-link"
         className={cx(TRIGGER_CLASSES, 'desktop:hidden')}
       >
-        <TriggerContent total={total} />
+        <Icon name="shopping-cart" size={20} />
+        {total > 0 ? (
+          <span
+            data-testid="cart-badge"
+            aria-hidden="true"
+            className="absolute top-1 right-0 grid h-4 min-w-4 place-items-center rounded-pill bg-ds-cta px-1 text-[0.625rem] leading-none font-semibold text-ds-text-on-cta"
+          >
+            {countLabel(total)}
+          </span>
+        ) : null}
       </a>
       <div
         ref={containerRef}
@@ -281,7 +296,10 @@ export function MiniCart() {
           data-slot="cart-trigger"
           className={TRIGGER_CLASSES}
         >
-          <TriggerContent total={total} countTestId="cart-count" />
+          <Icon name="shopping-cart" size={20} />
+          <span aria-hidden="true" className="hidden whitespace-nowrap desktop:inline">
+            Carrito (<span data-testid="cart-count">{countLabel(total)}</span>)
+          </span>
         </button>
         <section
           id={panelId}
@@ -320,23 +338,9 @@ export function MiniCart() {
   );
 }
 
-/** The T5 DS action: cart icon, "Carrito" from 1160 and the count (a badge below 1160). */
-function TriggerContent({ total, countTestId }: { total: number; countTestId?: string }) {
-  return (
-    <>
-      <Icon name="shopping-cart" size={16} className="text-ds-neutral-950 desktop:size-3.5" />
-      <span className="hidden desktop:inline">Carrito</span>
-      {total > 0 ? (
-        <span
-          data-testid={countTestId}
-          aria-hidden="true"
-          className="absolute top-1.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-pill bg-ds-cta px-1 text-[0.625rem] leading-none font-semibold text-ds-text-on-cta desktop:static desktop:block desktop:h-auto desktop:min-w-0 desktop:rounded-none desktop:bg-transparent desktop:p-0 desktop:text-body-sm desktop:font-medium desktop:text-ds-text desktop:before:content-['('] desktop:after:content-[')']"
-        >
-          {total > 99 ? '99+' : String(total)}
-        </span>
-      ) : null}
-    </>
-  );
+/** PWA `itemCountDisplay`: the count, "99+" past 99. */
+function countLabel(total: number): string {
+  return total > 99 ? '99+' : String(total);
 }
 
 /** PWA head title, "Carrito (N artículos)" (singular for one). */
