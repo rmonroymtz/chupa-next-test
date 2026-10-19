@@ -676,6 +676,29 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     Playwright vs localhost:10000, heading at 375 and 1440: 16px / 700 / 24px line height / white / 8px margin,
     20px from the heading to the logos, 22px logos, identical to the PWA; x 1032 vs 1036 at 1440 (1260 vs 1280
     container, known contradiction). Screenshots `footer-{375,1440}-{next,pwa}-t12.png` in the session scratchpad.
+- [x] T12b Footer content as the live PWA footer (user, 2026-10-19: "sí, iguala el footer a la PWA"; overrides the
+  "keep the real site content" constraint for the footer). Source: `CHUP-redesign`
+  `src/overrides/@magento/venia-ui/lib/components/Footer/footer.js`, checked live on localhost:10000. Route: inline
+  (two mechanical files, content already mapped). Kept as decided: `h2` titles and the 1260 container.
+  - Changes (`footer-content.ts`, `site-footer.tsx`): "Preguntas Frecuentes (FAQ)"; the "Facturación" link removed
+    (absent from the PWA footer); "Redes sociales"; no "Horario:" label; phone in regular weight (still a `tel:`
+    link, the PWA shows plain text); office titles without colons; addresses "Col. Otay Constituyentes",
+    "C.P. 22457 Tijuana, BC.", "...Oficina 01A-129" without the trailing "Col."; payment logos as the PWA
+    `PAYMENTS`: Visa, Mastercard, PayPal, OXXO, American Express, SPEI (Mercado Pago and Kueski no longer rendered,
+    their assets kept).
+  - Kept on purpose: the copyright stays Spanish ("todos los derechos reservados"): the PWA hardcodes the English
+    "all rights reserved" with no i18n message anywhere in its history, an untranslated string on a Spanish site.
+    Accessibility text stays ("Sello de confianza AMVO" alt, the new-tab notes); the PWA PayPal logo renders 22px
+    wide vs ours 46px (asset difference, not content).
+  - Test-first: RED = 5 failing footer tests (headings, FAQ link, new links/phone-weight test, hours and
+    addresses, payment set and order); GREEN after the content change. Changed assertions: heading list (two
+    colons dropped, "Redes sociales"), FAQ label and the removed `/facturacion` href, hours test now asserts no
+    "Horario" and the exact address lines, payment list without Mercado Pago/Kueski in the PWA order.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 130 files / 1194 tests pass;
+    integration 7 files / 102 tests pass; build pass, no warnings (dev server still 200). Playwright at 375 and
+    1440: footer text equal to the PWA except the copyright line; same images in the same order; footer height
+    1282 vs 1281 (375) and 696 vs 693 (1440); phone weight 400 in both. Screenshots
+    `footer-{375,1440}-{next,pwa}-t12b.png` in the session scratchpad.
 
 ## Delivery strategy
 
@@ -780,3 +803,6 @@ lines in total.
   skeleton on the page grid, carousel listener cleanup, reduced-motion change, skeleton loop matches the PWA),
   Tailwind no longer scans `odd/**` (no build CSS warning). All required checks green. Work-unit commit on
   `feat/ds-12-polish` (from `main` `386676f`, not pushed).
+- 2026-10-19: T12b done (user: "sí, iguala el footer a la PWA"): footer copy, links and payment logos as the live
+  PWA footer; Spanish copyright kept (the PWA one is untranslated). All required checks green. Work-unit commit on
+  `feat/ds-12-polish` (after `5477b98`, not pushed).

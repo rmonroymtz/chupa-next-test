@@ -64,7 +64,7 @@ export function SiteFooter() {
           <FooterColumn title="Centro de ayuda">
             <LinkList links={HELP_LINKS} />
           </FooterColumn>
-          <FooterColumn title="Redes Sociales">
+          <FooterColumn title="Redes sociales">
             <ul className="flex flex-col gap-2">
               {SOCIAL_LINKS.map((link) => (
                 <li key={link.network}>
@@ -96,11 +96,10 @@ export function SiteFooter() {
             <ul className={`flex flex-col gap-2 ${TEXT}`}>
               <li>
                 Atención telefónica:{' '}
-                <a href={CUSTOMER_SERVICE.phone.href} className={`font-semibold ${LINK}`}>
+                <a href={CUSTOMER_SERVICE.phone.href} className={LINK}>
                   {CUSTOMER_SERVICE.phone.label}
                 </a>
               </li>
-              <li className="font-semibold text-ds-text-inverse">Horario:</li>
               {CUSTOMER_SERVICE.hours.map((entry) => (
                 <li key={entry.days}>
                   {entry.days} {entry.time}

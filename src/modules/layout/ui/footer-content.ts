@@ -1,7 +1,8 @@
 /**
- * Static footer content, copied from the legacy PWA Studio footer
- * (`components/Footer/footer.js`). Internal paths are pages PWA Studio (or
- * Magento CMS) serves: rendered as plain anchors.
+ * Static footer content, copied from the redesigned PWA footer
+ * (`CHUP-redesign` `overrides/@magento/venia-ui/lib/components/Footer/footer.js`).
+ * Internal paths are pages PWA Studio (or Magento CMS) serves: rendered as
+ * plain anchors.
  */
 export interface FooterLink {
   readonly label: string;
@@ -13,8 +14,7 @@ export interface SocialLink extends FooterLink {
 }
 
 export const HELP_LINKS: readonly FooterLink[] = [
-  { label: 'Preguntas Frecuentes FAQ', href: '/preguntas-frecuentes' },
-  { label: 'Facturación', href: '/facturacion' },
+  { label: 'Preguntas Frecuentes (FAQ)', href: '/preguntas-frecuentes' },
 ];
 
 export const SOCIAL_LINKS: readonly SocialLink[] = [
@@ -43,20 +43,23 @@ export const CUSTOMER_SERVICE = {
 
 export const OFFICES: readonly { readonly title: string; readonly lines: readonly string[] }[] = [
   {
-    title: 'Oficina central:',
-    lines: ['Calle Centro Comercial 17206', 'Col, Otay Constituyentes', 'C.P 22457 Tijuana, BC.'],
+    title: 'Oficina central',
+    lines: ['Calle Centro Comercial 17206', 'Col. Otay Constituyentes', 'C.P. 22457 Tijuana, BC.'],
   },
   {
-    title: 'Centro de desarrollo tecnológico:',
+    title: 'Centro de desarrollo tecnológico',
     lines: [
-      'Calle Montes Urales - Virreyes 424, Oficina 01A-129 Col.',
+      'Calle Montes Urales - Virreyes 424, Oficina 01A-129',
       'Lomas de Chapultepec V Sección, Miguel Hidalgo',
       'C.P. 11000, Ciudad de México, CDMX.',
     ],
   },
 ];
 
-/** Legacy `PaymentsGrayBanner` order; sizes keep each logo's aspect ratio at 15px high. */
+/**
+ * The PWA footer `PAYMENTS` set and order; sizes keep each logo's aspect ratio
+ * at 15px high. (The Mercado Pago and Kueski assets stay in `public/` unused.)
+ */
 export const PAYMENT_METHODS: readonly {
   readonly id: string;
   readonly label: string;
@@ -65,10 +68,8 @@ export const PAYMENT_METHODS: readonly {
   { id: 'visa', label: 'Visa', width: 53 },
   { id: 'mastercard', label: 'Mastercard', width: 19 },
   { id: 'paypal', label: 'PayPal', width: 57 },
-  { id: 'amex', label: 'American Express', width: 22 },
-  { id: 'mercadopago', label: 'Mercado Pago', width: 56 },
-  { id: 'kueski', label: 'Kueski Pay', width: 76 },
   { id: 'oxxo', label: 'OXXO', width: 30 },
+  { id: 'amex', label: 'American Express', width: 22 },
   { id: 'spei', label: 'SPEI', width: 44 },
 ];
 
