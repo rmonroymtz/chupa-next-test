@@ -79,7 +79,7 @@ export function MiniCart() {
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const contentsRef = useRef<HTMLDivElement>(null);
+  const contentsRef = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [contents, setContents] = useState<Contents>({ kind: 'loading' });
   const [removingUid, setRemovingUid] = useState<string | null>(null);
@@ -301,10 +301,9 @@ export function MiniCart() {
             Carrito (<span data-testid="cart-count">{countLabel(total)}</span>)
           </span>
         </button>
-        <section
+        <div
           id={panelId}
           data-slot="mini-cart-panel"
-          aria-label="Carrito"
           aria-hidden={open ? undefined : true}
           inert={!open}
           className={cx(
@@ -315,8 +314,10 @@ export function MiniCart() {
               : 'pointer-events-none invisible opacity-0 duration-[192ms] ease-[cubic-bezier(0.4,0,1,1)]',
           )}
         >
-          <div
+          {/* The "Carrito" region is the sized card, not the zero-height wrapper, so it has a box. */}
+          <section
             ref={contentsRef}
+            aria-label="Carrito"
             tabIndex={-1}
             className="mt-3 flex max-h-[35rem] w-[360px] max-w-[100vw] flex-col overflow-hidden rounded-lg border border-ds-border-subtle bg-ds-surface text-ds-text shadow-elevation-3 outline-none"
           >
@@ -328,8 +329,8 @@ export function MiniCart() {
               onRemove={(item) => void remove(item)}
               onRetry={() => void load()}
             />
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
       <span data-testid="cart-count-announcer" aria-live="polite" className="sr-only">
         {announcement}

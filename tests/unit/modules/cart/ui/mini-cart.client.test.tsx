@@ -231,9 +231,16 @@ describe('MiniCart', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.querySelector('[aria-modal]')).toBeNull();
     expect(trigger().getAttribute('aria-expanded')).toBe('true');
-    const root = panel();
+    const root = document.querySelector<HTMLElement>('[data-slot="mini-cart-panel"]')!;
     expect(root.className).toContain('top-full');
     expect(root.className).toContain('opacity-100');
+    // The "Carrito" region is the sized card, not the zero-height positioning wrapper (PWA `.root`), so it has a
+    // box for assistive tech and visibility checks.
+    const region = panel();
+    expect(region).not.toBe(root);
+    expect(root.contains(region)).toBe(true);
+    expect(region.className).not.toContain('h-0');
+    expect(region.className).toContain('w-[360px]');
     // Head: the title and the PWA "Editar carrito" link to the PWA cart; no close button.
     expect(view.getByRole('heading', { level: 2, name: 'Carrito (3 artículos)' })).toBeTruthy();
     const edit = view.getByRole('link', { name: 'Editar carrito' });
