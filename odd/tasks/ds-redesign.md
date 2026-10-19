@@ -497,6 +497,62 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     `data-show-arrows` slick arrows and the `continuous` center-mode peek. Test-first: RED 3 new tests failing
     (Page Builder per-view CSS + sizes, slider modifier + sizes, skeleton 2/3/5); GREEN. Changed assertions: none
     (new tests only).
+- [x] T9 Recommendation sliders on embla, as the PWA (user, 2026-10-19: "con embla, igual que la PWA"). Visual review
+  against the redesigned PWA on localhost:10000 found the search page scrolling sideways (document width
+  2232–3379px at 375/1024/1440) because the CSS-only `overflow-x:auto` slider list does not contain its cards. Port the
+  PWA `RandomSliders/ProductCarousel` (embla-carousel-react 8.6.0: `useCarousel.js`, `productCarousel.js` + its CSS):
+  `overflow:hidden` viewport, arrows, dots, drag, same cards per view (2/3/5 at 640/1024, 10px gap), reduced motion.
+  Scope: recommendation sliders only (Page Builder carousel is react-slick in the PWA and does not overflow; product
+  gallery overflow at 375 is a separate follow-up). Route: delegated (writer trigger: 2+ non-trivial files).
+  Check: unit (new embla slider behavior) + typecheck/lint/test/integration/build + no horizontal overflow on
+  `/search.html?query=taladro&store=amazon` at 375/1024/1440.
+  - Route: delegated (writer trigger: 2+ non-trivial files). Edit surface extended by the parent mid-task with
+    `tests/unit/modules/recommendations/**` and `tests/unit/modules/page-builder/ui/product-cards.test.tsx` (Vitest
+    only runs `tests/unit/**`; user approved).
+  - Files: `src/modules/recommendations/ui/product-carousel.client.tsx` (new client island),
+    `src/modules/recommendations/ui/recommendation-sliders.tsx`, `src/modules/page-builder/ui/{product-cards.tsx,
+    page-builder.module.css}`, `package.json` + `pnpm-lock.yaml` (`embla-carousel-react` exactly `8.6.0`, as the PWA
+    lockfile); tests `tests/unit/modules/recommendations/ui/product-carousel.client.test.tsx` (new),
+    `tests/unit/modules/recommendations/recommendation-sliders.test.tsx`,
+    `tests/unit/modules/page-builder/ui/product-cards.test.tsx`.
+  - `ProductCarousel` wraps the server-rendered track (`ProductCards` `card="slider"` `<ul class=sliderCarousel>`,
+    embla's container = the viewport's first child, slides = its `li`s) in an `overflow-hidden` viewport; the cards
+    stay server-rendered, embla only enhances. Options exactly as `useCarousel.js`: `align:'start'`,
+    `slidesToScroll:'auto'`, `containScroll:'trimSnaps'`, `loop: itemCount > 5`, breakpoints `(max-width: 640px)` →
+    2 and `(min-width: 641px) and (max-width: 1024px)` → 3; no `dragFree`. Track `.sliderCarousel` is now its own
+    flex list (PWA `.track`/`.slide`: gap 10px, `flex: 0 0 calc(50% - 5px)`, 33.33%-7px from 640px, 20%-8px from
+    1024px), no longer a modifier of the Page Builder scroll track (`overflow-x:auto` grid), which stays CSS-only.
+  - Arrows/dots as the PWA markup: prev/next `<button type="button">` before/after the viewport, disabled from
+    `canScrollPrev`/`canScrollNext` (both disabled on the server and until embla starts), 40×64 white, 8px radius
+    (`rounded-sm`), `text-ds-text`, shadow `0 2px 8px` 8%, hover `bg-ds-surface-subtle` + 12% shadow, disabled 40%
+    opacity, at -12px (-8px below 1024px), hidden below 640px; chevron SVGs copied. Dots only with more than one
+    snap, one per `scrollSnapList()` entry, `aria-label="Página N de M"`, 5px `bg-ds-neutral-300`, active 18×6px
+    `bg-ds-accent` pill, 6px gap, `mt-4`; `data-active` marks the selected one. Skeleton (Suspense fallback) is
+    the same carousel with 5 skeleton slides (PWA `.skeleton`: 10px radius, 0.5px border, padding 10/12/12, square
+    image + 80%/50% lines), so the arrows show as in the PWA while loading.
+  - Differences vs the PWA (intentional, recorded): arrow labels "Producto anterior" / "Siguiente producto" (the
+    PWA passes a `<FormattedMessage>` element as `aria-label`, which renders `[object Object]`: PWA bug); reduced
+    motion (Next-only): arrows and dots call embla with `jump=true`, dot/arrow transitions and skeleton pulse off;
+    dots recount on `reInit` (the PWA counts once, stale after a breakpoint change); 2px `ds-focus` outline on the
+    arrows. Copied as is: the embla breakpoints (640/641/1024) do not line up with the CSS cards-per-view
+    breakpoints (639/640/1023/1024), so at exactly 640px and 1024px the scroll step and the visible cards differ;
+    with `loop` on, the prev arrow is enabled from the start (PWA behavior).
+  - Test-first: RED = new `product-carousel.client.test.tsx` failing to import (8 tests: viewport + arrows,
+    options + loop, arrow clicks, disabled state from `select`, dots from `scrollSnapList` + click + selection,
+    `reInit` recount, reduced-motion jump, server render) + 3 failing tests (slider track CSS, skeleton carousel,
+    slider carousel markup); GREEN = focused 7 files / 43 tests.
+  - Changed assertions (behavior intentionally changed): `product-cards.test.tsx` slider test: the slider `ul` no
+    longer has `productCarousel`, and the `.productCarousel.sliderCarousel` `grid-auto-columns` + rule-order
+    assertions became `.sliderCarousel` flex/gap/no-overflow and `.sliderCarousel > li` flex-basis 50%-5px /
+    33.33%-7px / 20%-8px (the track is now the embla flex track). `recommendation-sliders.test.tsx` skeleton test:
+    the `grid-cols-2/3/5` + `hidden`/`min-[…]:flex` assertions became 5 skeleton slides inside the carousel
+    viewport with flex-basis classes and two disabled arrows (the PWA skeleton is the carousel).
+  - Size: ~460 added / 66 deleted (≈260 test lines) + lockfile, over the 400 heuristic, one work unit, not split.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 127 files / 1181 tests pass;
+    integration 7 files / 102 tests pass; build pass (dev server still 200 after it); overflow on the dev server
+    (not restarted) `/search.html?query=taladro&store=amazon`: scrollWidth/innerWidth 375/375, 1024/1024,
+    1440/1440 (was 2232–3379), sliders loaded with dots and enabled next arrows; screenshots
+    `slider-{1440,375}-next-t9.png` in the session scratchpad. Visual check against the PWA pending (user).
 
 ## Delivery strategy
 
@@ -581,3 +637,12 @@ lines in total.
 - 2026-10-19: user decision "Igualalos a la PWA": carousel cards per view matched to the live PWA (Page Builder
   2/3/4/5 at 641/961/1280 with no gap; recommendation sliders 2/3/5 at 640/1024 with a 10px gap). Fix commit on
   `feat/ds-08-product-cards` on top of `00d39c3` (not pushed); visual check pending.
+- 2026-10-19: T9 done (recommendation sliders on embla `8.6.0` as the PWA `RandomSliders/ProductCarousel`:
+  `overflow:hidden` viewport, PWA options, arrows, dots, skeleton carousel; reduced motion jumps; no horizontal
+  overflow on the search page at 375/1024/1440); all required checks green, visual check pending. Work-unit commit
+  on `feat/ds-09-embla-sliders` (from `main` `e48a0fc`, not pushed).
+- 2026-10-19: T9 commit `10d2ee1` plus `82b90d1` (`.gitignore` for the `AGENTS.md` written by `next dev`, user
+  approved). Assessed medium (`slice_budget_reached`, 617 lines); user granted review; native review (reliability
+  lens) approved and acknowledged (lineage `review-5490addf2e2d360c`), suggestions only: effect cleanup untested,
+  reduced-motion listener untested, skeleton loop flag differs from the loaded carousel. Reviewed boundary: `82b90d1`.
+  Next: user visual check of the sliders against localhost:10000; then the product gallery overflow at 375.

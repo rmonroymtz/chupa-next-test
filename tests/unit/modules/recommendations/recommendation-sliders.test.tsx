@@ -108,35 +108,43 @@ describe('RecommendationSliders', () => {
     expect(document.querySelectorAll('a')).toHaveLength(0);
   });
 
-  it('lays the skeleton out as the PWA slider: 2 cards, 3 from 640px, 5 from 1024px, 10px gap', () => {
+  it('lays the skeleton out as the PWA slider: 5 slides in the carousel, 2 / 3 from 640px / 5 from 1024px, 10px gap', () => {
     document.body.innerHTML = renderToStaticMarkup(
       <RecommendationSliders load={() => new Promise(() => {})} />,
     );
 
+    const loading = document.querySelector('[data-recommendation-loading]');
     const skeletons = [
-      ...document.querySelectorAll<HTMLElement>(
-        '[data-recommendation-loading] [data-recommendation-skeleton]',
-      ),
-    ].slice(0, 5);
+      ...(loading?.querySelectorAll<HTMLElement>('[data-recommendation-skeleton]') ?? []),
+    ];
+    expect(skeletons).toHaveLength(5);
     const track = skeletons[0]?.parentElement;
-    expect(track?.className.split(' ')).toEqual(
+    expect(track?.parentElement?.dataset.carouselViewport).toBeDefined();
+    expect(track?.className.split(' ')).toEqual(expect.arrayContaining(['flex', 'gap-[10px]']));
+    expect(skeletons[0]?.className.split(' ')).toEqual(
       expect.arrayContaining([
-        'grid-cols-2',
-        'gap-[10px]',
-        'min-[640px]:grid-cols-3',
-        'min-[1024px]:grid-cols-5',
+        'basis-[calc(50%-5px)]',
+        'min-[640px]:basis-[calc(33.33%-7px)]',
+        'min-[1024px]:basis-[calc(20%-8px)]',
+        'shrink-0',
+        'min-w-0',
       ]),
     );
-    expect(skeletons.map((skeleton) => skeleton.className.split(' ').includes('hidden'))).toEqual([
-      false,
-      false,
-      true,
-      true,
-      true,
-    ]);
-    expect(skeletons[2]?.className).toContain('min-[640px]:flex');
-    expect(skeletons[3]?.className).toContain('min-[1024px]:flex');
-    expect(skeletons[4]?.className).toContain('min-[1024px]:flex');
+    expect(loading?.querySelectorAll('button[disabled]')).toHaveLength(2);
+  });
+
+  it('renders each slider as the PWA embla carousel: server-rendered cards in the viewport, arrows', async () => {
+    const body = await renderAll(loaderOf({ tendency: [card('B1'), card('B2')] }));
+
+    const slider = body.querySelector('[data-recommendation="tendency"]');
+    const viewport = slider?.querySelector<HTMLElement>('[data-carousel-viewport]');
+    expect(viewport?.className.split(' ')).toContain('overflow-hidden');
+    expect(viewport?.querySelectorAll(':scope > ul > li')).toHaveLength(2);
+    expect(
+      [...(slider?.querySelectorAll('button') ?? [])].map((button) =>
+        button.getAttribute('aria-label'),
+      ),
+    ).toEqual(['Producto anterior', 'Siguiente producto']);
   });
 
   it('hides a slider with no products or whose load rejects or throws, keeping the others', async () => {

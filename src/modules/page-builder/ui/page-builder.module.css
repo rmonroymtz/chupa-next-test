@@ -549,22 +549,29 @@
   }
 }
 /*
- * Recommendation sliders, as the PWA `RandomSliders/ProductCarousel` slides
- * (10px gap): 2 cards below 640px, 3 to 1023px, 5 from 1024px. After the
- * Page Builder rules so they win at every width.
+ * Recommendation sliders: the embla track of the PWA `RandomSliders/ProductCarousel`
+ * (`.track` / `.slide`, 10px gap): 2 cards below 640px, 3 to 1023px, 5 from
+ * 1024px. No overflow here: the carousel viewport clips it (embla translates it).
  */
-.productCarousel.sliderCarousel {
+.sliderCarousel {
+  display: flex;
   gap: 10px;
-  grid-auto-columns: calc(50% - 5px);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sliderCarousel > li {
+  flex: 0 0 calc(50% - 5px);
+  min-width: 0;
 }
 @media (min-width: 640px) {
-  .productCarousel.sliderCarousel {
-    grid-auto-columns: calc(33.33% - 7px);
+  .sliderCarousel > li {
+    flex-basis: calc(33.33% - 7px);
   }
 }
 @media (min-width: 1024px) {
-  .productCarousel.sliderCarousel {
-    grid-auto-columns: calc(20% - 8px);
+  .sliderCarousel > li {
+    flex-basis: calc(20% - 8px);
   }
 }
 .productCarousel > li {

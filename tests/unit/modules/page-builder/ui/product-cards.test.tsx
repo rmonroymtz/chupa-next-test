@@ -97,20 +97,21 @@ describe('ProductCards (shared card and grid)', () => {
   it('shows the PWA recommendation slider cards per view: 2, 3 from 640px, 5 from 1024px, 10px gap', () => {
     const body = render(<ProductCards cards={[card()]} appearance="carousel" card="slider" />);
 
-    expect(body.querySelector('ul')?.className).toContain('productCarousel');
+    // The embla track (PWA `.track` / `.slide`): its own flex list, not the Page Builder scroll track.
+    expect(body.querySelector('ul')?.className).not.toContain('productCarousel');
     expect(body.querySelector('ul')?.className).toContain('sliderCarousel');
     expect(body.querySelector('img')?.getAttribute('sizes')).toBe(
       '(min-width: 1024px) 20vw, (min-width: 640px) 34vw, 50vw',
     );
-    const slider = '.productCarousel.sliderCarousel';
-    expect(rule(slider, null)).toContain('gap: 10px;');
-    expect(rule(slider, null)).toContain('grid-auto-columns: calc(50% - 5px);');
-    expect(rule(slider, 640)).toContain('grid-auto-columns: calc(33.33% - 7px);');
-    expect(rule(slider, 1024)).toContain('grid-auto-columns: calc(20% - 8px);');
-    // The slider rules come after the Page Builder ones, so they win at every width.
-    expect(CSS.indexOf(`${slider} {`)).toBeGreaterThan(
-      CSS.indexOf('@media (min-width: 1280px) { .productCarousel {'),
-    );
+    const track = rule('.sliderCarousel', null);
+    expect(track).toContain('display: flex;');
+    expect(track).toContain('gap: 10px;');
+    expect(track).not.toContain('overflow');
+    const slide = '.sliderCarousel > li';
+    expect(rule(slide, null)).toContain('flex: 0 0 calc(50% - 5px);');
+    expect(rule(slide, null)).toContain('min-width: 0;');
+    expect(rule(slide, 640)).toContain('flex-basis: calc(33.33% - 7px);');
+    expect(rule(slide, 1024)).toContain('flex-basis: calc(20% - 8px);');
   });
 
   it('uses the recommendation slider card when asked', () => {

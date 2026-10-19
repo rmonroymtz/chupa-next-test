@@ -56,9 +56,10 @@ export function ProductCards({
     </li>
   ));
   if (appearance === 'grid') return <ProductGrid>{items}</ProductGrid>;
-  const trackClass =
-    card === 'slider' ? `${styles.productCarousel} ${styles.sliderCarousel}` : styles.productCarousel;
-  return <ul className={trackClass}>{items}</ul>;
+  // `slider`: the embla track of the recommendation sliders (the caller wraps it in the carousel).
+  return (
+    <ul className={card === 'slider' ? styles.sliderCarousel : styles.productCarousel}>{items}</ul>
+  );
 }
 
 function imageSizes(
