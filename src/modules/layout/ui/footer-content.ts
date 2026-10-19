@@ -15,6 +15,8 @@ export interface SocialLink extends FooterLink {
 
 export const HELP_LINKS: readonly FooterLink[] = [
   { label: 'Preguntas Frecuentes (FAQ)', href: '/preguntas-frecuentes' },
+  // Not in the PWA footer; kept by user decision (2026-10-19).
+  { label: 'Facturación', href: '/facturacion' },
 ];
 
 export const SOCIAL_LINKS: readonly SocialLink[] = [

@@ -681,7 +681,8 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
   `src/overrides/@magento/venia-ui/lib/components/Footer/footer.js`, checked live on localhost:10000. Route: inline
   (two mechanical files, content already mapped). Kept as decided: `h2` titles and the 1260 container.
   - Changes (`footer-content.ts`, `site-footer.tsx`): "Preguntas Frecuentes (FAQ)"; the "Facturación" link removed
-    (absent from the PWA footer); "Redes sociales"; no "Horario:" label; phone in regular weight (still a `tel:`
+    (absent from the PWA footer), then restored by user decision (2026-10-19: "regresalo"; the only intentional
+    footer content difference besides the Spanish copyright); "Redes sociales"; no "Horario:" label; phone in regular weight (still a `tel:`
     link, the PWA shows plain text); office titles without colons; addresses "Col. Otay Constituyentes",
     "C.P. 22457 Tijuana, BC.", "...Oficina 01A-129" without the trailing "Col."; payment logos as the PWA
     `PAYMENTS`: Visa, Mastercard, PayPal, OXXO, American Express, SPEI (Mercado Pago and Kueski no longer rendered,

@@ -45,6 +45,7 @@ describe('SiteFooter', () => {
     const href = (name: string) => within(root).getByRole('link', { name }).getAttribute('href');
 
     expect(href('Preguntas Frecuentes (FAQ)')).toBe('/preguntas-frecuentes');
+    expect(href('Facturación')).toBe('/facturacion');
     expect(href('Acerca de Chupaprecios')).toBe('/acerca-de-chupaprecios');
     expect(href('Términos y Condiciones')).toBe('/terminos-y-condiciones');
     expect(href('Política de Privacidad')).toBe('/aviso-privacidad');
@@ -52,15 +53,14 @@ describe('SiteFooter', () => {
     expect(href('(+52) 664 311 9682')).toBe('tel:+526643119682');
   });
 
-  it('lists only the PWA footer links (no "Facturación"), and keeps the phone in regular weight', () => {
+  it('lists the help links (PWA FAQ plus the kept Facturación link) and keeps the phone in regular weight', () => {
     const root = footer();
     const help = within(root).getByRole('heading', { name: 'Centro de ayuda' }).nextElementSibling;
     expect(
       within(help as HTMLElement)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Preguntas Frecuentes (FAQ)']);
-    expect(within(root).queryByRole('link', { name: 'Facturación' })).toBeNull();
+    ).toEqual(['Preguntas Frecuentes (FAQ)', 'Facturación']);
     const phone = within(root).getByRole('link', { name: '(+52) 664 311 9682' });
     expect(phone.className).not.toContain('font-semibold');
     expect(phone.className).not.toContain('font-bold');
