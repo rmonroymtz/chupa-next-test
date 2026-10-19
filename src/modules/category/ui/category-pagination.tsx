@@ -11,7 +11,7 @@ interface CategoryPaginationProps {
   readonly totalPages: number;
 }
 
-const LINK = 'flex h-10 min-w-10 items-center justify-center rounded px-3 text-sm';
+const LINK = 'flex h-10 min-w-10 items-center justify-center rounded-xs px-3 text-sm';
 
 /**
  * Server-rendered page links: `?page=N`, the first page being the clean
@@ -33,7 +33,7 @@ export function CategoryPagination({
       <ul className="flex flex-wrap items-center justify-center gap-1">
         {currentPage > 1 ? (
           <li>
-            <a href={href(currentPage - 1)} className={`${LINK} hover:bg-neutral-inactive`}>
+            <a href={href(currentPage - 1)} className={`${LINK} hover:bg-ds-surface-muted`}>
               Anterior
             </a>
           </li>
@@ -41,15 +41,15 @@ export function CategoryPagination({
         {items.map((item, index) => (
           <li key={item === 'gap' ? `gap-${index}` : item}>
             {item === 'gap' ? (
-              <span aria-hidden="true" className={`${LINK} text-neutral-grey`}>
+              <span aria-hidden="true" className={`${LINK} text-ds-text-secondary`}>
                 …
               </span>
             ) : item === currentPage ? (
-              <span aria-current="page" className={`${LINK} bg-brand-red font-semibold text-white`}>
+              <span aria-current="page" className={`${LINK} bg-ds-cta font-semibold text-white`}>
                 {item}
               </span>
             ) : (
-              <a href={href(item)} className={`${LINK} hover:bg-neutral-inactive`}>
+              <a href={href(item)} className={`${LINK} hover:bg-ds-surface-muted`}>
                 {item}
               </a>
             )}
@@ -57,7 +57,7 @@ export function CategoryPagination({
         ))}
         {currentPage < totalPages ? (
           <li>
-            <a href={href(currentPage + 1)} className={`${LINK} hover:bg-neutral-inactive`}>
+            <a href={href(currentPage + 1)} className={`${LINK} hover:bg-ds-surface-muted`}>
               Siguiente
             </a>
           </li>

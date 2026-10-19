@@ -29,7 +29,7 @@ function FilterGroups({ refinements, location }: SearchFiltersProps) {
       {anyChecked ? (
         <a
           href={clearFiltersHref(location)}
-          className="inline-block text-sm font-semibold text-brand-red underline"
+          className="inline-block text-sm font-semibold text-ds-link underline"
         >
           Limpiar filtros
         </a>
@@ -44,7 +44,7 @@ function FilterGroups({ refinements, location }: SearchFiltersProps) {
               open={group.options.slice(VISIBLE_OPTIONS).some((option) => option.checked)}
               className="group/more mt-1"
             >
-              <summary className="cursor-pointer list-none py-1 text-sm font-semibold text-brand-red [&::-webkit-details-marker]:hidden">
+              <summary className="cursor-pointer list-none py-1 text-sm font-semibold text-ds-link [&::-webkit-details-marker]:hidden">
                 <span className="group-open/more:hidden">Mostrar más</span>
                 <span className="hidden group-open/more:inline">Mostrar menos</span>
               </summary>
@@ -72,14 +72,14 @@ function OptionList({
             href={storeParamsHref(location, option.link)}
             aria-current={option.checked ? 'true' : undefined}
             aria-label={option.checked ? `Eliminar filtro "${option.title}".` : undefined}
-            className="group flex items-start gap-2 py-1 text-sm hover:text-brand-red"
+            className="group flex items-start gap-2 py-1 text-sm hover:text-ds-link"
           >
             <span
               aria-hidden="true"
-              className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-sm border ${
+              className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded-xs border ${
                 option.checked
-                  ? 'border-brand-red bg-brand-red text-white'
-                  : 'border-neutral-medium-grey bg-white group-hover:border-brand-red'
+                  ? 'border-ds-cta bg-ds-cta text-white'
+                  : 'border-ds-neutral-400 bg-white group-hover:border-ds-cta'
               }`}
             >
               {option.checked ? (
@@ -115,7 +115,7 @@ export function SearchFiltersDisclosure(props: SearchFiltersProps) {
   return (
     <details
       data-search-filters="mobile"
-      className="group w-full rounded border border-neutral-medium-grey lg:hidden"
+      className="group w-full rounded-xs border border-ds-neutral-400 lg:hidden"
     >
       <summary className="flex h-10 cursor-pointer list-none items-center gap-2 px-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
         Filtrar
@@ -130,7 +130,7 @@ export function SearchFiltersDisclosure(props: SearchFiltersProps) {
           <path d="m6 9 6 6 6-6" />
         </svg>
       </summary>
-      <div className="border-t border-neutral-inactive p-4">
+      <div className="border-t border-ds-border-subtle p-4">
         <FilterGroups {...props} />
       </div>
     </details>

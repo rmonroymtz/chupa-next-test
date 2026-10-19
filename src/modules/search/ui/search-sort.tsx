@@ -6,7 +6,7 @@ import type { SearchSortOption } from '@/modules/search/domain/search-result';
 const IGNORED_LINKS: ReadonlySet<string> = new Set(['price', 'position']);
 
 const CONTROL =
-  'flex h-10 items-center gap-2 rounded border border-neutral-medium-grey bg-white px-3 text-sm';
+  'flex h-10 items-center gap-2 rounded-xs border border-ds-neutral-400 bg-white px-3 text-sm';
 
 /** Same box as the selector, shown while the sort options load (no layout shift). */
 export function SearchSortPlaceholder() {
@@ -14,7 +14,7 @@ export function SearchSortPlaceholder() {
     <div
       data-search-sort="placeholder"
       aria-hidden="true"
-      className={`${CONTROL} w-56 animate-pulse text-neutral-grey`}
+      className={`${CONTROL} w-56 animate-pulse text-ds-text-secondary`}
     >
       Ordenar por
     </div>
@@ -58,14 +58,14 @@ export function SearchSort({ options, location }: SearchSortProps) {
           <path d="m6 9 6 6 6-6" />
         </svg>
       </summary>
-      <ul className="absolute right-0 z-20 mt-1 w-max max-w-[min(20rem,calc(100vw-2rem))] rounded border border-neutral-medium-grey bg-white py-1 shadow-md">
+      <ul className="absolute right-0 z-20 mt-1 w-max max-w-[min(20rem,calc(100vw-2rem))] rounded-xs border border-ds-neutral-400 bg-white py-1 shadow-elevation-2">
         {sorted.map((option, index) => (
           <li key={`${index}-${option.link}`}>
             <a
               href={storeParamsHref(location, option.link)}
               aria-current={option.selected ? 'true' : undefined}
-              className={`block px-4 py-2 text-sm hover:bg-neutral-background ${
-                option.selected ? 'font-semibold text-brand-red' : ''
+              className={`block px-4 py-2 text-sm hover:bg-ds-surface-subtle ${
+                option.selected ? 'font-semibold text-ds-link' : ''
               }`}
             >
               {option.title}

@@ -40,7 +40,9 @@ export function CategoryPage({ category, listing, search }: CategoryPageProps) {
         {listing.items.length > 0 ? (
           <ProductCards cards={listing.items} appearance="grid" />
         ) : (
-          <p className="py-12 text-center text-neutral-grey">No hay productos en esta categoría.</p>
+          <p className="py-12 text-center text-ds-text-secondary">
+            No hay productos en esta categoría.
+          </p>
         )}
       </div>
       <CategoryPagination

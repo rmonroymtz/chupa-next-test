@@ -29,7 +29,7 @@ export function ProductGallery({ images, alt, loadingStrategy }: ProductGalleryP
   const [main, ...rest] = images;
   if (!main) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-neutral-100 text-sm text-neutral-500">
+      <div className="flex aspect-square w-full items-center justify-center rounded-md bg-ds-surface-subtle text-sm text-ds-text-secondary">
         Imagen no disponible
       </div>
     );
@@ -37,7 +37,7 @@ export function ProductGallery({ images, alt, loadingStrategy }: ProductGalleryP
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white">
+      <div className="relative aspect-square w-full overflow-hidden rounded-md bg-white">
         <Image
           src={main.url}
           alt={main.label ?? alt}
@@ -55,7 +55,7 @@ export function ProductGallery({ images, alt, loadingStrategy }: ProductGalleryP
           {rest.slice(0, MAX_THUMBNAILS).map((image) => (
             <li
               key={image.url}
-              className="relative size-20 shrink-0 overflow-hidden rounded border border-neutral-200 bg-white"
+              className="relative size-20 shrink-0 overflow-hidden rounded-xs border border-ds-border bg-white"
             >
               <Image
                 src={image.url}

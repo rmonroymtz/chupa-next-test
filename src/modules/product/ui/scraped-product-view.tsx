@@ -42,8 +42,8 @@ export function ScrapedProductView({ product, addToCart }: ScrapedProductViewPro
           loadingStrategy="eager"
         />
         <div className="flex flex-col gap-4">
-          {product.brand ? <p className="text-sm text-neutral-600">{product.brand}</p> : null}
-          <h1 className="text-2xl font-semibold text-neutral-900">{product.title}</h1>
+          {product.brand ? <p className="text-sm text-ds-text-secondary">{product.brand}</p> : null}
+          <h1 className="text-2xl font-semibold text-ds-neutral-950">{product.title}</h1>
           {product.price ? (
             <ProductPrice
               amount={product.price.current}
@@ -51,14 +51,14 @@ export function ScrapedProductView({ product, addToCart }: ScrapedProductViewPro
               previous={product.price.before}
             />
           ) : (
-            <p className="text-neutral-700">Precio no disponible</p>
+            <p className="text-ds-text">Precio no disponible</p>
           )}
           <AvailabilityBadge availability={availability} />
           {product.condition ? (
-            <p className="text-sm text-neutral-600">Condición: {product.condition}</p>
+            <p className="text-sm text-ds-text-secondary">Condición: {product.condition}</p>
           ) : null}
           {shortDescription ? (
-            <p className="whitespace-pre-line text-sm text-neutral-700">{shortDescription}</p>
+            <p className="whitespace-pre-line text-sm text-ds-text">{shortDescription}</p>
           ) : null}
           <div data-slot="add-to-cart">{addToCart}</div>
         </div>
@@ -68,7 +68,7 @@ export function ScrapedProductView({ product, addToCart }: ScrapedProductViewPro
           <h2 id="product-description" className="mb-4 text-xl font-semibold">
             Descripción
           </h2>
-          <p className="whitespace-pre-line text-neutral-800">{description}</p>
+          <p className="whitespace-pre-line text-ds-text">{description}</p>
         </section>
       ) : null}
     </article>

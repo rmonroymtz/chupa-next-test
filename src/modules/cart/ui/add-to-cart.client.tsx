@@ -113,9 +113,7 @@ export function AddToCart({ product }: AddToCartProps) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-testid="add-to-cart">
       {product.options.map((option) => (
         <fieldset key={option.attributeCode} className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-semibold text-neutral-black-base">
-            {option.label}
-          </legend>
+          <legend className="mb-2 text-sm font-semibold text-ds-text">{option.label}</legend>
           <div className="flex flex-wrap gap-2">
             {option.values.map((value) => {
               const inputId = `${id}-${option.attributeCode}-${value.valueIndex}`;
@@ -137,7 +135,7 @@ export function AddToCart({ product }: AddToCartProps) {
                   />
                   <label
                     htmlFor={inputId}
-                    className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-box border border-neutral-medium-grey px-3 text-sm peer-checked:border-neutral-black peer-checked:font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neutral-black"
+                    className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-sm border border-ds-neutral-400 px-3 text-sm peer-checked:border-ds-border-strong peer-checked:font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ds-focus"
                   >
                     {value.label}
                   </label>
@@ -153,24 +151,24 @@ export function AddToCart({ product }: AddToCartProps) {
         <button
           type="submit"
           disabled={disabled}
-          className="h-12 min-w-48 flex-1 rounded-button bg-brand-red px-6 font-semibold text-white hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-black disabled:cursor-not-allowed disabled:bg-neutral-medium-grey"
+          className="h-12 min-w-48 flex-1 rounded-pill bg-ds-cta px-6 font-semibold text-white hover:bg-ds-cta-hover active:bg-ds-cta-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:bg-ds-disabled"
         >
           {adding ? 'Agregando...' : 'Agregar al carrito'}
         </button>
       </div>
 
-      {blockedMessage ? <p className="text-sm text-neutral-black-base">{blockedMessage}</p> : null}
+      {blockedMessage ? <p className="text-sm text-ds-text">{blockedMessage}</p> : null}
 
       {/* Live regions exist before their content changes, so updates are announced. */}
       <div>
-        <p role="status" className="text-sm text-neutral-black-base">
+        <p role="status" className="text-sm text-ds-text">
           {notice.kind === 'info' || notice.kind === 'success' ? notice.message : ''}
         </p>
         <p
           role="alert"
           className={
             notice.kind === 'error'
-              ? 'whitespace-pre-line rounded-box bg-feedback-error px-3 py-2 text-sm text-neutral-black'
+              ? 'whitespace-pre-line rounded-sm bg-ds-error-bg px-3 py-2 text-sm text-ds-text'
               : undefined
           }
         >
@@ -190,7 +188,7 @@ interface QuantityStepperProps {
 /** Legacy `QuantityStepper`: min 1, max the scraper stock when known. */
 function QuantityStepper({ value, cap, onChange }: QuantityStepperProps) {
   const stepClass =
-    'grid size-11 place-items-center rounded-full border border-neutral-medium-grey text-lg disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-black';
+    'grid size-11 place-items-center rounded-full border border-ds-neutral-400 text-lg disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus';
   return (
     <div className="flex items-center gap-2">
       <button
@@ -211,7 +209,7 @@ function QuantityStepper({ value, cap, onChange }: QuantityStepperProps) {
         step={1}
         value={value}
         onChange={(event) => onChange(clampQuantity(event.currentTarget.valueAsNumber, cap))}
-        className="h-11 w-16 rounded-input border border-neutral-medium-grey text-center"
+        className="h-11 w-16 rounded-sm border border-ds-neutral-400 text-center"
       />
       <button
         type="button"

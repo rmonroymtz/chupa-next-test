@@ -7,8 +7,8 @@
 
 .root {
   --pb-max-width: 1280px;
-  --pb-brand: rgb(190 66 75);
-  --pb-brand-darkest: rgb(175 30 38);
+  --pb-brand: var(--color-ds-cta);
+  --pb-brand-darkest: var(--color-ds-cta-hover);
   --pb-accent: #f90;
   --pb-gray: rgb(244 245 245);
   --pb-gray-dark: rgb(212 212 212);
@@ -301,7 +301,7 @@
   cursor: pointer;
 }
 .sliderDot[aria-current='true'] {
-  background: #d84752;
+  background: var(--color-ds-accent);
 }
 .sliderPause {
   position: absolute;

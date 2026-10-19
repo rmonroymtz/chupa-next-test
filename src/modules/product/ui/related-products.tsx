@@ -26,7 +26,7 @@ export function RelatedProducts({ items, heading }: RelatedProductsProps) {
         {items.map((item) => (
           <li key={item.uid}>
             <a href={`/${item.relativeUrl}`} className="group flex flex-col gap-2">
-              <div className="relative aspect-square overflow-hidden rounded bg-white">
+              <div className="relative aspect-square overflow-hidden rounded-xs bg-white">
                 {item.image ? (
                   <Image
                     src={item.image.url}

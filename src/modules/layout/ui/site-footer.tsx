@@ -13,8 +13,8 @@ import {
 import { FacebookIcon, InstagramIcon } from './icons';
 
 const NEW_TAB = ' (se abre en una pestaña nueva)';
-const HEADING = 'font-roboto text-base leading-6 font-bold text-white';
-const TEXT = 'font-montserrat text-[0.8125rem] leading-5 font-light text-white';
+const HEADING = 'font-display text-base leading-6 font-bold text-white';
+const TEXT = 'font-sans text-[0.8125rem] leading-5 font-light text-white';
 
 /**
  * Legacy PWA Studio footer (non-checkout variant): logo and social buttons,
@@ -25,7 +25,7 @@ const TEXT = 'font-montserrat text-[0.8125rem] leading-5 font-light text-white';
  */
 export function SiteFooter() {
   return (
-    <footer className="w-full bg-ch-dark-grey py-4 text-white">
+    <footer className="w-full bg-ds-neutral-800 py-4 text-white">
       <div className="container-padded flex flex-col gap-6 py-5 lg:grid lg:grid-cols-12 lg:gap-4">
         <div className="flex flex-col items-start lg:[grid-area:1/1/8/4]">
           <Image
@@ -43,7 +43,7 @@ export function SiteFooter() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`${link.label}${NEW_TAB}`}
-                  className="block text-white transition-colors hover:text-brand-red"
+                  className="block text-white transition-colors hover:text-ds-accent"
                 >
                   {link.network === 'facebook' ? (
                     <FacebookIcon className="size-11" />

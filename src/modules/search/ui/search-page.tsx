@@ -81,7 +81,7 @@ export function SearchPage({
     <div data-search-store={view.store} className="mx-auto max-w-[1280px] px-4 py-6">
       <h1 className="text-2xl font-semibold">{heading}</h1>
       {results.kind === 'none' && results.reason === 'empty_query' ? (
-        <p className="py-12 text-center text-neutral-grey">Escribe lo que quieres buscar.</p>
+        <p className="py-12 text-center text-ds-text-secondary">Escribe lo que quieres buscar.</p>
       ) : null}
       {results.kind === 'single' ? (
         <SingleStore
@@ -131,7 +131,7 @@ function SingleStore({
   }
   if (result.items.length === 0) {
     return (
-      <p data-search-state="empty" className="py-12 text-center text-neutral-grey">
+      <p data-search-state="empty" className="py-12 text-center text-ds-text-secondary">
         No encontramos resultados para «{view.query}».
       </p>
     );
@@ -160,7 +160,7 @@ function SingleStore({
           />
         ) : null}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p data-search-count className="text-sm text-neutral-grey">
+          <p data-search-count className="text-sm text-ds-text-secondary">
             {productCount(result.items.length)}
           </p>
           {linkStore !== null ? (
@@ -220,7 +220,7 @@ function FallbackNotice({
     <p
       data-search-fallback
       role="status"
-      className="mb-4 rounded border border-brand-yellow bg-feedback-warning/40 px-4 py-3 text-sm"
+      className="mb-4 rounded-xs border border-ds-warning bg-ds-warning-bg px-4 py-3 text-sm"
     >
       <strong>{storeLabel(requested)}</strong> se encuentra en mantenimiento. Sin embargo
       encontramos (<strong>{count}</strong>) resultados para “<strong>{query}</strong>” en{' '}
@@ -232,7 +232,7 @@ function FallbackNotice({
 function ErrorState({ retryUrl }: { readonly retryUrl: string }) {
   return (
     <div role="alert" data-search-state="error" className="py-12 text-center">
-      <p className="text-neutral-grey">No pudimos cargar los resultados.</p>
+      <p className="text-ds-text-secondary">No pudimos cargar los resultados.</p>
       {/* Plain anchor: a full request runs the search again on the server. */}
       <a href={retryUrl} className="mt-2 inline-block font-semibold underline">
         Reintentar

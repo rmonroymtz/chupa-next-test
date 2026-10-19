@@ -76,7 +76,7 @@
   z-index: 1;
   margin-bottom: -1px;
   border-color: var(--store-color);
-  background-color: var(--color-neutral-white);
+  background-color: var(--color-ds-surface);
   padding-bottom: 5px;
 }
 
@@ -104,7 +104,7 @@
   padding: 0 3rem 0 1rem;
   border: 1px solid var(--store-color);
   border-radius: 0 3px 3px 3px;
-  background-color: var(--color-neutral-white);
+  background-color: var(--color-ds-surface);
   font-size: 1rem;
 }
 
