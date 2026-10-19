@@ -553,6 +553,14 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     (not restarted) `/search.html?query=taladro&store=amazon`: scrollWidth/innerWidth 375/375, 1024/1024,
     1440/1440 (was 2232–3379), sliders loaded with dots and enabled next arrows; screenshots
     `slider-{1440,375}-next-t9.png` in the session scratchpad. Visual check against the PWA pending (user).
+- [x] T10 Product gallery horizontal overflow at 375 (visual review 2026-10-19; user: "sigamos con la galería de
+  producto"). Cause: the gallery is a grid item with `min-width:auto`, so the six 80px thumbnails (6×80 + 5×8 =
+  520px) widened the single mobile column; fix `min-w-0` on the gallery root (`product-gallery.tsx`). Route: inline
+  (one mechanical file, cause understood). Test-first exception: jsdom has no layout, so RED/GREEN is the Playwright
+  measure on the dev server (`/amazon-B00IJ0ALYS-…-dck240c2-.html`): before 536px at 375, after 375/1024/1440 equal
+  to the viewport. Checks: typecheck, lint (1 existing warning), unit 1181, integration 102, build pass. Commit
+  `9a20413` on `feat/ds-10-product-gallery` (stacked on `feat/ds-09-embla-sliders`, not pushed); assessed medium,
+  `under_budget` (2 lines), review pending in the slice.
 
 ## Delivery strategy
 
