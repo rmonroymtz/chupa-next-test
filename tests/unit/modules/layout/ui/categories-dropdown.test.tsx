@@ -142,6 +142,35 @@ describe('CategoriesDropdown', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('ignores an Escape another component already handled (e.g. the mini cart)', () => {
+    const { trigger, rows } = open();
+    rows[1]!.focus();
+
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    event.preventDefault();
+    document.body.dispatchEvent(event);
+
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(document.activeElement).toBe(rows[1]);
+  });
+
+  it('focus leaving to nothing (window blur) closes it', () => {
+    const { trigger, rows } = open();
+    fireEvent.blur(rows[0]!, { relatedTarget: null });
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('a click on the panel background keeps focus inside, so it stays open', () => {
+    const { trigger, nav, rows } = open();
+    // The dropdown root takes focus for clicks on non-focusable content (and in
+    // Safari, on links and buttons), so blur reports a target inside it.
+    const root = nav.closest<HTMLElement>('[tabindex="-1"]')!;
+    expect(root.contains(trigger)).toBe(true);
+    rows[0]!.focus();
+    fireEvent.blur(rows[0]!, { relatedTarget: root });
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('server-renders every category link while closed (crawlable)', () => {
     const { container } = renderDropdown();
     const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'));

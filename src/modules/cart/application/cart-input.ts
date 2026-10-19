@@ -27,5 +27,11 @@ export const addToCartInputSchema = z.object({
 
 export const cartReadInputSchema = z.object({ cartId, ...auth });
 
+// Magento cart item uids are base64 strings (`MTIzNDU=`).
+const cartItemUid = z.string().regex(/^[A-Za-z0-9+/=_-]{1,256}$/);
+
+export const removeCartItemInputSchema = z.object({ cartId, ...auth, itemUid: cartItemUid });
+
 export type AddToCartInput = z.infer<typeof addToCartInputSchema>;
 export type CartReadInput = z.infer<typeof cartReadInputSchema>;
+export type RemoveCartItemInput = z.infer<typeof removeCartItemInputSchema>;

@@ -10,6 +10,7 @@ import {
   CREATE_CART_MUTATION,
   ITEM_COUNT_QUERY,
   MINI_CART_QUERY,
+  REMOVE_ITEM_MUTATION,
 } from '@/modules/cart/infrastructure/cart.queries';
 import {
   isInvalidCartMessage,
@@ -103,6 +104,20 @@ export function createMagentoCartGateway(client: MagentoClient): CartGateway {
       );
       // Same suffix the product urls use; the legacy item reads storeConfig's (`.html`).
       return mapMiniCart(data.cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async removeItemFromCart(cartId, itemUid, auth) {
+      const data = await call<{ removeItemFromCart: { cart: unknown } | null } | null>(
+        'RemoveItemForMiniCart',
+        REMOVE_ITEM_MUTATION,
+        { cartId, itemId: itemUid },
+        auth,
+      );
+      const cart = data?.removeItemFromCart?.cart;
+      if (!cart) {
+        throw new CartGatewayError('failure', 'Magento RemoveItemForMiniCart returned no cart');
+      }
+      return mapMiniCart(cart, DEFAULT_PRODUCT_URL_SUFFIX);
     },
   };
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { addToCartInputSchema, cartReadInputSchema } from '@/modules/cart/application/cart-input';
+import {
+  addToCartInputSchema,
+  cartReadInputSchema,
+  removeCartItemInputSchema,
+} from '@/modules/cart/application/cart-input';
 
 const valid = {
   cartId: 'aBcD1234aBcD1234aBcD1234aBcD1234',
@@ -38,5 +42,27 @@ describe('cartReadInputSchema', () => {
   it('requires a cart id', () => {
     expect(cartReadInputSchema.safeParse({ cartId: 'abc', signinToken: null }).success).toBe(true);
     expect(cartReadInputSchema.safeParse({ cartId: null, signinToken: null }).success).toBe(false);
+  });
+});
+
+describe('removeCartItemInputSchema', () => {
+  const valid = { cartId: 'abc', signinToken: null, itemUid: 'MTIzNDU=' };
+
+  it('accepts a cart id and a Magento cart item uid (base64)', () => {
+    expect(removeCartItemInputSchema.safeParse(valid).success).toBe(true);
+    expect(
+      removeCartItemInputSchema.safeParse({ ...valid, signinToken: 'a.b.c', itemUid: 'NQ' })
+        .success,
+    ).toBe(true);
+  });
+
+  it.each([
+    ['a missing cart id', { ...valid, cartId: null }],
+    ['an empty uid', { ...valid, itemUid: '' }],
+    ['a uid with markup', { ...valid, itemUid: '<script>' }],
+    ['an oversized uid', { ...valid, itemUid: 'A'.repeat(257) }],
+    ['a numeric uid', { ...valid, itemUid: 12345 }],
+  ])('rejects %s', (_label, input) => {
+    expect(removeCartItemInputSchema.safeParse(input).success).toBe(false);
   });
 });
