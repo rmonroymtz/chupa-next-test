@@ -605,6 +605,39 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     edit surface), so the streamed PDP loading state is not yet on the grid.
   - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 128 files / 1186 tests pass;
     integration 7 files / 102 tests pass; build pass; Playwright measure as above.
+- [x] T11b Header desktop switch at 1160 like the PWA (user, 2026-10-19: "Desktop desde 1160", reverses the T5 1024
+  switch; cart paths `mini-cart.client.tsx` + its test approved for the edit surface). Route: delegated (writer
+  trigger: 2+ non-trivial files).
+  - PWA source (`CHUP-redesign`): `wrapUseHeader.js` `MOBILE_BREAKPOINT = 1160`; `header.module.css`, `navTrigger`,
+    `accountTrigger`, `cartTrigger`, `SignInButton` all switch at `min-width: 1160px`. Below it the tablet header:
+    hamburger + "Categorías" label (from 768), centered 125px logo, icon-only actions, pills on their own centered
+    row. Header side padding 20 / 32 (768) / 90 (1160). The search bar has no breakpoint (15px), so the Next 16 → 13px
+    input switch at 1024 (T5 iOS zoom deviation) is not tied to the header switch and stays.
+  - One definition: Tailwind `--breakpoint-desktop: 72.5rem` (`desktop:` variant, `globals.css`) and
+    `DESKTOP_MEDIA_QUERY` (`src/shared/ui/breakpoints.ts`), checked against each other by a structural test. Header,
+    drawer button + placeholder, drawer auto-close (`matchMedia`), categories dropdown + placeholder, "Mi cuenta",
+    "Carrito" label/count and the mini-cart trigger/dropdown use it (the cart's `min-[1160px]` literals and
+    `DROPDOWN_QUERY` literal are gone). Page grid unchanged. New `header-padded` utility = the grid container with the
+    PWA 32px between 1024 and 1160 (header only); 768–1023 keeps the T1 30px (PWA header 32px there, left as is).
+  - Test-first: RED = 6 failing tests + 1 file failing at import (`breakpoints.ts` missing); GREEN = 87/87 in the
+    touched files. Changed assertions: `site-header.test.tsx` label class `max-lg:sr-only` → `max-desktop:sr-only`;
+    breakpoint test now also forbids `lg:`/`max-lg:` in the header and requires `desktop:`; row-1 test drawer/dropdown
+    closest `.lg:hidden`/`.hidden.lg:block` → `desktop:`; `nav-drawer.test.tsx` auto-close query `(min-width: 1024px)`
+    → `(min-width: 1160px)`; `mini-cart.client.test.tsx` count parens `lg:before/after` → `desktop:`, link/container
+    `min-[1160px]:hidden/flex` → `desktop:hidden/flex`. Added `tests/unit/shared/ui/breakpoints.test.ts`.
+  - Measured (Playwright, `/search.html?query=taladro&store=amazon`): `scrollWidth === innerWidth` at 375, 1024,
+    1159, 1160, 1440; pill track 454/454 (no in-row scroll) at 1024, 1159, 1160, 1440 (375: 413/335, scrolls as T11).
+    1024 Next vs PWA: tablet header in both (hamburger + "Categorías", centered logo 125px at x 457 vs 472, icon-only
+    actions, pills second row at x 285 in both, y 98 vs 87; header 165 vs 167px; content edge 32 in both). 1159 the
+    same tablet header; 1160 and 1440 the desktop bar (logo x 90 width 136 in both, labels shown). Drawer opens at 1024
+    and closes (body overflow restored) when resized to 1160. Screenshots `visual/header-<width>-next-t11b.png` and
+    `header-{1024,1440}-pwa-t11b.png`.
+  - Remaining differences (not in scope, T5 decisions): tablet bar vertical rhythm (PWA 16px bar padding, Next 12px),
+    PWA tablet icons larger, desktop pill track x 540 vs 508 and search row y 111 vs 126 (PWA 1440 shows "Iniciar
+    sesión" instead of "Mi cuenta", different action widths).
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 129 files / 1187 tests pass;
+    integration 7 files / 102 tests pass; build pass (its "Invalid media query" CSS warning comes from the literal
+    `min-[…]:flex` in this document's T9 entry, which Tailwind scans; pre-existing).
 
 ## Delivery strategy
 
@@ -702,3 +735,6 @@ lines in total.
   in-track scroll, dropdown already at the PWA 14px text); all required checks green. Open: Acme pill hidden at 1024
   (switch at 1160 or accept the scroll) and the PDP skeleton container. Work-unit commit on
   `feat/ds-11-layout-parity` (from `main` `6c56be6`, not pushed).
+- 2026-10-19: T11b done (user: "Desktop desde 1160"): one shared 1160 `desktop` breakpoint for the header, drawer,
+  dropdown, account/cart labels and mini cart; tablet header up to 1159 as the PWA; header 32px margins at
+  1024–1159; all required checks green. Work-unit commit on `feat/ds-11-layout-parity` (after `dfc22e0`, not pushed).

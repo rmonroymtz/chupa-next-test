@@ -9,7 +9,7 @@ export function CategoriesDropdownPlaceholder() {
   return (
     <span
       aria-hidden="true"
-      className="invisible hidden h-10 shrink-0 items-center gap-1.5 text-body-md font-semibold whitespace-nowrap lg:inline-flex"
+      className="invisible hidden h-10 shrink-0 items-center gap-1.5 text-body-md font-semibold whitespace-nowrap desktop:inline-flex"
     >
       <Icon name="menu" size={18} />
       Categorías

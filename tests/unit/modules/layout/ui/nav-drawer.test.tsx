@@ -94,7 +94,7 @@ describe('NavDrawer', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('closes and restores the page scroll when the viewport reaches 1024', () => {
+  it('closes and restores the page scroll when the viewport reaches 1160 (the desktop header)', () => {
     const listeners = new Set<(event: { matches: boolean }) => void>();
     const query = {
       matches: false,
@@ -109,7 +109,7 @@ describe('NavDrawer', () => {
     vi.stubGlobal('matchMedia', matchMedia);
     try {
       const { trigger, dialog } = openDrawer();
-      expect(matchMedia).toHaveBeenCalledWith('(min-width: 1024px)');
+      expect(matchMedia).toHaveBeenCalledWith('(min-width: 1160px)');
       expect(listeners.size).toBe(1);
 
       act(() => listeners.forEach((fn) => fn({ matches: false })));

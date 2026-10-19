@@ -44,11 +44,11 @@ describe('SiteHeader', () => {
     expect(within(home).getByRole('img', { name: 'Chupaprecios' })).toBeTruthy();
     // DS actions: "Mi cuenta" keeps the sign-in target; the mobile drawer keeps its own entry.
     const account = within(banner).getByRole('link', { name: 'Mi cuenta' });
-    // One line at 1024 (the desktop switch): the label never wraps (`not-sr-only`
-    // would reset `white-space: normal`, so the label is only hidden below 1024).
+    // One line from 1160 (the desktop switch): the label never wraps (`not-sr-only`
+    // would reset `white-space: normal`, so the label is only hidden below 1160).
     const label = within(account).getByText('Mi cuenta');
     expect(label.className.split(' ')).toEqual(
-      expect.arrayContaining(['whitespace-nowrap', 'max-lg:sr-only']),
+      expect.arrayContaining(['whitespace-nowrap', 'max-desktop:sr-only']),
     );
     expect(label.className).not.toContain('not-sr-only');
     expect(account.getAttribute('href')).toBe('/sign-in');
@@ -115,13 +115,16 @@ describe('SiteHeader', () => {
     expect(new FormData(search).getAll('store')).toEqual(['ebay']);
   });
 
-  it('uses only the DS 768/1024 breakpoints in the header rows', () => {
+  it('uses only the DS 768 breakpoint and the 1160 desktop switch in the header', () => {
     renderHeader();
     const banner = screen.getByRole('banner');
     const classes = [banner, ...banner.querySelectorAll('*')]
       .filter((element) => !element.closest('nav, dialog'))
       .flatMap((element) => (element.getAttribute('class') ?? '').split(/\s+/));
     expect(classes.filter((name) => /^(sm|xl|2xl):/.test(name))).toEqual([]);
+    // The header switches at 1160 like the PWA (`MOBILE_BREAKPOINT`), never at 1024.
+    expect(classes.filter((name) => /(^|:)(max-)?lg:/.test(name))).toEqual([]);
+    expect(classes.some((name) => name.startsWith('desktop:'))).toBe(true);
   });
 
   it('the header logo is the DS wordmark (brand purple text, not black)', () => {
@@ -146,9 +149,9 @@ describe('SiteHeader', () => {
     expect(follows(drawerButton!, logo)).toBe(true);
     expect(follows(logo, dropdownButton!)).toBe(true);
     expect(follows(dropdownButton!, pills)).toBe(true);
-    // Below 1024 the drawer, from 1024 the dropdown.
-    expect(drawerButton!.closest('.lg\\:hidden')).not.toBeNull();
-    expect(dropdownButton!.closest('.hidden.lg\\:block')).not.toBeNull();
+    // Below 1160 the drawer, from 1160 the dropdown.
+    expect(drawerButton!.closest('.desktop\\:hidden')).not.toBeNull();
+    expect(dropdownButton!.closest('.hidden.desktop\\:block')).not.toBeNull();
   });
 
   it('no longer renders the horizontal megamenu or the <details> drawer', () => {
