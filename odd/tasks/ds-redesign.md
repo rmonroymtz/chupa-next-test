@@ -638,6 +638,68 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
   - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 129 files / 1187 tests pass;
     integration 7 files / 102 tests pass; build pass (its "Invalid media query" CSS warning comes from the literal
     `min-[…]:flex` in this document's T9 entry, which Tailwind scans; pre-existing).
+  - Review (2026-10-19): T11 + T11b range (400 lines, medium, `slice_budget_reached`), user granted; reliability
+    lens approved and acknowledged (lineage `review-3449d4c49024ca49`). Advisory: WARNING `R3-store-track-scroll`
+    (`search-form.module.css:22-23`, pill row scrolls with a hidden scrollbar; the PWA overflows the page instead),
+    SUGGESTION `R3-skeleton-untested`. Merged in PR #36 (`386676f`).
+- [x] T12 DS polish (user, 2026-10-19: "dale"). Route: delegated (writer trigger: 2+ non-trivial files). Scope:
+  1. Footer "Formas de pago" heading above the payment logos, as the PWA `CHUP-redesign` source (copy, level,
+     type and spacing from the source).
+  2. Tests from the review suggestions: product loading skeleton on the page grid (T11 `R3-skeleton-untested`);
+     carousel effect cleanup, reduced-motion listener and skeleton `loop` flag (T9 suggestions; fix the skeleton
+     flag only if it really differs from the loaded carousel).
+  3. Stop Tailwind from scanning `odd/**` (the "Invalid media query" build warning).
+  Out of scope: account/cart label sizes and red cart label (needs a user decision), the hidden-scrollbar pill row
+  warning (PWA overflows instead; needs a decision), header padding/x differences listed in T11b.
+  Check: RED/GREEN for the new tests, typecheck/lint/test/integration/build with no CSS warning, footer screenshot
+  at 375/1440 vs localhost:10000.
+  - Files: `src/modules/layout/ui/site-footer.tsx`, `src/app/globals.css`; tests
+    `tests/unit/modules/layout/ui/site-footer.test.tsx`, `tests/unit/modules/product/ui/product-skeleton.test.tsx`
+    (new), `tests/unit/modules/recommendations/ui/product-carousel.client.test.tsx`,
+    `tests/unit/modules/recommendations/recommendation-sliders.test.tsx`.
+  - Footer: the payment logos list now sits in a `FooterColumn` titled "Formas de pago" (live PWA
+    `overrides/.../Footer/footer.js` `.col` + `.colTitle`: 16px bold inverse, 8px bottom margin, 8px column gap,
+    logos 4px top margin). Copy without the colon as the live PWA footer (the DS organism story has "Formas de
+    pago:"). Kept `h2` like every other Next footer title (T3); the PWA uses `h3` for all of them.
+  - Skeleton `loop` (verified, no code change): the skeleton passes 5 slides, so `loop` is false; the PWA loading
+    carousel counts its children (none while loading), also false. The loaded carousel loops only past 5 cards in
+    both. Same behavior, now pinned by a test.
+  - Tailwind: `@source not '../../odd'` in `globals.css` (Tailwind 4.3.3; `@source not` exists since 4.1).
+  - Test-first: RED = footer heading list + new "Formas de pago" test (2 failing); GREEN after the column. The
+    skeleton container, reduced-motion change, unmount cleanup and skeleton loop tests pin existing behavior and
+    passed on first run; a temporary mutation (dropping the reInit `off` and the media `change` listener) made the
+    reduced-motion and cleanup tests fail, then the source was restored. Changed assertion: the footer `h2` list
+    gains "Formas de pago" (new heading). The sliders test now mocks `embla-carousel-react` with a recorder that
+    returns no API (as on the server), so the existing SSR assertions are unchanged.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 130 files / 1193 tests pass;
+    integration 102 tests pass; build pass with no CSS or "Invalid media query" warning (dev server still 200).
+    Playwright vs localhost:10000, heading at 375 and 1440: 16px / 700 / 24px line height / white / 8px margin,
+    20px from the heading to the logos, 22px logos, identical to the PWA; x 1032 vs 1036 at 1440 (1260 vs 1280
+    container, known contradiction). Screenshots `footer-{375,1440}-{next,pwa}-t12.png` in the session scratchpad.
+- [x] T12b Footer content as the live PWA footer (user, 2026-10-19: "sí, iguala el footer a la PWA"; overrides the
+  "keep the real site content" constraint for the footer). Source: `CHUP-redesign`
+  `src/overrides/@magento/venia-ui/lib/components/Footer/footer.js`, checked live on localhost:10000. Route: inline
+  (two mechanical files, content already mapped). Kept as decided: `h2` titles and the 1260 container.
+  - Changes (`footer-content.ts`, `site-footer.tsx`): "Preguntas Frecuentes (FAQ)"; the "Facturación" link removed
+    (absent from the PWA footer), then restored by user decision (2026-10-19: "regresalo"; the only intentional
+    footer content difference besides the Spanish copyright); "Redes sociales"; no "Horario:" label; phone in regular weight (still a `tel:`
+    link, the PWA shows plain text); office titles without colons; addresses "Col. Otay Constituyentes",
+    "C.P. 22457 Tijuana, BC.", "...Oficina 01A-129" without the trailing "Col."; payment logos as the PWA
+    `PAYMENTS`: Visa, Mastercard, PayPal, OXXO, American Express, SPEI (Mercado Pago and Kueski no longer rendered,
+    their assets kept).
+  - Kept on purpose: the copyright stays Spanish ("todos los derechos reservados"): the PWA hardcodes the English
+    "all rights reserved" with no i18n message anywhere in its history, an untranslated string on a Spanish site.
+    Accessibility text stays ("Sello de confianza AMVO" alt, the new-tab notes); the PWA PayPal logo renders 22px
+    wide vs ours 46px (asset difference, not content).
+  - Test-first: RED = 5 failing footer tests (headings, FAQ link, new links/phone-weight test, hours and
+    addresses, payment set and order); GREEN after the content change. Changed assertions: heading list (two
+    colons dropped, "Redes sociales"), FAQ label and the removed `/facturacion` href, hours test now asserts no
+    "Horario" and the exact address lines, payment list without Mercado Pago/Kueski in the PWA order.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 130 files / 1194 tests pass;
+    integration 7 files / 102 tests pass; build pass, no warnings (dev server still 200). Playwright at 375 and
+    1440: footer text equal to the PWA except the copyright line; same images in the same order; footer height
+    1282 vs 1281 (375) and 696 vs 693 (1440); phone weight 400 in both. Screenshots
+    `footer-{375,1440}-{next,pwa}-t12b.png` in the session scratchpad.
 
 ## Delivery strategy
 
@@ -738,3 +800,10 @@ lines in total.
 - 2026-10-19: T11b done (user: "Desktop desde 1160"): one shared 1160 `desktop` breakpoint for the header, drawer,
   dropdown, account/cart labels and mini cart; tablet header up to 1159 as the PWA; header 32px margins at
   1024–1159; all required checks green. Work-unit commit on `feat/ds-11-layout-parity` (after `dfc22e0`, not pushed).
+- 2026-10-19: T12 done: footer "Formas de pago" heading as the live PWA footer, review-suggestion tests (PDP
+  skeleton on the page grid, carousel listener cleanup, reduced-motion change, skeleton loop matches the PWA),
+  Tailwind no longer scans `odd/**` (no build CSS warning). All required checks green. Work-unit commit on
+  `feat/ds-12-polish` (from `main` `386676f`, not pushed).
+- 2026-10-19: T12b done (user: "sí, iguala el footer a la PWA"): footer copy, links and payment logos as the live
+  PWA footer; Spanish copyright kept (the PWA one is untranslated). All required checks green. Work-unit commit on
+  `feat/ds-12-polish` (after `5477b98`, not pushed).

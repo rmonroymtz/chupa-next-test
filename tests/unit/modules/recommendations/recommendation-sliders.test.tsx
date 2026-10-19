@@ -11,6 +11,15 @@ import {
   type RecommendationsLoader,
 } from '@/modules/recommendations/ui/recommendation-sliders';
 
+/** Records the embla options of every carousel; on the server embla never starts (no API). */
+const emblaOptions = vi.hoisted(() => [] as { loop?: boolean }[]);
+vi.mock('embla-carousel-react', () => ({
+  default: (options: { loop?: boolean }) => {
+    emblaOptions.push(options);
+    return [() => {}, undefined];
+  },
+}));
+
 const card = (sku: string, overrides: Partial<RecommendedProduct> = {}): RecommendedProduct => ({
   uid: `amazon-${sku}`,
   sku,
@@ -131,6 +140,19 @@ describe('RecommendationSliders', () => {
       ]),
     );
     expect(loading?.querySelectorAll('button[disabled]')).toHaveLength(2);
+  });
+
+  it('never loops the skeleton (5 slides fit), as the PWA loading carousel; the loaded one loops past 5', async () => {
+    emblaOptions.length = 0;
+    renderToStaticMarkup(<RecommendationSliders load={() => new Promise(() => {})} />);
+    expect(emblaOptions.map((options) => options.loop)).toEqual([false, false, false]);
+
+    emblaOptions.length = 0;
+    const six = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6'].map((sku) => card(sku));
+    await renderAll(loaderOf({ tendency: six, also_bought: six.slice(0, 5) }));
+    const rendered = document.querySelectorAll('[data-recommendation] [data-carousel-viewport]');
+    expect(rendered).toHaveLength(2);
+    expect(emblaOptions.slice(-2).map((options) => options.loop)).toEqual([true, false]);
   });
 
   it('renders each slider as the PWA embla carousel: server-rendered cards in the viewport, arrows', async () => {

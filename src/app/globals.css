@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /*
+ * The ODD task documents (`odd/**`) quote class names in prose, and Tailwind
+ * would scan them as sources (an elided arbitrary variant there produced an
+ * "Invalid media query" build warning). They are not UI: never scan them.
+ */
+@source not '../../odd';
+
+/*
  * Design system (DS) tokens, ported 1:1 from the PWA's canonical spec
  * `chupaprecios-pwa/src/designSystem/tokens.js` (System Design v3.0, "the
  * fidelity contract"). Do not copy the generated `tokens.css`: its font

@@ -11,31 +11,59 @@ const footer = () => {
 };
 
 describe('SiteFooter', () => {
-  it('is the contentinfo landmark with the legacy section headings', () => {
+  it('is the contentinfo landmark with the PWA footer section headings', () => {
     const headings = within(footer())
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent);
     expect(headings).toEqual([
       'Centro de ayuda',
-      'Redes Sociales',
+      'Redes sociales',
       'Conócenos',
       'Atención a clientes',
-      'Oficina central:',
-      'Centro de desarrollo tecnológico:',
+      'Oficina central',
+      'Centro de desarrollo tecnológico',
+      'Formas de pago',
     ]);
+  });
+
+  it('titles the payment logos "Formas de pago" right above them, as the PWA footer', () => {
+    const list = within(footer()).getByRole('list', { name: 'Métodos de pago' });
+    const heading = list.previousElementSibling;
+    // PWA `.col`: column title (16px bold inverse, 8px bottom margin) then the logos, 8px gap.
+    expect(heading?.tagName).toBe('H2');
+    expect(heading?.textContent).toBe('Formas de pago');
+    expect(heading?.className.split(' ')).toEqual(
+      expect.arrayContaining(['text-body-lg', 'font-bold', 'text-ds-text-inverse', 'mb-2']),
+    );
+    expect(heading?.parentElement?.className.split(' ')).toEqual(
+      expect.arrayContaining(['flex', 'flex-col', 'gap-2']),
+    );
   });
 
   it('links the legacy pages with plain relative anchors', () => {
     const root = footer();
     const href = (name: string) => within(root).getByRole('link', { name }).getAttribute('href');
 
-    expect(href('Preguntas Frecuentes FAQ')).toBe('/preguntas-frecuentes');
+    expect(href('Preguntas Frecuentes (FAQ)')).toBe('/preguntas-frecuentes');
     expect(href('Facturación')).toBe('/facturacion');
     expect(href('Acerca de Chupaprecios')).toBe('/acerca-de-chupaprecios');
     expect(href('Términos y Condiciones')).toBe('/terminos-y-condiciones');
     expect(href('Política de Privacidad')).toBe('/aviso-privacidad');
     expect(href('Propiedad Intelectual')).toBe('/propiedad-intelectual');
     expect(href('(+52) 664 311 9682')).toBe('tel:+526643119682');
+  });
+
+  it('lists the help links (PWA FAQ plus the kept Facturación link) and keeps the phone in regular weight', () => {
+    const root = footer();
+    const help = within(root).getByRole('heading', { name: 'Centro de ayuda' }).nextElementSibling;
+    expect(
+      within(help as HTMLElement)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Preguntas Frecuentes (FAQ)', 'Facturación']);
+    const phone = within(root).getByRole('link', { name: '(+52) 664 311 9682' });
+    expect(phone.className).not.toContain('font-semibold');
+    expect(phone.className).not.toContain('font-bold');
   });
 
   it.each([
@@ -64,18 +92,27 @@ describe('SiteFooter', () => {
     expect(glyph?.getAttribute('viewBox')).toBe('0 0 24 24');
   });
 
-  it('keeps the customer service hours and both office addresses', () => {
+  it('keeps the customer service hours (no "Horario:" label) and both office addresses as the PWA', () => {
     const root = footer();
-    expect(root.textContent).toContain('Lunes a Sábados: 08:00 a 17:00 (hora del Pacífico)');
-    expect(root.textContent).toContain('Horario:');
-    expect(root.textContent).toContain('Domingo: Cerrado');
-    const addresses = Array.from(root.querySelectorAll('address')).map((a) => a.textContent);
-    expect(addresses).toEqual([
-      expect.stringContaining('Calle Centro Comercial 17206'),
-      expect.stringContaining('Calle Montes Urales - Virreyes 424, Oficina 01A-129 Col.'),
+    const service = within(root).getByRole('heading', { name: 'Atención a clientes' })
+      .nextElementSibling as HTMLElement;
+    expect([...service.querySelectorAll('li')].map((li) => li.textContent)).toEqual([
+      'Atención telefónica: (+52) 664 311 9682',
+      'Lunes a Sábados: 08:00 a 17:00 (hora del Pacífico)',
+      'Domingo: Cerrado',
     ]);
-    expect(addresses[0]).toContain('C.P 22457 Tijuana, BC.');
-    expect(addresses[1]).toContain('C.P. 11000, Ciudad de México, CDMX.');
+    expect(root.textContent).not.toContain('Horario');
+    const addresses = Array.from(root.querySelectorAll('address')).map((address) =>
+      [...address.querySelectorAll('li')].map((li) => li.textContent),
+    );
+    expect(addresses).toEqual([
+      ['Calle Centro Comercial 17206', 'Col. Otay Constituyentes', 'C.P. 22457 Tijuana, BC.'],
+      [
+        'Calle Montes Urales - Virreyes 424, Oficina 01A-129',
+        'Lomas de Chapultepec V Sección, Miguel Hidalgo',
+        'C.P. 11000, Ciudad de México, CDMX.',
+      ],
+    ]);
   });
 
   it('shows the wordmark and the AMVO seal with text alternatives', () => {
@@ -88,17 +125,15 @@ describe('SiteFooter', () => {
     ).toContain('amvo-white.svg');
   });
 
-  it('lists the payment methods with text alternatives, greyed out as in the DS', () => {
+  it('lists the PWA payment methods in its order with text alternatives, greyed out as in the DS', () => {
     const list = within(footer()).getByRole('list', { name: 'Métodos de pago' });
     const logos = within(list).getAllByRole('img');
     expect(logos.map((img) => img.getAttribute('alt'))).toEqual([
       'Visa',
       'Mastercard',
       'PayPal',
-      'American Express',
-      'Mercado Pago',
-      'Kueski Pay',
       'OXXO',
+      'American Express',
       'SPEI',
     ]);
     for (const logo of logos) {
