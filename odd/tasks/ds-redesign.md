@@ -941,3 +941,9 @@ lines in total.
   - Checks: typecheck pass; lint pass (0 errors, 1 known warning); unit 130 files / 1200 tests pass; integration
     7 files / 102 tests pass; build pass, no warnings.
 - 2026-10-19: T14b done (user: "dale"): ChupaChoice logo and price rows wrap on phones; no horizontal overflow.
+- 2026-10-19: search input focus showed two lines (user: "se ve una doble linea cuando esta activo y en
+  localhost:10000 solo se ve 1"): the pill turned its border red and also drew a 2px outline 2px outside it. Now as
+  the PWA `.search:focus-within`: only the border turns #D84752 and the fill white, no outline ring (the submit
+  button keeps its own keyboard focus outline). RED: new search-form CSS test failed, then GREEN. Checks: typecheck,
+  lint (1 known warning), unit 1198, integration 102, build pass; Playwright on the dev server: focused pill outline
+  none, border 1px rgb(216, 71, 82). Route: inline (one CSS rule and its test).

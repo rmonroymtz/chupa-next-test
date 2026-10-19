@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SearchForm } from '@/modules/layout/ui/search-form';
@@ -69,5 +71,14 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
       ['Target', '72', '16'],
       ['Acme', '50', '5'],
     ]);
+  });
+
+  it('focus shows one line: the pill border turns red, no extra outline ring (PWA `.search:focus-within`)', () => {
+    const css = readFileSync(join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'), 'utf8');
+    const rule = /\.field:focus-within\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toContain('border-color: var(--color-ds-focus)');
+    expect(rule).toContain('background-color: var(--color-ds-surface)');
+    expect(rule).not.toContain('outline:');
+    expect(css).not.toMatch(/\.field:has\(\.input:focus-visible\)/);
   });
 });
