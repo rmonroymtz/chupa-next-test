@@ -1,7 +1,7 @@
 # DS redesign — port the chupaprecios-pwa design system
 
-Status (2026-10-18): T1 (`a815c0e`) and T2 (`6e1f382`) done, reviews approved, not pushed; T3 done (not pushed);
-T4 next.
+Status (2026-10-18): T1 (`a815c0e`), T2 (`6e1f382`) and T3 (`569f972`) done, reviews approved, not pushed; T4 done
+(not pushed); T5 next.
 
 ## Objective
 
@@ -148,7 +148,38 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     Mercado Pago are wide marks and render small under the DS 46px cap.
   - Commit: the T3 work-unit commit `feat(layout): rebuild the footer on the design system` on `feat/ds-03-footer`
     (hash recorded in the next Progress line).
-- [ ] T4 Promo bar (rotating, pause on hover, reduced motion, static fallback). Check: unit + visual.
+- [x] T4 Promo bar (rotating, pause on hover, reduced motion, static fallback). Check: unit + visual.
+  - Route: delegated, writer trigger 2+ non-trivial files. Test-first: RED = 2 test files failing (modules
+    `@/modules/promo-bar/{infrastructure,ui}/*` not found; the 2 domain predicate tests were written with the type
+    file and passed directly), GREEN = 3 files / 15 tests. The integration `expectLayout` assertion (promo region
+    before `<header`, first slide text) was added together with the mount, not observed RED.
+  - Files: `src/modules/promo-bar/domain/promo-bar.ts` (slide/content types, `hasPromoContent`),
+    `src/modules/promo-bar/infrastructure/default-promo-bar-content.ts` (`getPromoBarContent()`, the 4 slides of the
+    Magento `top-banner-slider` block verbatim, interval 5000), `src/modules/promo-bar/ui/{promo-bar.tsx,
+    promo-slide.tsx,promo-bar-rotator.client.tsx}`, `src/app/layout.tsx` (mounted above `SiteHeaderContainer`),
+    `tests/unit/modules/promo-bar/{domain,infrastructure,ui}/*`, `tests/integration/layout.test.ts`.
+  - Decisions: static content only behind `getPromoBarContent()` (no `PROMO_BAR_ENDPOINT`/fetch: the API does not
+    exist; a future source only changes that function). Slides render on the server (`PromoBar`, `PromoSlide` with
+    `next/image` for the Kueski logo, `public/images/layout/payments/kueski.svg`, 16px high); only the rotation is a
+    client component receiving the rendered slides. All slides are stacked in one grid cell (`[grid-area:1/1]`) so
+    the bar keeps the tallest slide's height and never shifts the page while rotating; inactive slides are
+    `invisible opacity-0`, `aria-hidden` and `inert`; crossfade 400ms (DS `promoFade` 0.4s), `motion-reduce:
+    transition-none`. Rotation via one `setTimeout` per slide; paused while hovered or while focus is inside;
+    reduced motion is the initial (server) state, so no timer runs until `matchMedia` says otherwise, and none for a
+    single slide. `aria-live="off"` always (the DS has no controls). Region `<section aria-label="Promociones">`
+    (the DS uses "Avisos" with `aria-live="polite"`, which announces every rotation). Type `text-caption` (12/16, as
+    the brief; the DS CSS uses 14/20), `text-ds-text` #3B3B3B, `bg-ds-surface`, bottom `border-ds-border`, centered;
+    `container-padded py-2` (the container's 20px mobile margin is the DS 20 side padding, no double padding).
+    Not ported: the PWA hides the bar on `/checkout` (no checkout pages in Next).
+  - Known gap (WCAG 2.2.2 Pause, Stop, Hide): the bar auto-updates with no explicit pause control (the DS molecule
+    has none); hover/focus pause and reduced motion only partly cover it. Needs a product decision (e.g. a small
+    pause button) before calling it conformant.
+  - Checks: typecheck pass; lint pass (0 errors, 1 pre-existing warning); unit 116 files / 1091 tests pass;
+    integration 7 files / 102 tests pass; build pass (`duration-400`, `grid-area:1/1`, `text-caption` in the built
+    CSS); dev server `/aviso-privacidad` 200 with the promo region markup. Visual check on the dev server pending
+    (user): bar height on mobile (tallest slide wraps), Kueski logo size inline.
+  - Commit: the T4 work-unit commit `feat(promo-bar): add the rotating promo bar above the header` on
+    `feat/ds-04-promo-bar` (hash recorded in the next Progress line).
 - [ ] T5 Header + search with StoreSelector pills (two rows, Figma Make spec). Check: unit/integration + visual.
 - [ ] T6 Categories dropdown (two panels, desktop) + light drawer (< 1024). Check: unit/integration + visual.
 - [ ] T7 Account panel + mini-cart restyle (head, footer with subtotal + "Ir a pagar"). Check: unit + visual.
@@ -179,3 +210,12 @@ lines in total.
   R3-disabled-link-onclick (`src/shared/ui/button.tsx:144-149` spreads the caller `onClick` on a disabled/loading link).
 - 2026-10-18: T3 done (DS footer, social glyphs in the DS Icon catalog, chupacredit/estafeta assets, disabled
   link `onClick` fix); all checks green, visual check pending.
+- 2026-10-18: T3 commit `569f972` on `feat/ds-03-footer` (stacked on T2, not pushed). Assessed high (path match
+  `payments/chupacredit.svg`); user granted review; four-lens native review approved and acknowledged (lineage
+  `review-a3ba6a0b2adbb8f9`), suggestions only (follow-ups, not blocking): R2-001 stale `icon-catalog.ts` header
+  comment (counts), R2-002 comment why the fourth footer column stacks service/offices/payments, R2-003 compose footer
+  link classes with `cx`, R3-footer-social-icon-unproven (assert Instagram icon too), R3-disabled-link-click-nav
+  (Enter on href-less anchor not exercised; unreachable).
+- 2026-10-18: T4 done (rotating DS promo bar above the header, static content from the Magento block, server-rendered
+  slides, pause on hover/focus, reduced motion); all checks green, visual check pending; WCAG 2.2.2 pause control
+  open for a product decision.
