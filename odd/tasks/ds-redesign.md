@@ -868,3 +868,57 @@ lines in total.
   the wrapper keeps the id, `aria-controls` target, `aria-hidden`/`inert` and the fade. RED: the mini-cart panel test
   (region must not be the zero-height wrapper) failed, then GREEN. Checks: typecheck, lint (1 known warning), unit
   1197, integration 102, e2e local 3/3 (includes a production build). Route: inline (one component and its test).
+- [x] T14 Product listing grid exactly as the redesigned PWA on localhost:10000 (user, 2026-10-19: "vamos con que sea
+  igual a la PWA de localhost:10000"; closes the T8 `para-UX` 2/4 vs DS 2/5/5 question in favor of the PWA). Route:
+  delegated (writer trigger: 2+ non-trivial files). Scope: measure the PWA listing (search page; its category menu
+  links to search) at 375/640/768/1024/1160/1280/1440 — columns, column and row gaps, card width, the filters
+  column (width, gap, breakpoint where it appears) and results header — and match Next's search and category
+  listings. Known gap from the 2026-10-19 review: at 1024 Next shows a 240px filter column that squeezes cards to
+  174px (PWA 250px). Check: RED/GREEN on grid/filter classes, typecheck/lint/test/integration/build, Playwright
+  measurements Next vs PWA at every width, no horizontal overflow.
+  - Route: delegated (writer trigger). Test-first: RED = 2 new search view tests failing (filter column not 280px
+    with a 16px gap from 1025px, no stacked state at 1024, no capped scroll box; controls row inside the results
+    column instead of above both columns); GREEN = all pass. No existing assertion changed.
+  - PWA sources (`CHUP-redesign`): `Gallery/gallery.module.css` grid 4 columns, 2 below 800px (`-md`), gaps 16/32,
+    8/24 below 1280px (`-xl`); `SearchPage/searchPage.module.css` controls row above `mainContent`, sidebar column
+    280px + 16px gap, `max-width: 1024px` stacks the sidebar after the results; `.sidebar` hidden, shown from `lg`
+    (ch-theme 1024px), sticky top 32px with max height viewport minus 4rem and its own scroll. Below 1024 the
+    "Filtrar" modal button replaces it (Next keeps its "Filtrar" disclosure).
+  - Change: `search-page.tsx` moves the count/sort/"Filtrar" row above the filter column and results, and the
+    two-column layout is a flex column (gap 16) that becomes the 280px + 1fr grid from 1025px;
+    `search-filters.tsx` sidebar is ordered after the results until 1025px, then the left column, top aligned,
+    capped at viewport height minus 4rem with its own scroll. Not sticky: the live PWA `.sidebar` never sticks
+    (scrolled 1500px at 1440 it sits at y -237), and a 32px sticky top would hide it under Next's sticky header.
+    `ProductGrid` (2/4 at 800, 8/24 to 16/32 at 1280) already matched the PWA: unchanged. Category: the PWA has no
+    category listing (`/computo.html` renders its error page; the menu links to ChupaChoice search), and the Next
+    category already uses the same `ProductGrid` without filters: unchanged. ChupaChoice grid (2/3/6, gaps
+    10/16 then 22/30) matches the PWA `productList` columns and gaps at all seven widths: unchanged.
+  - Measured on `/search.html?query=taladro&store=amazon` (columns, column/row gap, card width; filter column):
+    | Width | PWA | Next before | Next after |
+    |---|---|---|---|
+    | 375 | 2, 8/24, 183.5 (overflows, scrollWidth 433); "Filtrar" button | 2, 8/24, 163.5; disclosure | same as before |
+    | 640 | 2, 8/24, 316 (scrollWidth 680) | 2, 8/24, 296 | same |
+    | 768 | 2, 8/24, 380 (scrollWidth 828) | 2, 8/24, 350 | same |
+    | 1024 | 4, 8/24, 250 (scrollWidth 1204); filters stacked below results, full width | 4, 8/24, 137; 240px column, gap 32 | 4, 8/24, 205; filters stacked below results, 844 wide |
+    | 1160 | 4, 8/24, 210; 280 + 16 (scrollWidth 1340) | 4, 8/24, 171; 240 + 32 | 4, 8/24, 165; 280 + 16 |
+    | 1280 | 4, 16/32, 229; 280 + 16 | 4, 16/32, 195; 240 + 32 | 4, 16/32, 189; 280 + 16 |
+    | 1440 | 4, 16/32, 229; 280 + 16, sidebar x 90, grid x 386 | 4, 16/32, 235; 240 + 32 | 4, 16/32, 229; 280 + 16, sidebar x 90, grid x 386 |
+    Edge probes (PWA): 2 columns at 799, 4 at 800; 8/24 at 1279; stacked filters at 1023 hidden and at 1024
+    shown below; two columns from 1025. Card widths differ below 1260 only because the PWA `container-padded`
+    is `content-box` with `width: 100%`, so its content is as wide as the viewport and overflows by the side
+    margins (not copied: Next keeps `scrollWidth` equal to the viewport at every width). Filter column height at
+    a 900px viewport 836 in both. Screenshots `visual/grid-<width>-<next|pwa>-t14.png`.
+  - Results header (measured, not changed): PWA row with top/bottom border spanning the page; below 1280 it holds
+    "Filtrar" (below 1024), grid/list view toggles and "Ordenar", the h1 "Resultados (N productos)" is sr-only;
+    from 1280 "Mostrando resultados para <query>" left, toggles and "Ordenar por Destacados" right, and the h1
+    shows above the grid in the results column. Next: h1 "Resultados para «query»" above, then the count
+    ("N productos en esta página"), the sort select and the "Filtrar" disclosure; now above both columns as the PWA.
+    Matching copy, toggles and h1 placement is an open decision (content, not grid).
+  - Out of scope noted: Next ChupaChoice search at 375 has scrollWidth 466 (overflow not from the listing grid;
+    the PWA there is 433), the filter internals (Next column 2260px tall when stacked at 1024 vs PWA 1000).
+  - Checks: typecheck pass; lint pass (0 errors, 1 known warning); unit 130 files / 1199 tests pass; integration
+    7 files / 102 tests pass; build pass, no warnings; Playwright as above, `scrollWidth` equals the viewport on
+    the Next search and category listings at all seven widths.
+- 2026-10-19: T14 done: search filter column 280px + 16px gap from 1025px, stacked below the results at 1024,
+  capped scroll box, controls row above both columns; product grid, category and ChupaChoice grids already
+  matched the PWA. Commit on `feat/ds-14-product-grid` (not pushed).

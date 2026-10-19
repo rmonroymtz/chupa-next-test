@@ -365,6 +365,50 @@ describe('SearchPage: refinements', () => {
     });
   });
 
+  it('filter column as the PWA search page: 280px + 16px gap from 1025px, below the results at 1024', () => {
+    const body = render(single({ result: result({ refinements }) }));
+
+    const aside = body.querySelector('aside[data-search-filters="desktop"]');
+    const layout = aside?.parentElement;
+    const classes = (el: Element | null | undefined) => el?.className.split(' ') ?? [];
+    expect(classes(layout)).toEqual(
+      expect.arrayContaining([
+        'flex',
+        'flex-col',
+        'gap-4',
+        'min-[1025px]:grid',
+        'min-[1025px]:grid-cols-[280px_minmax(0,1fr)]',
+      ]),
+    );
+    // Shown from `lg` (1024) as the PWA FilterSidebar; at exactly 1024 it sits after the results.
+    expect(classes(aside)).toEqual(
+      expect.arrayContaining([
+        'hidden',
+        'lg:block',
+        'order-2',
+        'min-[1025px]:order-none',
+        'min-[1025px]:self-start',
+        'min-[1025px]:max-h-[calc(100vh-4rem)]',
+        'min-[1025px]:overflow-y-auto',
+      ]),
+    );
+    expect(aside?.className).not.toMatch(/15rem|gap-8|sticky/);
+  });
+
+  it('puts the count, sort and filter row above the filter column and the results', () => {
+    const body = render(single({ result: result({ refinements }) }));
+
+    const controls = body.querySelector('[data-search-count]')?.parentElement;
+    const layout = body.querySelector('aside[data-search-filters="desktop"]')?.parentElement;
+    expect(controls?.querySelector('details[data-search-filters="mobile"]')).not.toBeNull();
+    expect(layout?.contains(controls ?? null)).toBe(false);
+    expect(
+      controls && layout
+        ? controls.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING
+        : 0,
+    ).toBeTruthy();
+  });
+
   it('has a collapsible copy for small screens that works without JavaScript', () => {
     const body = render(single({ result: result({ refinements }) }));
 
