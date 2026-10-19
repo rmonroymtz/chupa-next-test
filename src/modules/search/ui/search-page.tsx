@@ -175,7 +175,8 @@ function SingleStore({
             <SearchFiltersDisclosure refinements={result.refinements} location={location} />
           ) : null}
         </div>
-        <ProductCards cards={result.items} appearance="grid" />
+        {/* The PWA Gallery item shows the brand and the review stars of each result. */}
+        <ProductCards cards={result.items} appearance="grid" showRating />
         {linkStore !== null ? (
           <SearchPagination pagination={result.pagination} page={view.page} location={location} />
         ) : null}

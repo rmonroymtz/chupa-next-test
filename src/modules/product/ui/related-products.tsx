@@ -1,9 +1,6 @@
-import Image from 'next/image';
 import type { RelatedProduct } from '@/modules/product/domain/product';
-import { formatPrice } from '@/modules/product/ui/format-price';
-import { isOptimizableImageUrl, parseImageRemoteHosts } from '@/shared/config/image-hosts';
-
-const REMOTE_PATTERNS = parseImageRemoteHosts(process.env.IMAGE_REMOTE_HOSTS);
+import { Price } from '@/shared/ui/price';
+import { PRODUCT_GRID_IMAGE_SIZES, ProductCard, ProductGrid } from '@/shared/ui/product-card';
 
 interface RelatedProductsProps {
   readonly items: readonly RelatedProduct[];
@@ -11,9 +8,10 @@ interface RelatedProductsProps {
 }
 
 /**
- * Alternatives shown on the PDP. Plain anchors on purpose: `next/link` would
- * prefetch product pages, and a prefetched missing product would query the
- * scraper API and fire the copy mutation without a real visit.
+ * Alternatives shown on the PDP, in the shared product grid and card. Plain
+ * anchors on purpose (`ProductCard`): `next/link` would prefetch product pages,
+ * and a prefetched missing product would query the scraper API and fire the
+ * copy mutation without a real visit.
  */
 export function RelatedProducts({ items, heading }: RelatedProductsProps) {
   if (items.length === 0) return null;
@@ -22,32 +20,25 @@ export function RelatedProducts({ items, heading }: RelatedProductsProps) {
       <h2 id="related-products" className="mb-4 text-xl font-semibold">
         {heading}
       </h2>
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <ProductGrid>
         {items.map((item) => (
           <li key={item.uid}>
-            <a href={`/${item.relativeUrl}`} className="group flex flex-col gap-2">
-              <div className="relative aspect-square overflow-hidden rounded-xs bg-white">
-                {item.image ? (
-                  <Image
-                    src={item.image.url}
-                    alt={item.image.label ?? item.name}
-                    fill
-                    sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
-                    className="object-contain"
-                    unoptimized={!isOptimizableImageUrl(item.image.url, REMOTE_PATTERNS)}
-                  />
-                ) : null}
-              </div>
-              <span className="line-clamp-2 text-sm group-hover:underline">{item.name}</span>
-              {item.price ? (
-                <span className="text-sm font-semibold">
-                  {formatPrice(item.price.amount, item.price.currency)}
-                </span>
-              ) : null}
-            </a>
+            <ProductCard
+              href={`/${item.relativeUrl}`}
+              name={item.name}
+              image={
+                item.image ? { src: item.image.url, alt: item.image.label ?? item.name } : null
+              }
+              imageSizes={PRODUCT_GRID_IMAGE_SIZES}
+              price={
+                item.price ? (
+                  <Price amount={item.price.amount} currency={item.price.currency} />
+                ) : null
+              }
+            />
           </li>
         ))}
-      </ul>
+      </ProductGrid>
     </section>
   );
 }

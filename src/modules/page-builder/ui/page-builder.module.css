@@ -517,24 +517,15 @@
 }
 
 /* Products */
-.productGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-@media (min-width: 641px) {
-  .productGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
+/*
+ * Page Builder carousel, as the PWA `Products` react-slick settings (no gap
+ * between slides): 2 cards up to 640px, 3 to 960px, 4 to 1279px, 5 from 1280px.
+ */
 .productCarousel {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 1rem) / 2);
-  gap: 1rem;
+  grid-auto-columns: 50%;
+  gap: 0;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
@@ -544,12 +535,36 @@
 }
 @media (min-width: 641px) {
   .productCarousel {
-    grid-auto-columns: calc((100% - 3 * 1rem) / 4);
+    grid-auto-columns: calc(100% / 3);
   }
 }
 @media (min-width: 961px) {
   .productCarousel {
-    grid-auto-columns: calc((100% - 4 * 1rem) / 5);
+    grid-auto-columns: 25%;
+  }
+}
+@media (min-width: 1280px) {
+  .productCarousel {
+    grid-auto-columns: 20%;
+  }
+}
+/*
+ * Recommendation sliders, as the PWA `RandomSliders/ProductCarousel` slides
+ * (10px gap): 2 cards below 640px, 3 to 1023px, 5 from 1024px. After the
+ * Page Builder rules so they win at every width.
+ */
+.productCarousel.sliderCarousel {
+  gap: 10px;
+  grid-auto-columns: calc(50% - 5px);
+}
+@media (min-width: 640px) {
+  .productCarousel.sliderCarousel {
+    grid-auto-columns: calc(33.33% - 7px);
+  }
+}
+@media (min-width: 1024px) {
+  .productCarousel.sliderCarousel {
+    grid-auto-columns: calc(20% - 8px);
   }
 }
 .productCarousel > li {
@@ -558,29 +573,6 @@
 .productCarousel:focus-visible {
   outline: 2px solid var(--pb-brand);
   outline-offset: 2px;
-}
-.productCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-decoration: none;
-  color: inherit;
-}
-.productCard:hover .productName {
-  text-decoration: underline;
-}
-.productImage {
-  position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: #fff;
-}
-.productName {
-  font-size: 0.875rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -108,6 +108,37 @@ describe('RecommendationSliders', () => {
     expect(document.querySelectorAll('a')).toHaveLength(0);
   });
 
+  it('lays the skeleton out as the PWA slider: 2 cards, 3 from 640px, 5 from 1024px, 10px gap', () => {
+    document.body.innerHTML = renderToStaticMarkup(
+      <RecommendationSliders load={() => new Promise(() => {})} />,
+    );
+
+    const skeletons = [
+      ...document.querySelectorAll<HTMLElement>(
+        '[data-recommendation-loading] [data-recommendation-skeleton]',
+      ),
+    ].slice(0, 5);
+    const track = skeletons[0]?.parentElement;
+    expect(track?.className.split(' ')).toEqual(
+      expect.arrayContaining([
+        'grid-cols-2',
+        'gap-[10px]',
+        'min-[640px]:grid-cols-3',
+        'min-[1024px]:grid-cols-5',
+      ]),
+    );
+    expect(skeletons.map((skeleton) => skeleton.className.split(' ').includes('hidden'))).toEqual([
+      false,
+      false,
+      true,
+      true,
+      true,
+    ]);
+    expect(skeletons[2]?.className).toContain('min-[640px]:flex');
+    expect(skeletons[3]?.className).toContain('min-[1024px]:flex');
+    expect(skeletons[4]?.className).toContain('min-[1024px]:flex');
+  });
+
   it('hides a slider with no products or whose load rejects or throws, keeping the others', async () => {
     const load: RecommendationsLoader = (type) => {
       if (type === 'tendency') return Promise.reject(new Error('down'));
