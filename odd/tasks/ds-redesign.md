@@ -857,3 +857,8 @@ lines in total.
   text-primary labels, 20px icons, 8px icon gap, 20px between actions, "Carrito (N)" with "(0)", accent only on
   hover; no red has-items state exists in the PWA). Below-1160 count badge kept pending a decision. All required
   checks green. Work-unit commit on `feat/ds-13-header-actions` (from `main` `56ff003`, not pushed).
+- 2026-10-19: store pill row at 375 (review warning `R3-store-track-scroll`, hidden-scrollbar in-row scroll) stays as
+  is: the user said a future fix will come with a new design not shared yet ("se va aplicar un fix a futuro con un
+  diseño nuevo aun no me lo comparten"). Do not change it until that design arrives.
+- 2026-10-19: T13 open decision closed: the red cart count badge below 1160 (tablet and mobile) stays, although the
+  PWA shows only the icon there (user: "dejalo"). Intentional difference from the PWA.
