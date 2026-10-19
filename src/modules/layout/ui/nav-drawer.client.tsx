@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
 import { LEGACY_ROUTES } from '@/modules/layout/domain/legacy-routes';
+import { DESKTOP_MEDIA_QUERY } from '@/shared/ui/breakpoints';
 import { cx } from '@/shared/ui/class-names';
 import { Icon } from '@/shared/ui/icon';
 
@@ -19,7 +20,7 @@ function branchesOf(items: readonly MenuItem[]): MenuItem[] {
 }
 
 /**
- * Mobile/tablet navigation drawer (< 1024), the PWA's light Venia drawer:
+ * Mobile/tablet navigation drawer (< 1160, the PWA header switch), the PWA's light Venia drawer:
  * header with the wordmark and close, the category tree as drill-down views
  * (a category with subcategories opens its own view with "Volver" and
  * "Ver todo en {categoría}"; leaves link to their page), and the account
@@ -50,11 +51,11 @@ export function NavDrawer({ items }: { readonly items: readonly MenuItem[] }) {
     [...targets].find((element) => element.dataset.focusKey === key)?.focus();
   }, [path]);
 
-  // The drawer is the < 1024 navigation: when the viewport grows past it (its
+  // The drawer is the < 1160 navigation: when the viewport grows past it (its
   // button is then hidden), close it and give the page its scroll back.
   useEffect(() => {
     if (!open || typeof window.matchMedia !== 'function') return;
-    const desktop = window.matchMedia('(min-width: 1024px)');
+    const desktop = window.matchMedia(DESKTOP_MEDIA_QUERY);
     function onChange(event: { readonly matches: boolean }) {
       const dialog = dialogRef.current;
       if (!event.matches || !dialog) return;
@@ -152,7 +153,7 @@ export function NavDrawer({ items }: { readonly items: readonly MenuItem[] }) {
         aria-expanded={open}
         onClick={openDrawer}
         className={cx(
-          'inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-2 rounded-xs text-ds-text hover:text-ds-link focus-visible:outline-offset-2 lg:hidden',
+          'inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-2 rounded-xs text-ds-text hover:text-ds-link focus-visible:outline-offset-2 desktop:hidden',
           FOCUS_RING,
         )}
       >

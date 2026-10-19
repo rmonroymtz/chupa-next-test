@@ -164,12 +164,12 @@ describe('MiniCart', () => {
     // DS shopping-cart glyph (decorative) instead of the legacy cart image.
     expect(button.querySelector('img')).toBeNull();
     expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
-    // Visible "Carrito" label followed by the count, shown as "(2)" from 1024 (CSS parens).
+    // Visible "Carrito" label followed by the count, shown as "(2)" from 1160 (CSS parens).
     expect(within(button).getByText('Carrito')).toBeTruthy();
     const count = within(button).getByTestId('cart-count');
     expect(count.textContent).toBe('2');
-    expect(count.className).toContain("lg:before:content-['(']");
-    expect(count.className).toContain("lg:after:content-[')']");
+    expect(count.className).toContain("desktop:before:content-['(']");
+    expect(count.className).toContain("desktop:after:content-[')']");
   });
 
   it('links to /cart below 1160px and opens the dropdown from 1160px (PWA cart trigger)', async () => {
@@ -179,13 +179,13 @@ describe('MiniCart', () => {
     // jsdom has no layout: assert both renders and their breakpoint classes.
     const link = screen.getByRole('link', { name: /^Carrito\. Tienes 2 artículos/ });
     expect(link.getAttribute('href')).toBe('/cart');
-    expect(link.className).toContain('min-[1160px]:hidden');
+    expect(link.className).toContain('desktop:hidden');
     expect(within(link).getByText('Carrito')).toBeTruthy();
     expect(within(link).getByText('2')).toBeTruthy();
 
     const container = trigger().closest<HTMLElement>('[data-slot="mini-cart"]')!;
     expect(container.className).toContain('hidden');
-    expect(container.className).toContain('min-[1160px]:flex');
+    expect(container.className).toContain('desktop:flex');
     expect(container.className).toContain('relative');
     expect(container.querySelector('[data-slot="mini-cart-panel"]')).toBeTruthy();
     expect(link.contains(container)).toBe(false);

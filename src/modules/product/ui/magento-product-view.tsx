@@ -25,11 +25,7 @@ export function MagentoProductView({
 }: MagentoProductViewProps) {
   const outOfStock = product.availability === 'out_of_stock';
   return (
-    <article
-      className="mx-auto max-w-6xl px-4 py-8"
-      data-testid="product-view"
-      data-source="magento"
-    >
+    <article className="container-padded py-8" data-testid="product-view" data-source="magento">
       {structuredData}
       <div className="grid gap-8 lg:grid-cols-2">
         <ProductGallery images={product.images} alt={product.name} loadingStrategy="preload" />

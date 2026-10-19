@@ -24,14 +24,15 @@ import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { formatPrice } from '@/modules/product/ui/format-price';
 import { Button } from '@/shared/ui/button';
 import { cx } from '@/shared/ui/class-names';
+import { DESKTOP_MEDIA_QUERY } from '@/shared/ui/breakpoints';
 import { Icon } from '@/shared/ui/icon';
 
 /** PWA Studio pages: plain anchors so the edge routes them to PWA Studio. */
 const CART_PATH = '/cart';
 const CHECKOUT_PATH = '/checkout';
 
-/** PWA cart trigger switch (`cartTrigger.module.css`): link below, dropdown from here. */
-const DROPDOWN_QUERY = '(min-width: 1160px)';
+/** PWA cart trigger switch (`cartTrigger.module.css`): link below, dropdown from here (the header switch). */
+const DROPDOWN_QUERY = DESKTOP_MEDIA_QUERY;
 /** PWA `MiniCart` viewport fit: the panel keeps this gap above the viewport bottom. */
 const VIEWPORT_MARGIN_BOTTOM = 15;
 
@@ -40,7 +41,7 @@ const STOCK_MESSAGE =
 const REMOVE_ERROR = 'No pudimos eliminar el artículo. Inténtalo de nuevo.';
 
 const TRIGGER_CLASSES =
-  'relative inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xs text-body-sm font-medium text-ds-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus lg:min-w-0';
+  'relative inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-xs text-body-sm font-medium text-ds-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0';
 
 type Contents =
   | { readonly kind: 'loading' }
@@ -253,14 +254,14 @@ export function MiniCart() {
         href={CART_PATH}
         aria-label={`Carrito. Tienes ${total} artículos en tu carrito.`}
         data-slot="cart-link"
-        className={cx(TRIGGER_CLASSES, 'min-[1160px]:hidden')}
+        className={cx(TRIGGER_CLASSES, 'desktop:hidden')}
       >
         <TriggerContent total={total} />
       </a>
       <div
         ref={containerRef}
         data-slot="mini-cart"
-        className="relative hidden items-center min-[1160px]:flex"
+        className="relative hidden items-center desktop:flex"
         onKeyDown={(event) => {
           // Mark Escape handled, so the document-level Escape of other layers
           // (the categories dropdown) leaves it alone.
@@ -319,17 +320,17 @@ export function MiniCart() {
   );
 }
 
-/** The T5 DS action: cart icon, "Carrito" from 1024 and the count (a badge below 1024). */
+/** The T5 DS action: cart icon, "Carrito" from 1160 and the count (a badge below 1160). */
 function TriggerContent({ total, countTestId }: { total: number; countTestId?: string }) {
   return (
     <>
-      <Icon name="shopping-cart" size={16} className="text-ds-neutral-950 lg:size-3.5" />
-      <span className="hidden lg:inline">Carrito</span>
+      <Icon name="shopping-cart" size={16} className="text-ds-neutral-950 desktop:size-3.5" />
+      <span className="hidden desktop:inline">Carrito</span>
       {total > 0 ? (
         <span
           data-testid={countTestId}
           aria-hidden="true"
-          className="absolute top-1.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-pill bg-ds-cta px-1 text-[0.625rem] leading-none font-semibold text-ds-text-on-cta lg:static lg:block lg:h-auto lg:min-w-0 lg:rounded-none lg:bg-transparent lg:p-0 lg:text-body-sm lg:font-medium lg:text-ds-text lg:before:content-['('] lg:after:content-[')']"
+          className="absolute top-1.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-pill bg-ds-cta px-1 text-[0.625rem] leading-none font-semibold text-ds-text-on-cta desktop:static desktop:block desktop:h-auto desktop:min-w-0 desktop:rounded-none desktop:bg-transparent desktop:p-0 desktop:text-body-sm desktop:font-medium desktop:text-ds-text desktop:before:content-['('] desktop:after:content-[')']"
         >
           {total > 99 ? '99+' : String(total)}
         </span>

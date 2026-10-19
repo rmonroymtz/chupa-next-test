@@ -95,7 +95,7 @@ export function CategoriesDropdown({ items }: { readonly items: readonly MenuIte
     <div
       ref={rootRef}
       tabIndex={-1}
-      className="relative hidden shrink-0 outline-none lg:block"
+      className="relative hidden shrink-0 outline-none desktop:block"
       onBlur={onBlur}
     >
       <button

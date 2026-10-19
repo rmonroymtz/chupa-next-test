@@ -29,7 +29,7 @@ interface CategoryPageProps {
  */
 export function CategoryPage({ category, listing, search }: CategoryPageProps) {
   return (
-    <div data-category-uid={category.uid} className="mx-auto max-w-[1280px] px-4 py-6">
+    <div data-category-uid={category.uid} className="container-padded py-6">
       <CategoryStructuredData category={category} listing={listing} />
       <CategoryBreadcrumbs category={category} />
       <h1 className="text-2xl font-semibold">{category.name}</h1>

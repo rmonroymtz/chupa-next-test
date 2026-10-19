@@ -4,6 +4,21 @@ import { SEARCH_FORM_ID } from './search-form-fields';
 import styles from './search-form.module.css';
 
 /**
+ * Logo boxes as the PWA renders them (`storeSelector.module.css`: at most 72x18,
+ * measured on the redesign): ChupaChoice 72, Amazon 60, eBay 45, Target 72 and
+ * Acme 50 wide; heights follow each Next logo's own aspect ratio. Acme stays 50
+ * wide because the PWA's Acme SVG declares a 842x303 box for its 148x15 artwork.
+ * Fixed sizes, so the pills keep the PWA widths at every viewport.
+ */
+const LOGO_BOX: Readonly<Record<string, { readonly width: number; readonly height: number }>> = {
+  chupachoice: { width: 72, height: 9 },
+  amazon: { width: 60, height: 18 },
+  ebay: { width: 45, height: 18 },
+  target: { width: 72, height: 16 },
+  acme: { width: 50, height: 5 },
+};
+
+/**
  * DS store selector: one pill per search store, in the header top row. Native
  * radios (arrow keys move the choice, one tab stop) submitted with the search
  * form through `form`; the checked pill carries the brand border. Pure CSS
@@ -25,8 +40,8 @@ export function StoreSelector({ store }: Pick<SearchBarState, 'store'>) {
           <Image
             src={entry.logo.src}
             alt={entry.label}
-            width={entry.logo.width}
-            height={entry.logo.height}
+            width={LOGO_BOX[entry.id]?.width ?? entry.logo.width}
+            height={LOGO_BOX[entry.id]?.height ?? entry.logo.height}
             loading="eager"
           />
         </label>

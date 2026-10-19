@@ -30,11 +30,7 @@ export function ScrapedProductView({ product, addToCart }: ScrapedProductViewPro
       : product.availability;
 
   return (
-    <article
-      className="mx-auto max-w-6xl px-4 py-8"
-      data-testid="product-view"
-      data-source="scraper"
-    >
+    <article className="container-padded py-8" data-testid="product-view" data-source="scraper">
       <div className="grid gap-8 lg:grid-cols-2">
         <ProductGallery
           images={product.images.map((url) => ({ url, label: null }))}

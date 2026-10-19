@@ -232,6 +232,17 @@
 }
 
 /*
+ * Header desktop switch (`desktop:` variant), 1160px as the PWA
+ * (`wrapUseHeader.js` `MOBILE_BREAKPOINT`): below it the 3-zone header bar does
+ * not fit. Header, nav drawer, categories dropdown and mini cart use it; the
+ * page grid keeps the DS 768/1024 breakpoints. Keep in sync with
+ * `DESKTOP_MEDIA_QUERY` (`src/shared/ui/breakpoints.ts`).
+ */
+@theme {
+  --breakpoint-desktop: 72.5rem;
+}
+
+/*
  * DS Container (`chupaprecios-pwa` `designSystem/layout/grid.module.css`):
  * content-box, so `max-width` is the content width and the padding is the
  * grid side margin: 20px, 30px from 768px, 90px from 1024px. No
@@ -249,6 +260,31 @@
   }
 
   @media (width >= 1024px) {
+    padding-inline: 90px;
+  }
+}
+
+/*
+ * Header container: the grid container, but with the PWA header margin of 32px
+ * between 1024 and the 1160 desktop switch (`header.module.css`: the tablet
+ * header keeps 32px until the desktop bar, which uses 90px). 768–1023 keeps the
+ * grid's 30px (the PWA header has 32 there; T1 grid, left as is).
+ */
+@utility header-padded {
+  box-sizing: content-box;
+  max-width: var(--container-content);
+  margin-inline: auto;
+  padding-inline: 20px;
+
+  @media (width >= 768px) {
+    padding-inline: 30px;
+  }
+
+  @media (width >= 1024px) {
+    padding-inline: 32px;
+  }
+
+  @media (width >= 1160px) {
     padding-inline: 90px;
   }
 }
