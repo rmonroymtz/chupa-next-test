@@ -4,6 +4,7 @@ import type {
   RecommendationType,
   RecommendedProduct,
 } from '@/modules/recommendations/domain/recommendation';
+import { ProductCarousel } from '@/modules/recommendations/ui/product-carousel.client';
 
 /**
  * Products of one slider (the composition's `getRecommendations`). Called
@@ -32,7 +33,8 @@ interface RecommendationSlidersProps {
 }
 
 /**
- * Recommendation sliders (Server Component, no client JavaScript): the three
+ * Recommendation sliders (Server Component; the cards render on the server and
+ * the PWA embla carousel, a small client island, only enhances them): the three
  * loads start in the same render, so they run in parallel, and each slider
  * streams in its own Suspense boundary (title and skeleton cards meanwhile).
  * A slider without products, or whose load fails, renders nothing.
@@ -67,7 +69,9 @@ function RecommendationSlider({
   return (
     <section data-recommendation={type} aria-labelledby={headingId}>
       <SliderTitle id={headingId} title={title} accent={accent} />
-      <ProductCards cards={cards} appearance="carousel" card="slider" showRating />
+      <ProductCarousel itemCount={cards.length}>
+        <ProductCards cards={cards} appearance="carousel" card="slider" showRating />
+      </ProductCarousel>
     </section>
   );
 }
@@ -88,36 +92,37 @@ function SliderTitle({
   );
 }
 
-/** Same title and card boxes as the slider, so the page does not jump when it streams in. */
+/**
+ * The PWA loading state: the same carousel with `itemsPerView` skeleton slides
+ * (PWA `.skeleton`), so the page does not jump when the slider streams in.
+ */
 function SliderSkeleton({ title, accent }: { readonly title: string; readonly accent: string }) {
   return (
     <div data-recommendation-loading>
       <SliderTitle title={title} accent={accent} />
-      {/* The slider's columns (PWA `RandomSliders`): 2 on phones, 3 from 640px, 5 from 1024px. */}
-      <div
-        aria-hidden="true"
-        className="grid grid-cols-2 gap-[10px] min-[640px]:grid-cols-3 min-[1024px]:grid-cols-5"
-      >
-        {Array.from({ length: SKELETON_CARDS }, (_, index) => (
-          <div
-            key={index}
-            data-recommendation-skeleton
-            className={`flex-col gap-2 ${skeletonVisibility(index)}`}
-          >
-            <div className="aspect-square animate-pulse rounded-xs bg-ds-surface-muted" />
-            <div className="h-3 w-4/5 animate-pulse rounded-xs bg-ds-surface-muted" />
-            <div className="h-3 w-1/2 animate-pulse rounded-xs bg-ds-surface-muted" />
-          </div>
-        ))}
-      </div>
+      <ProductCarousel itemCount={SKELETON_CARDS}>
+        {/* The slider's slides (PWA `.slide`): 2 on phones, 3 from 640px, 5 from 1024px, 10px gap. */}
+        <ul aria-hidden="true" className="m-0 flex list-none gap-[10px] p-0">
+          {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+            <li
+              key={index}
+              data-recommendation-skeleton
+              className="min-w-0 shrink-0 basis-[calc(50%-5px)] min-[640px]:basis-[calc(33.33%-7px)] min-[1024px]:basis-[calc(20%-8px)]"
+            >
+              <div className="h-full rounded-[10px] border-[0.5px] border-ds-border px-3 pt-[10px] pb-3">
+                <div className={`mb-2 aspect-square rounded-xs ${SHIMMER}`} />
+                <div className={`mb-2 h-[10px] w-4/5 rounded-[4px] ${SHIMMER}`} />
+                <div className={`h-[10px] w-1/2 rounded-[4px] ${SHIMMER}`} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </ProductCarousel>
     </div>
   );
 }
 
-function skeletonVisibility(index: number): string {
-  if (index < 2) return 'flex';
-  return index < 3 ? 'hidden min-[640px]:flex' : 'hidden min-[1024px]:flex';
-}
+const SHIMMER = 'animate-pulse bg-ds-surface-muted motion-reduce:animate-none';
 
 /** A slider must never fail the page: any failure means no products. */
 function safeLoad(
