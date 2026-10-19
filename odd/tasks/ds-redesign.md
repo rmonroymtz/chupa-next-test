@@ -868,3 +868,9 @@ lines in total.
   the wrapper keeps the id, `aria-controls` target, `aria-hidden`/`inert` and the fade. RED: the mini-cart panel test
   (region must not be the zero-height wrapper) failed, then GREEN. Checks: typecheck, lint (1 known warning), unit
   1197, integration 102, e2e local 3/3 (includes a production build). Route: inline (one component and its test).
+- 2026-10-19: search input focus showed two lines (user: "se ve una doble linea cuando esta activo y en
+  localhost:10000 solo se ve 1"): the pill turned its border red and also drew a 2px outline 2px outside it. Now as
+  the PWA `.search:focus-within`: only the border turns #D84752 and the fill white, no outline ring (the submit
+  button keeps its own keyboard focus outline). RED: new search-form CSS test failed, then GREEN. Checks: typecheck,
+  lint (1 known warning), unit 1198, integration 102, build pass; Playwright on the dev server: focused pill outline
+  none, border 1px rgb(216, 71, 82). Route: inline (one CSS rule and its test).

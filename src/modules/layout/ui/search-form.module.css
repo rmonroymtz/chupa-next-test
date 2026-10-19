@@ -102,11 +102,10 @@
   background-color: var(--color-ds-surface-subtle);
 }
 
-.field:has(.input:focus-visible) {
+/* PWA `.search:focus-within`: one line, the pill border turns brand red (#D84752); no extra outline ring. */
+.field:focus-within {
   border-color: var(--color-ds-focus);
   background-color: var(--color-ds-surface);
-  outline: 2px solid var(--color-ds-focus);
-  outline-offset: 2px;
 }
 
 .submit {
