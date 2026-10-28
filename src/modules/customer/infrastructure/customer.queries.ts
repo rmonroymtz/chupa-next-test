@@ -5,6 +5,9 @@
  *   `talons/SignIn/signIn.gql.js` (`mergeCarts` without the checkout fragment,
  *   this storefront only needs it to succeed).
  * - `SignOutFromMenu`: peregrine `talons/Header/accountMenu.gql.js`.
+ * - `CreateAccount`: peregrine `talons/CreateAccount/createAccount.gql.js`.
+ * - `requestPasswordResetEmail`: venia-ui `ForgotPassword/forgotPassword.gql.js`.
+ * - `GetReCaptchaV3Config`: peregrine `hooks/useGoogleReCaptcha/googleReCaptchaConfig.gql.js`.
  */
 
 export const SIGN_IN_MUTATION = /* GraphQL */ `
@@ -38,6 +41,47 @@ export const SIGN_OUT_MUTATION = /* GraphQL */ `
   mutation SignOutFromMenu {
     revokeCustomerToken {
       result
+    }
+  }
+`;
+
+export const CREATE_ACCOUNT_MUTATION = /* GraphQL */ `
+  mutation CreateAccount(
+    $email: String!
+    $firstname: String!
+    $lastname: String!
+    $password: String!
+    $is_subscribed: Boolean!
+  ) {
+    createCustomer(
+      input: {
+        email: $email
+        firstname: $firstname
+        lastname: $lastname
+        password: $password
+        is_subscribed: $is_subscribed
+      }
+    ) {
+      customer {
+        email
+      }
+    }
+  }
+`;
+
+export const REQUEST_PASSWORD_RESET_MUTATION = /* GraphQL */ `
+  mutation requestPasswordResetEmail($email: String!) {
+    requestPasswordResetEmail(email: $email)
+  }
+`;
+
+export const RECAPTCHA_CONFIG_QUERY = /* GraphQL */ `
+  query GetReCaptchaV3Config {
+    recaptchaV3Config {
+      website_key
+      badge_position
+      language_code
+      forms
     }
   }
 `;

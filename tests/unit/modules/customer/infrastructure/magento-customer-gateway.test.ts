@@ -12,6 +12,7 @@ const server = setupMswServer();
 
 interface Captured {
   authorization: string | null;
+  recaptcha: string | null;
   body: { operationName: string; query: string; variables: Record<string, unknown> };
 }
 
@@ -33,6 +34,7 @@ function respondWith(payload: JsonBodyType, captured: Captured[] = []) {
     http.post(URL, async ({ request }) => {
       captured.push({
         authorization: request.headers.get('authorization'),
+        recaptcha: request.headers.get('x-recaptcha'),
         body: (await request.json()) as Captured['body'],
       });
       return HttpResponse.json(payload);
@@ -139,5 +141,101 @@ describe('createMagentoCustomerGateway', () => {
   it('wraps transport failures as failure', async () => {
     server.use(http.post(URL, () => HttpResponse.error()));
     expect((await rejection(setup().gateway.revokeToken(TOKEN))).kind).toBe('failure');
+  });
+
+  it('sends the reCAPTCHA token of sign-in in the X-ReCaptcha header', async () => {
+    const captured = respondWith({ data: { generateCustomerToken: { token: TOKEN } } });
+    await setup().gateway.signIn('a@b.mx', 'pw', 'rc-token');
+    expect(captured[0]?.recaptcha).toBe('rc-token');
+    const anonymous = respondWith({ data: { generateCustomerToken: { token: TOKEN } } });
+    await setup().gateway.signIn('a@b.mx', 'pw');
+    expect(anonymous[0]?.recaptcha).toBeNull();
+  });
+
+  it('creates an account with the legacy CreateAccount operation', async () => {
+    const captured = respondWith({ data: { createCustomer: { customer: { email: 'a@b.mx' } } } });
+    await setup().gateway.createAccount(
+      {
+        email: 'a@b.mx',
+        firstName: 'Ana',
+        lastName: 'Pérez',
+        password: 'Pw1!aaaa',
+        isSubscribed: false,
+      },
+      'rc-token',
+    );
+    expect(captured[0]?.body.operationName).toBe('CreateAccount');
+    expect(captured[0]?.body.variables).toEqual({
+      email: 'a@b.mx',
+      firstname: 'Ana',
+      lastname: 'Pérez',
+      password: 'Pw1!aaaa',
+      is_subscribed: false,
+    });
+    expect(captured[0]?.recaptcha).toBe('rc-token');
+  });
+
+  it('maps account creation errors to email_taken, weak_password or failure', async () => {
+    const create = () =>
+      setup().gateway.createAccount({
+        email: 'a@b.mx',
+        firstName: 'A',
+        lastName: 'B',
+        password: 'x',
+        isSubscribed: true,
+      });
+    respondWith({
+      data: null,
+      errors: [
+        {
+          message:
+            'A customer with the same email address already exists in an associated website.',
+        },
+      ],
+    });
+    expect((await rejection(create())).kind).toBe('email_taken');
+    respondWith({
+      data: null,
+      errors: [
+        {
+          message:
+            'Minimum of different classes of characters in password is 3. Classes of characters: Lower Case, Upper Case, Digits, Special Characters.',
+        },
+      ],
+    });
+    expect((await rejection(create())).kind).toBe('weak_password');
+    respondWith({ data: null, errors: [{ message: 'boom' }] });
+    expect((await rejection(create())).kind).toBe('failure');
+  });
+
+  it('requests the password reset email with the reCAPTCHA token', async () => {
+    const captured = respondWith({ data: { requestPasswordResetEmail: true } });
+    await setup().gateway.requestPasswordReset('a@b.mx', 'rc-token');
+    expect(captured[0]?.body.operationName).toBe('requestPasswordResetEmail');
+    expect(captured[0]?.body.variables).toEqual({ email: 'a@b.mx' });
+    expect(captured[0]?.recaptcha).toBe('rc-token');
+  });
+
+  it('reads the reCAPTCHA v3 config and answers null when Magento has none or fails', async () => {
+    respondWith({
+      data: {
+        recaptchaV3Config: {
+          website_key: 'site-key',
+          badge_position: 'bottomright',
+          language_code: 'es',
+          forms: ['CUSTOMER_LOGIN', 'CUSTOMER_CREATE'],
+        },
+      },
+    });
+    await expect(setup().gateway.getRecaptchaConfig()).resolves.toEqual({
+      siteKey: 'site-key',
+      badgePosition: 'bottomright',
+      languageCode: 'es',
+      forms: ['CUSTOMER_LOGIN', 'CUSTOMER_CREATE'],
+    });
+    respondWith({ data: { recaptchaV3Config: null } });
+    await expect(setup().gateway.getRecaptchaConfig()).resolves.toBeNull();
+    server.use(http.post(URL, () => HttpResponse.error()));
+    await expect(setup().gateway.getRecaptchaConfig()).resolves.toBeNull();
   });
 });
