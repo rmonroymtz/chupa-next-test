@@ -35,8 +35,7 @@ Branch: `feat/phase-4-customer-cart` (from `main`). Delivery: `ask-on-risk`. Run
 ## Tasks
 
 - [x] T1 (S3) Session storage: `PwaCartStorage` gains `writeSigninToken` (ttl 3600), `clearSigninToken`, `clearCartId`; `KeyValueStorage.removeItem`. Route: inline. RED 3 failed, GREEN unit all pass, typecheck/lint ok. Commit: see log.
-- [ ] T2 (S3, O5) Customer gateway port + Magento adapter (`generateCustomerToken`, `mergeCarts`, `revokeCustomerToken`,
-  customer details); not-authorized error kind. Route: inline.
+- [x] T2 (S3, O5) New module `src/modules/customer`: `CustomerGateway` port (signIn, getCustomer, mergeCarts, revokeToken), Magento adapter, error kinds `invalid_credentials | not_authorized | failure` (O5 resolved). createAccount and forgot-password land in T3 (O3). Route: inline. RED: suite failed to load (module missing); GREEN 8 tests, full checks ok.
 - [ ] T3 (S2, S4, O1–O3) Sign-in, create-account, forgot-password screens and server actions. Risk: item 2 (auth).
 - [ ] T4 (S5, S6) Sign-out and header session state. Risk: item 2.
 - [ ] T5 (S7, O6) Cart page: read model, list, empty state, update qty, remove.
