@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
+import { AccountAction } from '@/modules/customer/ui/account-action.client';
 import { LEGACY_ROUTES } from '@/modules/layout/domain/legacy-routes';
-import { Icon } from '@/shared/ui/icon';
 import { CartTriggerSlot } from './cart-trigger-slot';
 import { SearchForm } from './search-form';
 import { CurrentStoreSelector } from './store-selector.client';
@@ -56,15 +56,7 @@ export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderPr
           {/* PWA `.actions`: 20px between the actions. Below 1160 the 40px boxes around the
               20px icons already put 20px between the icons. */}
           <div className="flex items-center desktop:ml-auto desktop:gap-5">
-            {/* PWA `SignInButton` / `accountTrigger` `.action`: 20px icon, 8px gap, 14px
-                text-primary label from 1160, brand anchor on hover. */}
-            <a
-              href={LEGACY_ROUTES.signIn}
-              className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xs text-body-md leading-normal text-ds-text hover:text-ds-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0"
-            >
-              <Icon name="user" size={20} />
-              <span className="whitespace-nowrap max-desktop:sr-only">Mi cuenta</span>
-            </a>
+            <AccountAction signInHref={LEGACY_ROUTES.signIn} />
             <CartTriggerSlot />
           </div>
         </div>

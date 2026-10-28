@@ -74,7 +74,10 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
   });
 
   it('focus shows one line: the pill border turns red, no extra outline ring (PWA `.search:focus-within`)', () => {
-    const css = readFileSync(join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'), 'utf8');
+    const css = readFileSync(
+      join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'),
+      'utf8',
+    );
     const rule = /\.field:focus-within\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(rule).toContain('border-color: var(--color-ds-focus)');
     expect(rule).toContain('background-color: var(--color-ds-surface)');

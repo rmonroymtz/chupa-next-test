@@ -419,7 +419,7 @@ Route per task: delegated (writer trigger: 2+ non-trivial files). Test-first whe
     built CSS); dev server `/` 200 (not restarted). E2E spec typechecks and lints, not run (its global setup starts
     its own servers). Visual check pending (user): dropdown at 1160/1440 under the trigger, fade, rows vs the PWA,
     the trash button contrast (50% gray, PWA parity, under WCAG 1.4.11 3:1), long lists in the fitted height.
-- [ ] T7b Account panel (avatar, name, items, sign-out in #BE424B). Pending: Next has no customer session yet (account pages stay on the PWA until phase 4).
+- [x] T7b Account panel (avatar, name, items, sign-out in #BE424B). Done in phase 4 T4 (`src/modules/customer/ui/account-action.client.tsx`, `odd/tasks/phase-4-customer-cart.md`). Visual check pending (user): panel size/position vs the PWA, hover states.
 - [x] T8 Price + product cards + product grids 2/5/5. Check: unit + visual.
   - Route: delegated, writer trigger 2+ non-trivial files. Test-first: baseline focused unit (page-builder, search,
     product, recommendations, category, shared) 70 files / 781 tests green; RED = 8 new test files, 3 failing to

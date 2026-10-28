@@ -2,12 +2,14 @@
 
 import {
   createAccountInputSchema,
+  getCustomerInputSchema,
   passwordResetInputSchema,
   signInInputSchema,
   signOutInputSchema,
 } from '@/modules/customer/application/customer-input';
 import type {
   CreateAccountResult,
+  GetCustomerResult,
   SignInResult,
 } from '@/modules/customer/application/customer-service';
 import type { RecaptchaConfig } from '@/modules/customer/application/ports';
@@ -71,6 +73,19 @@ export async function signOutAction(input: unknown): Promise<{ status: 'signed_o
     return await getCustomerService().signOut(parsed.data);
   } catch {
     return { status: 'signed_out' };
+  }
+}
+
+export async function getCustomerAction(input: unknown): Promise<GetCustomerResult> {
+  const parsed = getCustomerInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('get_customer');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCustomerService().getCustomer(parsed.data);
+  } catch {
+    return { status: 'failed' };
   }
 }
 

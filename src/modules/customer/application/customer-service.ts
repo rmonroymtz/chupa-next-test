@@ -50,7 +50,15 @@ export interface SignOutCommand {
   readonly token: string | null;
 }
 
+export type GetCustomerResult =
+  | { readonly status: 'ok'; readonly customer: Customer }
+  /** Magento no longer accepts the token: the browser drops the session. */
+  | { readonly status: 'not_authorized' }
+  | { readonly status: 'failed' };
+
 export interface CustomerService {
+  /** Reads the signed-in customer for the header (name, account menu). */
+  getCustomer(command: { readonly token: string }): Promise<GetCustomerResult>;
   signIn(command: SignInCommand): Promise<SignInResult>;
   /** Creates the account only; the browser then signs in (each Magento call needs its own reCAPTCHA token). */
   createAccount(command: CreateAccountCommand): Promise<CreateAccountResult>;
@@ -168,6 +176,17 @@ export function createCustomerService({
         }
       }
       return { status: 'signed_out' };
+    },
+
+    async getCustomer({ token }) {
+      try {
+        return { status: 'ok', customer: await customerGateway.getCustomer(token) };
+      } catch (caught) {
+        const kind = kindOf(caught);
+        if (kind === 'not_authorized') return { status: 'not_authorized' };
+        logger.warn({ kind }, 'customer read failed');
+        return { status: 'failed' };
+      }
     },
 
     getRecaptchaConfig: () => customerGateway.getRecaptchaConfig(),
