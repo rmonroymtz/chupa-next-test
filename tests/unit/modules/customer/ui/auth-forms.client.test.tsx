@@ -164,6 +164,15 @@ describe('CreateAccountForm', () => {
     expect(assign).not.toHaveBeenCalled();
   });
 
+  it('does not offer to create the account again when the second step throws', async () => {
+    actions.createAccountAction.mockResolvedValue({ status: 'created' });
+    actions.signInAction.mockRejectedValue(new Error('network'));
+    render(<CreateAccountForm redirectTo="/order-history" signInHref="/sign-in" />);
+    fill();
+    await submit('Crear cuenta');
+    expect((await screen.findByRole('alert')).textContent).toContain('Tu cuenta fue creada');
+  });
+
   it('marks each password requirement as the password meets it', () => {
     render(<CreateAccountForm redirectTo="/order-history" signInHref="/sign-in" />);
     expect(screen.getByText(/Al menos un número/).textContent).toContain('pendiente');

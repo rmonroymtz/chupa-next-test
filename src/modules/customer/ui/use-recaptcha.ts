@@ -14,13 +14,21 @@ interface Grecaptcha {
 }
 
 const ONLOAD_CALLBACK = 'onloadRecaptchaCallback';
+/** A stalled script must not leave the submit button loading forever. */
+const SCRIPT_TIMEOUT_MS = 5000;
 
 // One config read and one script load per page, shared by every form.
 let configPromise: Promise<RecaptchaConfig | null> | undefined;
 let scriptPromise: Promise<void> | undefined;
 
+/** Only a config is cached: a null (no config, or a failed read) is asked again on the next submit. */
 function loadConfig(): Promise<RecaptchaConfig | null> {
-  configPromise ??= getRecaptchaConfigAction().catch(() => null);
+  configPromise ??= getRecaptchaConfigAction()
+    .catch(() => null)
+    .then((config) => {
+      if (config === null) configPromise = undefined;
+      return config;
+    });
   return configPromise;
 }
 
@@ -31,11 +39,19 @@ function grecaptcha(): Grecaptcha | undefined {
 function loadScript(config: RecaptchaConfig): Promise<void> {
   if (grecaptcha()) return Promise.resolve();
   scriptPromise ??= new Promise<void>((resolve, reject) => {
-    (globalThis as Record<string, unknown>)[ONLOAD_CALLBACK] = () => resolve();
+    const timer = setTimeout(() => {
+      scriptPromise = undefined;
+      reject(new Error('reCAPTCHA script timed out'));
+    }, SCRIPT_TIMEOUT_MS);
+    (globalThis as Record<string, unknown>)[ONLOAD_CALLBACK] = () => {
+      clearTimeout(timer);
+      resolve();
+    };
     const script = document.createElement('script');
     script.src = recaptchaScriptUrl(config, ONLOAD_CALLBACK);
     script.async = true;
     script.onerror = () => {
+      clearTimeout(timer);
       scriptPromise = undefined;
       reject(new Error('reCAPTCHA script failed to load'));
     };

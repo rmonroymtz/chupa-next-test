@@ -101,12 +101,18 @@ export function CreateAccountForm({ redirectTo, signInHref }: CreateAccountFormP
         return;
       }
       // Each Magento call needs its own reCAPTCHA token, so sign-in is a second action.
-      const session = await signInAction({
-        email,
-        password: values.password,
-        guestCartId: browserCartStorage.readCartId(),
-        recaptchaToken: await getSignInToken('signIn'),
-      });
+      let session: Awaited<ReturnType<typeof signInAction>>;
+      try {
+        session = await signInAction({
+          email,
+          password: values.password,
+          guestCartId: browserCartStorage.readCartId(),
+          recaptchaToken: await getSignInToken('signIn'),
+        });
+      } catch {
+        // The account exists: retrying creation would only answer email_taken.
+        session = { status: 'failed' };
+      }
       if (session.status !== 'signed_in') {
         setFormError(CREATED_NOT_SIGNED_IN);
         return;
