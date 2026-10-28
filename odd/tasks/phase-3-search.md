@@ -1,13 +1,11 @@
 # Phase 3 storefront — search
 
-Status (2026-10-16): **phase 3 complete pending the T7 PR.** T1–T6c merged to `main` (PRs #15–#23, last merge
-`6fa689f`); T7 (ops and docs) committed on `feat/phase-3-07-ops-docs`, PR not opened yet. Go-live is the edge change in
-`docs/routing/phase-3.md` (after phase 2's), see `docs/phase-3-report.md`.
+Status (2026-10-28): **phase 3 code complete and merged.** T1–T7 are on `main` (T7 is PR #24, `c00eb7e`). Go-live is
+the edge change in `docs/routing/phase-3.md` (after phase 2's), see `docs/phase-3-report.md`.
 
 ## Resume here (2026-10-16, phase 4 hand-off)
 
-1. Open the T7 PR from `feat/phase-3-07-ops-docs` (work-unit commits: docs, e2e smoke, this file, the user's
-   `.env.example` lines, and the placeholder fix for non-vendor urls). Tell the user to merge only after the last push. Then phase 3 is done.
+1. Done (2026-10-28): the T7 PR (#24) is merged to `main`; nothing left to open for phase 3 code.
 2. Go-live (ops, not code): phase 2 edge change first, then `docs/routing/phase-3.md` (delete rules 5 and 6, remove
    prerender for search), `GTM_ID` in the task definition, run `E2E_BASE_URL=… E2E_PHASE3_SMOKE=1 pnpm test:e2e
    --project phase-3-smoke` against staging behind the edge.
