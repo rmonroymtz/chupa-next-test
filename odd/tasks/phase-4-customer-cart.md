@@ -1,0 +1,51 @@
+# Phase 4 storefront — customer session and cart page
+
+Objective: Next writes the customer session (own sign-in, create-account, forgot-password screens) and serves `/cart`.
+Branch: `feat/phase-4-customer-cart` (from `main`). Delivery: `ask-on-risk`. Runner: `pnpm typecheck && pnpm lint && pnpm test`,
+`pnpm test:integration`, `pnpm build`.
+
+## Specs
+
+- S1 Scope (user): "cliente y carrito". Customer session + full cart page. Checkout and the rest of the account pages
+  (`/my-account/*`) stay on the PWA.
+- S2 Session ownership (user): "Si que la escriba nextjs con sus propias pantallas". Next writes the token with its own
+  sign-in, create-account and forgot-password screens.
+- S3 Assumption: keep the PWA storage format so both apps share one session: localStorage key
+  `M2_VENIA_BROWSER_PERSISTENCE__signin_token`, envelope `{value, timeStored, ttl}`, ttl 3600 s (`domain/browser-persistence.ts`).
+- S4 Sign-in parity with legacy (`useSignIn.js`): remember guest `sourceCartId` → `generateCustomerToken` → store token →
+  `createEmptyCart` → `mergeCarts(source → destination)` → write destination `cartId` → load customer.
+- S5 Sign-out parity (peregrine `asyncActions.js`): optional `revokeCustomerToken` (errors swallowed), clear token, clear
+  checkout storage, forget `cartId`, refresh the page.
+- S6 Header "Mi cuenta" reflects the session (today a static link to `/sign-in`).
+- S7 `/cart` parity with the legacy `CartPage`: empty state "Tu carrito está vacío", heading "Mi carrito" / "Mi carrito + cotización"
+  (`is_from_quote`), update quantity (`updateCartItems`), remove item, price summary (shipping estimate
+  `chupaprecios_shipping_estimate`, free shipping threshold), quote badge and expiry banners, checkout button to the PWA.
+- S8 Edge: new exact rules for `/cart`, `/sign-in`, `/create-account`, `/forgot-password` above rule 12 in a
+  `docs/routing/phase-4.md`; the rest keeps going to the PWA.
+
+## Open points (resolve before the task that needs them)
+
+- O1 reCAPTCHA on sign-in and create-account in the legacy: Next forms need it too (T3).
+- O2 Amasty social login writes the token by its own route: decide keep on PWA or port (T3).
+- O3 Forgot-password mutation not found in overrides: read peregrine in `node_modules` (T3).
+- O4 `cp_price_change` is behind a build-time PWA flag `CHUPAPRECIOS_CART_REFRESH_BACKEND`: Next needs a runtime flag (T6).
+- O5 Expired or rejected token (Magento 401 before the 1 h ttl): needs a not-authorized path in the gateway (T2).
+- O6 Check `useCartPage` redirect behavior and CHUP-redesign differences (T5).
+
+## Tasks
+
+- [ ] T1 (S3) Session domain: token read/write with the PWA envelope, expiry, tests. Route: inline.
+- [ ] T2 (S3, O5) Customer gateway port + Magento adapter (`generateCustomerToken`, `mergeCarts`, `revokeCustomerToken`,
+  customer details); not-authorized error kind. Route: inline.
+- [ ] T3 (S2, S4, O1–O3) Sign-in, create-account, forgot-password screens and server actions. Risk: item 2 (auth).
+- [ ] T4 (S5, S6) Sign-out and header session state. Risk: item 2.
+- [ ] T5 (S7, O6) Cart page: read model, list, empty state, update qty, remove.
+- [ ] T6 (S7, O4) Price summary, shipping estimate, quotes banners, checkout button.
+- [ ] T7 (S8) Routing docs, e2e smoke, phase-4 report.
+
+## Log
+
+- L1 (2026-10-28) user: "arrancamos con la fase 4" → "vamos por cliente y carrito" → "Si que la escriba nextjs con sus propias pantallas".
+- L2 (2026-10-28): mapping done by a read-only explorer (legacy PWA `~/Proyectos/chupaprecios-pwa`, Next `src/modules/cart`).
+  Findings feed S3–S8 and O1–O6. Next today only reads the token; the cart module is mini-cart only (create, add, count,
+  mini-cart, remove) behind Server Actions; header account is a static `<a>` to `/sign-in`.
