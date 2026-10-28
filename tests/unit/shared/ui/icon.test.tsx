@@ -7,7 +7,7 @@ afterEach(cleanup);
 
 describe('Icon', () => {
   it('ships the 41 V3 board glyphs plus the on-demand and brand extras', () => {
-    expect(iconNames.length).toBe(50);
+    expect(iconNames.length).toBe(51);
     expect(iconNames).toEqual(expect.arrayContaining(['search', 'menu', 'chevron-down', 'check']));
     expect(iconNames.slice(-2)).toEqual(['facebook', 'instagram']);
   });

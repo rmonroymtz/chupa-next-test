@@ -18,7 +18,7 @@ export default async function SignInRoute({ searchParams }: RouteProps) {
   const { from } = await searchParams;
   const origin = typeof from === 'string' ? from : undefined;
   return (
-    <AuthPage title="Inicia sesión">
+    <AuthPage title="Inicia sesión" subtitle="Bienvenido de nuevo a Chupaprecios">
       <SignInForm
         // The PWA sends signed-in shoppers to their previous page, else the account.
         redirectTo={resolveRedirect(origin, '/my-account')}
