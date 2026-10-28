@@ -98,10 +98,12 @@ export function createCustomerService({
       return { status: kind === 'invalid_credentials' ? 'invalid_credentials' : 'failed' };
     }
 
+    let degraded = false;
     let cartId: string | null = null;
     try {
       cartId = await cartGateway.createEmptyCart({ signinToken: token });
     } catch {
+      degraded = true;
       logger.warn('customer cart creation failed after sign-in');
     }
 
@@ -109,6 +111,7 @@ export function createCustomerService({
       try {
         await customerGateway.mergeCarts(guestCartId, cartId, token);
       } catch {
+        degraded = true;
         logger.warn('guest cart merge failed after sign-in');
       }
     }
@@ -120,7 +123,12 @@ export function createCustomerService({
       logger.warn('customer read failed after sign-in');
     }
 
-    metrics.emitMetric({ name: 'SignIn', value: 1, dimensions: { Outcome: 'signed_in' } });
+    // `degraded`: signed in, but the customer cart or the guest cart merge failed (guest items may be lost).
+    metrics.emitMetric({
+      name: 'SignIn',
+      value: 1,
+      dimensions: { Outcome: degraded ? 'degraded' : 'signed_in' },
+    });
     return { status: 'signed_in', token, cartId, customer };
   }
 
