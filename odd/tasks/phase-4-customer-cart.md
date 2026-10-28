@@ -34,7 +34,7 @@ Branch: `feat/phase-4-customer-cart` (from `main`). Delivery: `ask-on-risk`. Run
 
 ## Tasks
 
-- [ ] T1 (S3) Session domain: token read/write with the PWA envelope, expiry, tests. Route: inline.
+- [x] T1 (S3) Session storage: `PwaCartStorage` gains `writeSigninToken` (ttl 3600), `clearSigninToken`, `clearCartId`; `KeyValueStorage.removeItem`. Route: inline. RED 3 failed, GREEN unit all pass, typecheck/lint ok. Commit: see log.
 - [ ] T2 (S3, O5) Customer gateway port + Magento adapter (`generateCustomerToken`, `mergeCarts`, `revokeCustomerToken`,
   customer details); not-authorized error kind. Route: inline.
 - [ ] T3 (S2, S4, O1–O3) Sign-in, create-account, forgot-password screens and server actions. Risk: item 2 (auth).

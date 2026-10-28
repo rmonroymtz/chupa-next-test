@@ -11,6 +11,7 @@ function memoryStorage(initial: Record<string, string> = {}) {
   const storage: KeyValueStorage = {
     getItem: (key) => map.get(key) ?? null,
     setItem: (key, value) => void map.set(key, value),
+    removeItem: (key) => void map.delete(key),
   };
   return { map, storage };
 }
@@ -76,6 +77,9 @@ describe('createPwaCartStorage', () => {
       setItem: () => {
         throw new Error('QuotaExceededError');
       },
+      removeItem: () => {
+        throw new Error('SecurityError');
+      },
     };
     for (const getStorage of [
       () => null,
@@ -88,6 +92,38 @@ describe('createPwaCartStorage', () => {
       expect(cartStorage.readCartId()).toBeNull();
       expect(cartStorage.readSigninToken()).toBeNull();
       expect(cartStorage.writeCartId('x')).toBe(false);
+      expect(cartStorage.writeSigninToken('x')).toBe(false);
+      expect(cartStorage.clearSigninToken()).toBe(false);
+      expect(cartStorage.clearCartId()).toBe(false);
     }
+  });
+
+  it('writes the sign-in token in the exact PWA format (ttl 3600) and never touches the cart id', () => {
+    const cart = encodePersisted('pwaCart', NOW - 1000);
+    const { map, storage } = memoryStorage({ [CART_KEY]: cart });
+    const cartStorage = createPwaCartStorage(
+      () => storage,
+      () => NOW,
+    );
+    expect(cartStorage.writeSigninToken('jwt')).toBe(true);
+    expect(map.get(TOKEN_KEY)).toBe('{"value":"\\"jwt\\"","timeStored":1760000000000,"ttl":3600}');
+    expect(map.get(CART_KEY)).toBe(cart);
+    expect(cartStorage.readSigninToken()).toBe('jwt');
+  });
+
+  it('clears the token and the cart id independently, and tolerates absent keys', () => {
+    const { map, storage } = memoryStorage({
+      [CART_KEY]: encodePersisted('pwaCart', NOW),
+      [TOKEN_KEY]: encodePersisted('jwt', NOW, 3600),
+    });
+    const cartStorage = createPwaCartStorage(
+      () => storage,
+      () => NOW,
+    );
+    expect(cartStorage.clearSigninToken()).toBe(true);
+    expect([...map.keys()]).toEqual([CART_KEY]);
+    expect(cartStorage.clearCartId()).toBe(true);
+    expect(map.size).toBe(0);
+    expect(cartStorage.clearCartId()).toBe(true);
   });
 });

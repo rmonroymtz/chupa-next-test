@@ -10,6 +10,7 @@ import {
 export interface KeyValueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
 export interface PwaCartStorage {
@@ -17,9 +18,18 @@ export interface PwaCartStorage {
   readCartId(): string | null;
   /** Writes a cart id this storefront created, in the PWA format. False when storage is unavailable. */
   writeCartId(cartId: string): boolean;
-  /** Unexpired sign-in token, or null. Read-only: never written, refreshed or removed here. */
+  /** Unexpired sign-in token, or null. Never refreshed or removed by a read. */
   readSigninToken(): string | null;
+  /** Writes the sign-in token like peregrine on sign-in (ttl 3600 s). False when storage is unavailable. */
+  writeSigninToken(token: string): boolean;
+  /** Removes the sign-in token (sign-out). False when storage is unavailable. */
+  clearSigninToken(): boolean;
+  /** Forgets the cart id (sign-out, like peregrine `removeCart`). False when storage is unavailable. */
+  clearCartId(): boolean;
 }
+
+/** Peregrine stores the sign-in token for one hour (`asyncActions.js` `setToken`). */
+export const SIGNIN_TOKEN_TTL_SECONDS = 3600;
 
 /**
  * Browser side of the cart shared with PWA Studio. Storage may be missing or
@@ -41,19 +51,35 @@ export function createPwaCartStorage(
     }
   }
 
+  function write(name: string, value: string, ttl?: number): boolean {
+    try {
+      const storage = getStorage();
+      if (!storage) return false;
+      storage.setItem(pwaStorageKey(name), encodePersisted(value, now(), ttl));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function remove(name: string): boolean {
+    try {
+      const storage = getStorage();
+      if (!storage) return false;
+      storage.removeItem(pwaStorageKey(name));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     readCartId: () => readString(CART_ID_KEY),
     readSigninToken: () => readString(SIGNIN_TOKEN_KEY),
-    writeCartId(cartId) {
-      try {
-        const storage = getStorage();
-        if (!storage) return false;
-        storage.setItem(pwaStorageKey(CART_ID_KEY), encodePersisted(cartId, now()));
-        return true;
-      } catch {
-        return false;
-      }
-    },
+    writeCartId: (cartId) => write(CART_ID_KEY, cartId),
+    writeSigninToken: (token) => write(SIGNIN_TOKEN_KEY, token, SIGNIN_TOKEN_TTL_SECONDS),
+    clearSigninToken: () => remove(SIGNIN_TOKEN_KEY),
+    clearCartId: () => remove(CART_ID_KEY),
   };
 }
 
