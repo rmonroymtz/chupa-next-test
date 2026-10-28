@@ -117,4 +117,23 @@ describe('AccountAction', () => {
     expect(localStorage.length).toBe(0);
     expect(reload).toHaveBeenCalled();
   });
+
+  it('signs out locally after 3 s when the revoke call never answers', async () => {
+    storeSession();
+    actions.getCustomerAction.mockResolvedValue({ status: 'ok', customer: CUSTOMER });
+    actions.signOutAction.mockReturnValue(new Promise(() => undefined));
+    await renderAction();
+    fireEvent.click(screen.getByRole('button', { name: 'Mi cuenta' }));
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+        await vi.advanceTimersByTimeAsync(3100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(localStorage.length).toBe(0);
+    expect(reload).toHaveBeenCalled();
+  });
 });

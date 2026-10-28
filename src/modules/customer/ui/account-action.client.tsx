@@ -11,6 +11,8 @@ import { Icon } from '@/shared/ui/icon';
 const ACTION_CLASS =
   'inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xs text-body-md leading-normal text-ds-text hover:text-ds-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:min-w-0';
 const SIGN_OUT = 'Cerrar sesión';
+/** Revoking is best effort: a stalled server must not keep the shopper signed in. */
+const REVOKE_TIMEOUT_MS = 3000;
 
 interface AccountActionProps {
   readonly signInHref: string;
@@ -76,7 +78,10 @@ export function AccountAction({ signInHref }: AccountActionProps) {
   async function signOut(token: string): Promise<void> {
     setSigningOut(true);
     // Peregrine `signOut`: revoke (best effort), then forget the session, checkout data and cart.
-    await signOutAction({ token }).catch(() => undefined);
+    await Promise.race([
+      signOutAction({ token }).catch(() => undefined),
+      new Promise((resolve) => setTimeout(resolve, REVOKE_TIMEOUT_MS)),
+    ]);
     browserCartStorage.clearSigninToken();
     browserCartStorage.clearCheckoutData();
     browserCartStorage.clearCartId();
