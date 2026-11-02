@@ -212,7 +212,55 @@ test.describe('reset password link (local stack)', () => {
   });
 });
 
+/**
+ * The mock Magento turns Google suggestions on, so the address form would load
+ * the real Maps script. These tests replace `window.google` with a fake that only
+ * suggests for text starting with "Av.".
+ */
+async function installFakeGoogle(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const components = [
+      { longText: '123', shortText: '123', types: ['street_number'] },
+      { longText: 'Avenida Revolución', shortText: 'Av. Revolución', types: ['route'] },
+      { longText: 'Zona Centro', shortText: 'Zona Centro', types: ['sublocality_level_1'] },
+      { longText: 'Tijuana', shortText: 'Tijuana', types: ['locality'] },
+      { longText: 'Baja California', shortText: 'B.C.', types: ['administrative_area_level_1'] },
+      { longText: 'México', shortText: 'MX', types: ['country'] },
+      { longText: '22010', shortText: '22010', types: ['postal_code'] },
+    ];
+    (window as unknown as { google: unknown }).google = {
+      maps: {
+        importLibrary: async () => ({
+          AutocompleteSessionToken: class {},
+          AutocompleteSuggestion: {
+            fetchAutocompleteSuggestions: async ({ input }: { input: string }) => ({
+              suggestions: input.startsWith('Av.')
+                ? [
+                    {
+                      placePrediction: {
+                        placeId: 'fake-place',
+                        text: { toString: () => 'Av. Revolución 123, Tijuana' },
+                        toPlace: () => ({
+                          fetchFields: async () => undefined,
+                          addressComponents: components,
+                        }),
+                      },
+                    },
+                  ]
+                : [],
+            }),
+          },
+        }),
+      },
+    };
+  });
+}
+
 test.describe('address book (local stack)', () => {
+  test.beforeEach(async ({ page }) => {
+    await installFakeGoogle(page);
+  });
+
   test('lists the saved address with the Principal badge and no delete button', async ({
     page,
   }) => {
@@ -286,5 +334,34 @@ test.describe('address book (local stack)', () => {
 
     await page.goto(`${baseUrl()}/my-account/address-book/edit/abc`);
     await expect(page.getByText('No encontramos esta dirección.')).toBeVisible();
+  });
+
+  test('a Google suggestion fills the form and SEPOMEX the municipio, then it saves', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book/new`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Nueva dirección' })).toBeVisible();
+
+    await page.getByLabel(/^Nombre/).fill('Marta');
+    await page.getByLabel(/^Apellido\*$/).fill('Ríos');
+    await page.getByLabel(/^Teléfono/).fill('6641112233');
+    await page.getByPlaceholder('Calle y número').fill('Av. Rev');
+    await page.getByRole('option', { name: 'Av. Revolución 123, Tijuana' }).click();
+
+    await expect(page.getByPlaceholder('Calle y número')).toHaveValue('Av. Revolución');
+    await expect(page.getByLabel(/^Número/)).toHaveValue('123');
+    await expect(page.getByLabel(/^Colonia/)).toHaveValue('Zona Centro');
+    await expect(page.getByLabel(/^Código postal/)).toHaveValue('22010');
+    await expect(page.getByLabel(/^Ciudad/)).toHaveValue('Tijuana');
+    await expect(page.getByLabel(/^Estado/)).toHaveValue('1');
+    // The mock SEPOMEX answers "Tijuana" for any postal code.
+    await expect(page.getByLabel(/^Municipio/)).toHaveValue('Tijuana');
+
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page).toHaveURL(/\/my-account\/address-book$/);
+    await expect(
+      page.getByRole('listitem', { name: 'Marta Ríos' }).getByText('Av. Revolución'),
+    ).toBeVisible();
   });
 });

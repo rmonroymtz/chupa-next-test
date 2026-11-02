@@ -222,8 +222,21 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
           },
         };
       } else if (operation === 'AddressFormConfig') {
-        // No Amasty config: the storefront falls back to the default Mexican fields.
-        response = { status: 200, body: { data: { storeConfig: null } } };
+        // No Amasty field list (the storefront falls back to the default Mexican fields), with
+        // Google suggestions on: the e2e tests replace `window.google` with a fake.
+        response = {
+          status: 200,
+          body: {
+            data: {
+              storeConfig: {
+                amasty_checkout_manage_checkout_fields: null,
+                amasty_checkout_customer_address_street_lines: 2,
+                amasty_checkout_geolocation_google_address_suggestion: true,
+                amasty_checkout_geolocation_google_api_key: 'mock-google-key',
+              },
+            },
+          },
+        };
       } else if (operation === 'resetPassword') {
         response = { status: 200, body: answerResetPassword(variables, customerState) };
       } else if (CUSTOMER_OPERATIONS.has(operation)) {

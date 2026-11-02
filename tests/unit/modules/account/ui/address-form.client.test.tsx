@@ -13,8 +13,12 @@ const actions = vi.hoisted(() => ({
   listAddressesAction: vi.fn(),
   createAddressAction: vi.fn(),
   updateAddressAction: vi.fn(),
+  getSepomexAction: vi.fn(),
 }));
 vi.mock('@/modules/address/ui/address-actions', () => actions);
+
+const places = vi.hoisted(() => ({ searchPlaces: vi.fn() }));
+vi.mock('@/modules/address/ui/google-places', () => places);
 
 const redirect = vi.hoisted(() => vi.fn());
 vi.mock('@/modules/account/ui/browser-redirect', () => ({ redirectBrowser: redirect }));
@@ -57,11 +61,17 @@ function setup({
   addressId,
   fields = DEFAULT_FIELDS,
   regions = REGIONS,
-}: { addressId?: number; fields?: readonly FormField[]; regions?: typeof REGIONS } = {}) {
+  googleApiKey = null,
+}: {
+  addressId?: number;
+  fields?: readonly FormField[];
+  regions?: typeof REGIONS;
+  googleApiKey?: string | null;
+} = {}) {
   actions.getAddressFormConfigAction.mockResolvedValue({
     fields,
     streetLines: 2,
-    googleApiKey: null,
+    googleApiKey,
   });
   actions.getRegionsAction.mockResolvedValue({ status: 'ok', regions });
   window.localStorage.setItem(TOKEN_KEY, encodePersisted('a.b.c', Date.now()));
@@ -287,5 +297,92 @@ describe('AddressForm (edit)', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(
       'Algo salió mal. Por favor, actualiza la página e inténtalo de nuevo.',
     );
+  });
+});
+
+describe('AddressForm (Google suggestions)', () => {
+  const COMPONENTS = [
+    { longText: '123', shortText: '123', types: ['street_number'] },
+    { longText: 'Avenida Revolución', shortText: 'Av. Revolución', types: ['route'] },
+    { longText: 'Zona Centro', shortText: 'Zona Centro', types: ['sublocality_level_1'] },
+    { longText: 'Tijuana', shortText: 'Tijuana', types: ['locality'] },
+    { longText: 'Tecate', shortText: 'Tecate', types: ['administrative_area_level_2'] },
+    { longText: 'Baja California', shortText: 'B.C.', types: ['administrative_area_level_1'] },
+    { longText: 'México', shortText: 'MX', types: ['country'] },
+    { longText: '22010', shortText: '22010', types: ['postal_code'] },
+  ];
+
+  function suggestAndPick() {
+    places.searchPlaces.mockResolvedValue([
+      {
+        id: 'p1',
+        text: 'Av. Revolución 123, Tijuana',
+        select: vi.fn().mockResolvedValue(COMPONENTS),
+      },
+    ]);
+  }
+
+  it('uses a plain street input without a Google key', async () => {
+    setup();
+    await screen.findByRole('heading', { name: 'Nueva dirección' });
+    expect(screen.getByPlaceholderText('Calle y número').getAttribute('role')).toBeNull();
+    expect(places.searchPlaces).not.toHaveBeenCalled();
+  });
+
+  it('fills the address from the picked place and refines the municipio with SEPOMEX', async () => {
+    suggestAndPick();
+    actions.getSepomexAction.mockResolvedValue({ status: 'ok', municipio: 'Tijuana' });
+    setup({ googleApiKey: 'AIza-test' });
+    await screen.findByRole('heading', { name: 'Nueva dirección' });
+
+    fireEvent.change(screen.getByPlaceholderText('Calle y número'), {
+      target: { value: 'Av. Revol' },
+    });
+    fireEvent.click(await screen.findByRole('option', { name: 'Av. Revolución 123, Tijuana' }));
+
+    await waitFor(() => expect(field(/^Municipio/).value).toBe('Tijuana'));
+    expect(places.searchPlaces).toHaveBeenCalledWith('AIza-test', 'Av. Revol');
+    expect((screen.getByPlaceholderText('Calle y número') as HTMLInputElement).value).toBe(
+      'Av. Revolución',
+    );
+    expect(field(/^Número/).value).toBe('123');
+    expect(field(/^Colonia/).value).toBe('Zona Centro');
+    expect(field(/^Ciudad/).value).toBe('Tijuana');
+    expect(field(/^Código postal/).value).toBe('22010');
+    expect((field(/^Estado/) as unknown as HTMLSelectElement).value).toBe('1');
+    expect(actions.getSepomexAction).toHaveBeenCalledWith({ postalCode: '22010' });
+  });
+
+  it('keeps the municipio Google gave when SEPOMEX fails or knows nothing', async () => {
+    suggestAndPick();
+    actions.getSepomexAction.mockResolvedValue({ status: 'failed' });
+    setup({ googleApiKey: 'AIza-test' });
+    await screen.findByRole('heading', { name: 'Nueva dirección' });
+
+    fireEvent.change(screen.getByPlaceholderText('Calle y número'), {
+      target: { value: 'Av. Revol' },
+    });
+    fireEvent.click(await screen.findByRole('option', { name: 'Av. Revolución 123, Tijuana' }));
+
+    await waitFor(() => expect(field(/^Código postal/).value).toBe('22010'));
+    await waitFor(() => expect(actions.getSepomexAction).toHaveBeenCalled());
+    expect(field(/^Municipio/).value).toBe('Tecate');
+  });
+
+  it('clears the required errors of the fields the place filled', async () => {
+    suggestAndPick();
+    actions.getSepomexAction.mockResolvedValue({ status: 'ok', municipio: null });
+    setup({ googleApiKey: 'AIza-test' });
+    await screen.findByRole('heading', { name: 'Nueva dirección' });
+    save();
+    expect((await screen.findAllByText('Este campo es obligatorio')).length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByPlaceholderText('Calle y número'), {
+      target: { value: 'Av. Revol' },
+    });
+    fireEvent.click(await screen.findByRole('option', { name: 'Av. Revolución 123, Tijuana' }));
+
+    await waitFor(() => expect(field(/^Ciudad/).getAttribute('aria-invalid')).toBeNull());
+    expect(field(/^Código postal/).getAttribute('aria-invalid')).toBeNull();
   });
 });

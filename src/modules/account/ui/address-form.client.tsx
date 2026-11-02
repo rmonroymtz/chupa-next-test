@@ -13,6 +13,11 @@ import {
   type FormField,
 } from '@/modules/address/domain/address';
 import {
+  applyPlace,
+  parsePlaceComponents,
+  type PlaceComponent,
+} from '@/modules/address/domain/address-autocomplete';
+import {
   addressToValues,
   emptyAddressValues,
   NO_NUMBER,
@@ -28,6 +33,7 @@ import {
   createAddressAction,
   getAddressFormConfigAction,
   getRegionsAction,
+  getSepomexAction,
   listAddressesAction,
   updateAddressAction,
 } from '@/modules/address/ui/address-actions';
@@ -40,6 +46,7 @@ import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { cx } from '@/shared/ui/class-names';
 import { Input } from '@/shared/ui/input';
+import { StreetAutocomplete } from '@/modules/account/ui/street-autocomplete.client';
 import { Select } from '@/shared/ui/select';
 
 const ADDRESS_BOOK_PATH = '/my-account/address-book';
@@ -54,6 +61,17 @@ function dropSession(returnPath: string): void {
   browserCartStorage.clearSigninToken();
   redirectBrowser(authHref('/sign-in', returnPath));
 }
+
+/** Fields a picked place can fill, whose errors it clears. */
+const FILLED_BY_PLACE: readonly FieldCode[] = [
+  'street',
+  'postcode',
+  'city',
+  'region',
+  'custom_field_2',
+  'custom_field_3',
+  'custom_field_4',
+];
 
 /** Fields of the legacy "Destinatario" group; the others go under "Dirección". */
 const RECIPIENT_CODES: readonly FieldCode[] = [
@@ -223,6 +241,29 @@ function AddressFormBody({
     patch({ customFields: { ...values.customFields, [code]: value } }, code);
   }
 
+  /** A place was picked: fill the form, then let SEPOMEX refine the municipio. */
+  async function onPlace(components: readonly PlaceComponent[]): Promise<void> {
+    const place = parsePlaceComponents(components);
+    setValues((current) => applyPlace(current, place, config.fields, regions));
+    setErrors((current) => {
+      const next = { ...current };
+      for (const code of FILLED_BY_PLACE) delete next[code];
+      return next;
+    });
+    const postalCode = sanitizeDigits(place.postcode, POSTCODE_DIGITS);
+    if (postalCode.length !== POSTCODE_DIGITS) return;
+    if (!config.fields.some((entry) => entry.code === 'custom_field_4')) return;
+    const result = await getSepomexAction({ postalCode }).catch(() => null);
+    if (result?.status !== 'ok' || !result.municipio) return;
+    const municipio = result.municipio;
+    // The shopper may have changed the postal code meanwhile.
+    setValues((current) =>
+      current.postcode === postalCode
+        ? { ...current, customFields: { ...current.customFields, custom_field_4: municipio } }
+        : current,
+    );
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (submitting) return;
@@ -359,23 +400,40 @@ function AddressFormBody({
       case 'street':
         return (
           <div key="street" className="flex flex-col gap-3 sm:col-span-2">
-            {values.street.map((line, index) => (
-              <Input
-                key={index}
-                label={index === 0 ? label : undefined}
-                aria-label={index === 0 ? undefined : `${entry.label} ${index + 1}`}
-                aria-required={index === 0 ? entry.required || undefined : undefined}
-                placeholder={index === 0 ? 'Calle y número' : 'Detalles adicionales'}
-                autoComplete={index === 0 ? 'address-line1' : 'address-line2'}
-                value={line}
-                onChange={(event) => {
-                  const lines = [...values.street];
-                  lines[index] = event.target.value;
-                  patch({ street: lines }, 'street');
-                }}
-                error={index === 0 ? error : undefined}
-              />
-            ))}
+            {values.street.map((line, index) =>
+              index === 0 && config.googleApiKey ? (
+                <StreetAutocomplete
+                  key={index}
+                  label={label}
+                  apiKey={config.googleApiKey}
+                  required={entry.required}
+                  value={line}
+                  onValueChange={(value) => {
+                    const lines = [...values.street];
+                    lines[0] = value;
+                    patch({ street: lines }, 'street');
+                  }}
+                  onPlace={(components) => void onPlace(components)}
+                  error={error}
+                />
+              ) : (
+                <Input
+                  key={index}
+                  label={index === 0 ? label : undefined}
+                  aria-label={index === 0 ? undefined : `${entry.label} ${index + 1}`}
+                  aria-required={index === 0 ? entry.required || undefined : undefined}
+                  placeholder={index === 0 ? 'Calle y número' : 'Detalles adicionales'}
+                  autoComplete={index === 0 ? 'address-line1' : 'address-line2'}
+                  value={line}
+                  onChange={(event) => {
+                    const lines = [...values.street];
+                    lines[index] = event.target.value;
+                    patch({ street: lines }, 'street');
+                  }}
+                  error={index === 0 ? error : undefined}
+                />
+              ),
+            )}
           </div>
         );
       case 'firstname':
