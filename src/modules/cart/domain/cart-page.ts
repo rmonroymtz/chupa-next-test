@@ -1,4 +1,5 @@
-import type { CartDetailsItem } from '@/modules/cart/application/ports';
+import type { CartDetailsItem, CartSummary } from '@/modules/cart/application/ports';
+import type { Money } from '@/modules/product/domain/product';
 
 /** Legacy `CartPage` heading: quote items change it (`is_from_quote`). */
 export function cartHeading(items: readonly CartDetailsItem[]): string {
@@ -23,3 +24,31 @@ export function hasOutOfStockItem(items: readonly CartDetailsItem[]): boolean {
 
 export const OUT_OF_STOCK_MESSAGE =
   'Un artículo en tu carrito está agotado actualmente y debe eliminarse para proceder al pago.';
+
+/** Shipping row: the selected method, else the estimate. A zero amount is shown as free. */
+export function shippingLine(summary: CartSummary): Money | null {
+  return summary.selectedShipping ?? summary.shippingEstimate;
+}
+
+/**
+ * Total as the legacy wrapper (`wrapUsePriceSummary`) shows it: Magento's
+ * `grand_total` leaves shipping out until a method is selected, so the estimate
+ * is added on top in that case.
+ */
+export function orderTotal(summary: CartSummary): Money | null {
+  const { grandTotal } = summary;
+  if (!grandTotal) return null;
+  if (summary.selectedShipping || !summary.shippingEstimate) return grandTotal;
+  return {
+    amount: grandTotal.amount + summary.shippingEstimate.amount,
+    currency: grandTotal.currency,
+  };
+}
+
+/** Sum of the applied discounts; null when there are none. */
+export function discountTotal(summary: CartSummary): Money | null {
+  const first = summary.discounts[0];
+  if (!first) return null;
+  const amount = summary.discounts.reduce((sum, discount) => sum + discount.amount.amount, 0);
+  return amount > 0 ? { amount, currency: first.amount.currency } : null;
+}

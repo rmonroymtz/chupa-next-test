@@ -87,7 +87,35 @@ const RAW_CART = {
   ],
 };
 
+const NO_SUMMARY = {
+  subtotal: null,
+  discounts: [],
+  taxes: [],
+  selectedShipping: null,
+  shippingEstimate: null,
+  grandTotal: null,
+  freeShippingThreshold: null,
+};
+
+const RAW_PRICES = {
+  subtotal_excluding_tax: { currency: 'MXN', value: 1548.5 },
+  grand_total: { currency: 'MXN', value: 1500 },
+  discounts: [{ amount: { currency: 'MXN', value: 48.5 }, label: 'Cupón BIENVENIDA' }, null],
+  applied_taxes: [{ amount: { currency: 'MXN', value: 12 } }],
+};
+
+const SUMMARY = {
+  subtotal: { amount: 1548.5, currency: 'MXN' },
+  discounts: [{ label: 'Cupón BIENVENIDA', amount: { amount: 48.5, currency: 'MXN' } }],
+  taxes: [{ amount: 12, currency: 'MXN' }],
+  selectedShipping: { amount: 99, currency: 'MXN' },
+  shippingEstimate: null,
+  grandTotal: { amount: 1500, currency: 'MXN' },
+  freeShippingThreshold: null,
+};
+
 const DETAILS = {
+  summary: NO_SUMMARY,
   totalQuantity: 3,
   items: [
     {
@@ -140,12 +168,39 @@ describe('mapCartDetails', () => {
     expect(mapCartDetails(raw, '.html').items[0]?.outOfStock).toBe(true);
   });
 
+  it('maps the price summary: subtotal, discounts, taxes, selected shipping and grand total', () => {
+    const raw = {
+      ...RAW_CART,
+      prices: RAW_PRICES,
+      shipping_addresses: [
+        { selected_shipping_method: { amount: { currency: 'MXN', value: 99 } } },
+      ],
+    };
+    expect(mapCartDetails(raw, '.html').summary).toEqual(SUMMARY);
+  });
+
+  it('has no selected shipping without an address or a chosen method', () => {
+    const noAddress = { ...RAW_CART, prices: RAW_PRICES, shipping_addresses: [] };
+    expect(mapCartDetails(noAddress, '.html').summary.selectedShipping).toBeNull();
+    const noMethod = {
+      ...RAW_CART,
+      prices: RAW_PRICES,
+      shipping_addresses: [{ selected_shipping_method: null }],
+    };
+    expect(mapCartDetails(noMethod, '.html').summary.selectedShipping).toBeNull();
+  });
+
   it('tolerates missing totals, prices and null items', () => {
     expect(mapCartDetails({ total_quantity: null, items: [null] }, '.html')).toEqual({
       totalQuantity: 0,
       items: [],
+      summary: NO_SUMMARY,
     });
-    expect(mapCartDetails(null, '.html')).toEqual({ totalQuantity: 0, items: [] });
+    expect(mapCartDetails(null, '.html')).toEqual({
+      totalQuantity: 0,
+      items: [],
+      summary: NO_SUMMARY,
+    });
   });
 });
 
@@ -189,6 +244,46 @@ describe('createMagentoCartGateway cart details', () => {
     ).resolves.toEqual(DETAILS);
     expect(captured[0]?.body.operationName).toBe('removeItem');
     expect(captured[0]?.body.variables).toEqual({ cartId: 'cart-1', itemId: 'MTIz' });
+  });
+
+  it('reads the shipping estimate and the free shipping threshold in one GetCartSummaryExtras call', async () => {
+    const captured: Captured[] = [];
+    respondWith(
+      {
+        data: {
+          cart: { prices: { chupaprecios_shipping_estimate: { currency: 'MXN', value: 149 } } },
+          storeConfig: { free_shipping_subtotal: '999' },
+        },
+      },
+      captured,
+    );
+    const { gateway } = setup();
+
+    await expect(gateway.getCartExtras('cart-1', { signinToken: TOKEN })).resolves.toEqual({
+      shippingEstimate: { amount: 149, currency: 'MXN' },
+      freeShippingThreshold: 999,
+    });
+    expect(captured[0]?.authorization).toBe(`Bearer ${TOKEN}`);
+    expect(captured[0]?.body.operationName).toBe('GetCartSummaryExtras');
+    expect(captured[0]?.body.query).toContain('chupaprecios_shipping_estimate');
+    expect(captured[0]?.body.query).toContain('free_shipping_subtotal');
+  });
+
+  it('answers no estimate and no threshold when Magento has none', async () => {
+    respondWith(
+      { data: { cart: { prices: null }, storeConfig: { free_shipping_subtotal: null } } },
+      [],
+    );
+    const { gateway } = setup();
+    await expect(gateway.getCartExtras('cart-1', { signinToken: null })).resolves.toEqual({
+      shippingEstimate: null,
+      freeShippingThreshold: null,
+    });
+    respondWith({ data: { cart: null, storeConfig: { free_shipping_subtotal: 'abc' } } }, []);
+    await expect(gateway.getCartExtras('cart-1', { signinToken: null })).resolves.toEqual({
+      shippingEstimate: null,
+      freeShippingThreshold: null,
+    });
   });
 
   it('maps a cart Magento rejects to invalid_cart and other errors to failure', async () => {

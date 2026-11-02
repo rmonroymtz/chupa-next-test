@@ -55,9 +55,33 @@ export interface CartDetailsItem {
   readonly isFromQuote: boolean;
 }
 
+/** Cart prices the `/cart` summary shows (legacy `PriceSummaryFragment` + the Chupaprecios wrapper). */
+export interface CartSummary {
+  /** `prices.subtotal_excluding_tax`. */
+  readonly subtotal: Money | null;
+  readonly discounts: readonly { readonly label: string; readonly amount: Money }[];
+  /** `prices.applied_taxes` amounts. */
+  readonly taxes: readonly Money[];
+  /** Selected shipping method amount; null until the shopper picked one (cart page: always). */
+  readonly selectedShipping: Money | null;
+  /** `chupaprecios_shipping_estimate`; filled by the service, null when unknown. */
+  readonly shippingEstimate: Money | null;
+  /** `prices.grand_total`, which leaves shipping out until a method is selected. */
+  readonly grandTotal: Money | null;
+  /** `storeConfig.free_shipping_subtotal`; filled by the service, null when unknown. */
+  readonly freeShippingThreshold: number | null;
+}
+
 export interface CartDetails {
   readonly totalQuantity: number;
   readonly items: readonly CartDetailsItem[];
+  readonly summary: CartSummary;
+}
+
+/** The two summary values that come from their own Magento query (legacy `GetShippingEstimate`, `FreeShippingMessage`). */
+export interface CartExtras {
+  readonly shippingEstimate: Money | null;
+  readonly freeShippingThreshold: number | null;
 }
 
 export type CartGatewayErrorKind = 'invalid_cart' | 'failure';
@@ -95,6 +119,8 @@ export interface CartGateway {
   removeItemFromCart(cartId: string, itemUid: string, auth: CartAuth): Promise<MiniCart>;
   /** The `/cart` page read (legacy `GetCartDetails`). */
   getCartDetails(cartId: string, auth: CartAuth): Promise<CartDetails>;
+  /** Shipping estimate and free shipping threshold; the estimate follows the cart subtotal. */
+  getCartExtras(cartId: string, auth: CartAuth): Promise<CartExtras>;
   /** Sets one item's quantity (`updateCartItems`) and answers the updated cart. */
   updateCartItemQuantity(
     cartId: string,

@@ -3,6 +3,7 @@ import {
   CartGatewayError,
   type CartAuth,
   type CartDetails,
+  type CartSummary,
   type CartGateway,
 } from '@/modules/cart/application/ports';
 import { createCartService } from '@/modules/cart/application/cart-service';
@@ -14,14 +15,35 @@ import {
 import { createCapturingObservability } from '../../../../support/observability';
 
 const TOKEN = 'secret.jwt.token';
-const DETAILS: CartDetails = { totalQuantity: 2, items: [] };
+const SUMMARY: CartSummary = {
+  subtotal: null,
+  discounts: [],
+  taxes: [],
+  selectedShipping: null,
+  shippingEstimate: null,
+  grandTotal: null,
+  freeShippingThreshold: null,
+};
+const DETAILS: CartDetails = { totalQuantity: 2, items: [], summary: SUMMARY };
+const EXTRAS = { shippingEstimate: { amount: 149, currency: 'MXN' }, freeShippingThreshold: 999 };
+/** What the service answers: the cart with the extras merged into its summary. */
+const WITH_EXTRAS: CartDetails = { ...DETAILS, summary: { ...SUMMARY, ...EXTRAS } };
 
 type Step = 'invalid' | 'failure' | 'ok';
 
 /** Gateway that only knows the cart page operations; the rest is never called. */
 class DetailsGateway {
   readonly calls: { op: string; cartId: string; token: string | null }[] = [];
-  constructor(private readonly step: Step) {}
+  constructor(
+    private readonly step: Step,
+    private readonly extrasFail = false,
+  ) {}
+
+  async getCartExtras(cartId: string, auth: CartAuth) {
+    this.calls.push({ op: 'extras', cartId, token: auth.signinToken });
+    if (this.extrasFail) throw new CartGatewayError('failure', 'extras down');
+    return EXTRAS;
+  }
 
   private async answer(op: string, cartId: string, auth: CartAuth): Promise<CartDetails> {
     this.calls.push({ op, cartId, token: auth.signinToken });
@@ -42,8 +64,8 @@ class DetailsGateway {
   }
 }
 
-function setup(step: Step) {
-  const gateway = new DetailsGateway(step);
+function setup(step: Step, extrasFail = false) {
+  const gateway = new DetailsGateway(step, extrasFail);
   const observability = createCapturingObservability();
   const service = createCartService({
     gateway: gateway as unknown as CartGateway,
@@ -58,9 +80,12 @@ describe('cartService cart details', () => {
     const { gateway, service } = setup('ok');
     expect(await service.getCartDetails({ cartId: 'c', signinToken: TOKEN })).toEqual({
       status: 'ok',
-      cart: DETAILS,
+      cart: WITH_EXTRAS,
     });
-    expect(gateway.calls).toEqual([{ op: 'details', cartId: 'c', token: TOKEN }]);
+    expect(gateway.calls).toEqual([
+      { op: 'details', cartId: 'c', token: TOKEN },
+      { op: 'extras', cartId: 'c', token: TOKEN },
+    ]);
   });
 
   it('updates a quantity and answers the updated cart', async () => {
@@ -72,8 +97,12 @@ describe('cartService cart details', () => {
         quantity: 3,
         signinToken: null,
       }),
-    ).toEqual({ status: 'ok', cart: DETAILS });
-    expect(gateway.calls).toEqual([{ op: 'update:MTIz:3', cartId: 'c', token: null }]);
+    ).toEqual({ status: 'ok', cart: WITH_EXTRAS });
+    // The estimate follows the new subtotal, so it is read again after the change.
+    expect(gateway.calls).toEqual([
+      { op: 'update:MTIz:3', cartId: 'c', token: null },
+      { op: 'extras', cartId: 'c', token: null },
+    ]);
     expect(metricsNamed('CartUpdateItem')).toEqual([
       expect.objectContaining({ value: 1, dimensions: { Outcome: 'success' } }),
     ]);
@@ -83,11 +112,21 @@ describe('cartService cart details', () => {
     const { gateway, service, metricsNamed } = setup('ok');
     expect(
       await service.removeCartDetailsItem({ cartId: 'c', itemUid: 'MTIz', signinToken: TOKEN }),
-    ).toEqual({ status: 'ok', cart: DETAILS });
-    expect(gateway.calls).toEqual([{ op: 'remove:MTIz', cartId: 'c', token: TOKEN }]);
+    ).toEqual({ status: 'ok', cart: WITH_EXTRAS });
+    expect(gateway.calls).toEqual([
+      { op: 'remove:MTIz', cartId: 'c', token: TOKEN },
+      { op: 'extras', cartId: 'c', token: TOKEN },
+    ]);
     expect(metricsNamed('CartRemoveItem')).toEqual([
       expect.objectContaining({ value: 1, dimensions: { Outcome: 'success' } }),
     ]);
+  });
+
+  it('still answers the cart, without estimate or threshold, when the extras cannot be read', async () => {
+    const { service, metricsNamed } = setup('ok', true);
+    const result = await service.getCartDetails({ cartId: 'c', signinToken: null });
+    expect(result).toEqual({ status: 'ok', cart: DETAILS });
+    expect(metricsNamed('CartReadFailure')).toEqual([]);
   });
 
   it('reports a cart Magento rejects as invalid_cart, never creating a cart', async () => {
