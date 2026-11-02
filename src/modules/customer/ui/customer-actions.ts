@@ -4,12 +4,17 @@ import {
   createAccountInputSchema,
   getCustomerInputSchema,
   passwordResetInputSchema,
+  resetPasswordInputSchema,
   signInInputSchema,
   signOutInputSchema,
+  updateProfileInputSchema,
 } from '@/modules/customer/application/customer-input';
 import type {
   CreateAccountResult,
   GetCustomerResult,
+  GetProfileResult,
+  ResetPasswordResult,
+  UpdateProfileResult,
   SignInResult,
 } from '@/modules/customer/application/customer-service';
 import type { RecaptchaConfig } from '@/modules/customer/application/ports';
@@ -86,6 +91,51 @@ export async function getCustomerAction(input: unknown): Promise<GetCustomerResu
     return await getCustomerService().getCustomer(parsed.data);
   } catch {
     return { status: 'failed' };
+  }
+}
+
+export async function getCustomerProfileAction(input: unknown): Promise<GetProfileResult> {
+  const parsed = getCustomerInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('get_customer_profile');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCustomerService().getProfile(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+export async function resetPasswordAction(input: unknown): Promise<ResetPasswordResult> {
+  const parsed = resetPasswordInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('reset_password');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCustomerService().resetPassword(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+export async function updateProfileAction(input: unknown): Promise<UpdateProfileResult> {
+  const parsed = updateProfileInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('update_profile');
+    return { status: 'error', reason: 'failed', partial: false };
+  }
+  try {
+    const { phone, identity, password, ...rest } = parsed.data;
+    return await getCustomerService().updateProfile({
+      ...rest,
+      ...(phone !== undefined ? { phone } : {}),
+      ...(identity ? { identity } : {}),
+      ...(password ? { password } : {}),
+    });
+  } catch {
+    return { status: 'error', reason: 'failed', partial: false };
   }
 }
 

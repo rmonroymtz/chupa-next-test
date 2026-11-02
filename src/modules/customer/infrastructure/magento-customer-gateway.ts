@@ -3,21 +3,29 @@ import {
   CustomerGatewayError,
   type Customer,
   type CustomerGateway,
+  type CustomerProfile,
   type CustomerGatewayErrorKind,
 } from '@/modules/customer/application/ports';
 import {
+  CHANGE_CUSTOMER_PASSWORD_MUTATION,
   CREATE_ACCOUNT_MUTATION,
+  GET_CUSTOMER_PROFILE_QUERY,
   GET_CUSTOMER_QUERY,
   MERGE_CARTS_MUTATION,
   RECAPTCHA_CONFIG_QUERY,
+  RESET_PASSWORD_MUTATION,
   REQUEST_PASSWORD_RESET_MUTATION,
   SIGN_IN_MUTATION,
+  SET_CUSTOMER_INFORMATION_MUTATION,
   SIGN_OUT_MUTATION,
+  UPDATE_CUSTOMER_PHONE_MUTATION,
 } from '@/modules/customer/infrastructure/customer.queries';
 import { MagentoRequestError, type MagentoClient } from '@/shared/graphql/client';
 
 const INVALID_CREDENTIALS_MESSAGE = 'The account sign-in was incorrect';
 const EMAIL_TAKEN_MESSAGE = 'A customer with the same email address already exists';
+const INVALID_TOKEN_MESSAGES = ['password token is mismatched', 'password token is expired'];
+const WRONG_PASSWORD_MESSAGE = "The password doesn't match this account";
 const WEAK_PASSWORD_MESSAGE = 'Minimum of different classes of characters in password';
 const NOT_AUTHORIZED_MESSAGES = ["The current customer isn't authorized", 'not authorized'];
 
@@ -25,6 +33,16 @@ function classify(caught: unknown): CustomerGatewayErrorKind {
   if (!(caught instanceof MagentoRequestError) || caught.kind !== 'graphql') return 'failure';
   if (caught.graphqlMessages.some((message) => message.includes(INVALID_CREDENTIALS_MESSAGE))) {
     return 'invalid_credentials';
+  }
+  if (
+    caught.graphqlMessages.some((message) =>
+      INVALID_TOKEN_MESSAGES.some((fragment) => message.includes(fragment)),
+    )
+  ) {
+    return 'invalid_token';
+  }
+  if (caught.graphqlMessages.some((message) => message.includes(WRONG_PASSWORD_MESSAGE))) {
+    return 'wrong_password';
   }
   if (caught.graphqlMessages.some((message) => message.includes(EMAIL_TAKEN_MESSAGE))) {
     return 'email_taken';
@@ -163,6 +181,73 @@ export function createMagentoCustomerGateway(client: MagentoClient): CustomerGat
         lastName: asString(customer.lastname),
         isSubscribed: customer.is_subscribed === true,
       } satisfies Customer;
+    },
+
+    async getProfile(token) {
+      const data = await call<{ customer: Record<string, unknown> | null } | null>(
+        'GetCustomerInformation',
+        GET_CUSTOMER_PROFILE_QUERY,
+        {},
+        token,
+      );
+      const customer = data?.customer;
+      if (!customer) {
+        throw new CustomerGatewayError(
+          'failure',
+          'Magento GetCustomerInformation returned no customer',
+        );
+      }
+      return {
+        firstName: asString(customer.firstname),
+        middleName: asString(customer.middlename),
+        lastName: asString(customer.lastname),
+        email: asString(customer.email),
+        phone: asString(customer.phone_number) || null,
+        photoUrl: asString(customer.social_profile_photo) || null,
+      } satisfies CustomerProfile;
+    },
+
+    async updatePhone(token, phone) {
+      await call('UpdateCustomerPhone', UPDATE_CUSTOMER_PHONE_MUTATION, { phone }, token);
+    },
+
+    async updateIdentity(token, identity) {
+      await call(
+        'SetCustomerInformation',
+        SET_CUSTOMER_INFORMATION_MUTATION,
+        {
+          customerInput: {
+            firstname: identity.firstName,
+            lastname: identity.lastName,
+            email: identity.email,
+            password: identity.password,
+          },
+        },
+        token,
+      );
+    },
+
+    async changePassword(token, currentPassword, newPassword, recaptchaToken) {
+      await call(
+        'ChangeCustomerPassword',
+        CHANGE_CUSTOMER_PASSWORD_MUTATION,
+        { currentPassword, newPassword },
+        token,
+        recaptchaToken,
+      );
+    },
+
+    async resetPassword(email, token, newPassword, recaptchaToken) {
+      const data = await call<{ resetPassword: unknown } | null>(
+        'resetPassword',
+        RESET_PASSWORD_MUTATION,
+        { email, token, newPassword },
+        null,
+        recaptchaToken,
+      );
+      if (data?.resetPassword !== true) {
+        throw new CustomerGatewayError('failure', 'Magento resetPassword did not confirm');
+      }
     },
 
     async mergeCarts(sourceCartId, destinationCartId, token) {

@@ -1,6 +1,7 @@
 import type { RecaptchaConfig } from '@/modules/customer/application/ports';
 
-export type RecaptchaForm = 'CUSTOMER_LOGIN' | 'CUSTOMER_CREATE' | 'CUSTOMER_FORGOT_PASSWORD';
+export type RecaptchaForm =
+  'CUSTOMER_LOGIN' | 'CUSTOMER_CREATE' | 'CUSTOMER_FORGOT_PASSWORD' | 'CUSTOMER_EDIT';
 
 const SCRIPT_URL = 'https://www.google.com/recaptcha/api.js';
 

@@ -4,7 +4,9 @@ import {
   CustomerGatewayError,
   type Customer,
   type CustomerGateway,
+  type CustomerProfile,
   type NewCustomer,
+  type ProfileIdentity,
   type RecaptchaConfig,
 } from '@/modules/customer/application/ports';
 import type { MetricsEmitter } from '@/shared/observability/metrics';
@@ -56,13 +58,57 @@ export type GetCustomerResult =
   | { readonly status: 'not_authorized' }
   | { readonly status: 'failed' };
 
+export type GetProfileResult =
+  | { readonly status: 'ok'; readonly profile: CustomerProfile }
+  | { readonly status: 'not_authorized' }
+  | { readonly status: 'failed' };
+
+export interface UpdateProfileCommand {
+  readonly token: string;
+  readonly phone?: string;
+  readonly identity?: ProfileIdentity;
+  readonly password?: { readonly current: string; readonly next: string };
+  /** reCAPTCHA token for the password step (`CUSTOMER_EDIT`). */
+  readonly recaptchaToken: string | null;
+}
+
+export type UpdateProfileResult =
+  | { readonly status: 'saved' }
+  | { readonly status: 'not_authorized' }
+  | {
+      readonly status: 'error';
+      readonly reason: 'email_taken' | 'wrong_password' | 'weak_password' | 'failed';
+      /** An earlier step already saved: the page shows data that is only partly updated. */
+      readonly partial: boolean;
+    };
+
+export interface ResetPasswordCommand {
+  readonly email: string;
+  /** The `token` query value of the emailed link. */
+  readonly token: string;
+  readonly newPassword: string;
+  readonly recaptchaToken: string | null;
+}
+
+export type ResetPasswordResult =
+  | { readonly status: 'reset' }
+  | { readonly status: 'invalid_token' }
+  | { readonly status: 'weak_password' }
+  | { readonly status: 'failed' };
+
 export interface CustomerService {
   /** Reads the signed-in customer for the header (name, account menu). */
   getCustomer(command: { readonly token: string }): Promise<GetCustomerResult>;
+  /** The account pages' profile; `not_authorized` when Magento rejects the token. */
+  getProfile(command: { readonly token: string }): Promise<GetProfileResult>;
+  /** Runs the requested steps in the legacy order and stops at the first failure. */
+  updateProfile(command: UpdateProfileCommand): Promise<UpdateProfileResult>;
   signIn(command: SignInCommand): Promise<SignInResult>;
   /** Creates the account only; the browser then signs in (each Magento call needs its own reCAPTCHA token). */
   createAccount(command: CreateAccountCommand): Promise<CreateAccountResult>;
   requestPasswordReset(command: PasswordResetCommand): Promise<{ status: 'sent' | 'failed' }>;
+  /** Sets the new password from the emailed link (`/customer/account/createPassword?token=`). */
+  resetPassword(command: ResetPasswordCommand): Promise<ResetPasswordResult>;
   /** Peregrine `signOut`: revoking is best effort, the browser always clears its session. */
   signOut(command: SignOutCommand): Promise<{ status: 'signed_out' }>;
   getRecaptchaConfig(): Promise<RecaptchaConfig | null>;
@@ -167,6 +213,21 @@ export function createCustomerService({
       }
     },
 
+    async resetPassword({ email, token, newPassword, recaptchaToken }) {
+      try {
+        await customerGateway.resetPassword(email, token, newPassword, recaptchaToken);
+        metrics.emitMetric({ name: 'PasswordReset', value: 1, dimensions: { Outcome: 'reset' } });
+        return { status: 'reset' };
+      } catch (caught) {
+        const kind = kindOf(caught);
+        const status =
+          kind === 'invalid_token' || kind === 'weak_password' ? kind : ('failed' as const);
+        metrics.emitMetric({ name: 'PasswordReset', value: 1, dimensions: { Outcome: status } });
+        logger.warn({ kind }, 'password reset failed');
+        return { status };
+      }
+    },
+
     async signOut({ token }) {
       if (token) {
         try {
@@ -187,6 +248,63 @@ export function createCustomerService({
         logger.warn({ kind }, 'customer read failed');
         return { status: 'failed' };
       }
+    },
+
+    async getProfile({ token }) {
+      try {
+        return { status: 'ok', profile: await customerGateway.getProfile(token) };
+      } catch (caught) {
+        const kind = kindOf(caught);
+        if (kind === 'not_authorized') return { status: 'not_authorized' };
+        logger.warn({ kind }, 'customer profile read failed');
+        return { status: 'failed' };
+      }
+    },
+
+    async updateProfile({ token, phone, identity, password, recaptchaToken }) {
+      const steps: { name: string; run: () => Promise<void> }[] = [];
+      if (phone !== undefined)
+        steps.push({ name: 'phone', run: () => customerGateway.updatePhone(token, phone) });
+      if (identity)
+        steps.push({
+          name: 'identity',
+          run: () => customerGateway.updateIdentity(token, identity),
+        });
+      if (password) {
+        steps.push({
+          name: 'password',
+          run: () =>
+            customerGateway.changePassword(token, password.current, password.next, recaptchaToken),
+        });
+      }
+      let saved = 0;
+      for (const step of steps) {
+        try {
+          await step.run();
+          saved += 1;
+        } catch (caught) {
+          const kind = kindOf(caught);
+          const partial = saved > 0;
+          if (kind === 'not_authorized') {
+            metrics.emitMetric({
+              name: 'ProfileUpdate',
+              value: 1,
+              dimensions: { Outcome: 'not_authorized' },
+            });
+            return { status: 'not_authorized' };
+          }
+          const reason =
+            kind === 'email_taken' || kind === 'wrong_password' || kind === 'weak_password'
+              ? kind
+              : 'failed';
+          metrics.emitMetric({ name: 'ProfileUpdate', value: 1, dimensions: { Outcome: reason } });
+          logger.warn({ step: step.name, kind, partial }, 'profile update failed');
+          return { status: 'error', reason, partial };
+        }
+      }
+      metrics.emitMetric({ name: 'ProfileUpdate', value: 1, dimensions: { Outcome: 'saved' } });
+      logger.info({ steps: steps.map((step) => step.name) }, 'profile updated');
+      return { status: 'saved' };
     },
 
     getRecaptchaConfig: () => customerGateway.getRecaptchaConfig(),

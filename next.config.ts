@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { accountAliasRedirects } from './src/modules/account/domain/account-pages';
 import { parseImageRemoteHosts, toNextRemotePatterns } from './src/shared/config/image-hosts';
 import { parseServerActionsAllowedOrigins } from './src/shared/config/server-actions';
 
@@ -24,6 +25,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: toNextRemotePatterns(imageRemotePatterns),
   },
+  // Legacy account urls (old emails, bookmarks) end up under /my-account, as in the PWA.
+  redirects: async () => accountAliasRedirects(),
   // Behind a proxy, Next accepts an action when the browser Origin host equals
   // X-Forwarded-Host (else Host); these hosts are accepted in addition.
   experimental: {

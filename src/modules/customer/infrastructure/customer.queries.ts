@@ -4,9 +4,15 @@
  * - `SignIn`, `GetCustomerAfterSignIn`, `MergeCartsAfterSignIn`: peregrine
  *   `talons/SignIn/signIn.gql.js` (`mergeCarts` without the checkout fragment,
  *   this storefront only needs it to succeed).
+ * - `GetCustomerInformation`: the chupaprecios-pwa override of venia-ui
+ *   `AccountInformationPage` (`AccountInformationPageFragment`).
+ * - `UpdateCustomerPhone`, `SetCustomerInformation`, `ChangeCustomerPassword`: the
+ *   chupaprecios-pwa override of venia-ui `EditAccountInformationPage` and peregrine
+ *   `useAccountInformationPage`.
  * - `SignOutFromMenu`: peregrine `talons/Header/accountMenu.gql.js`.
  * - `CreateAccount`: peregrine `talons/CreateAccount/createAccount.gql.js`.
  * - `requestPasswordResetEmail`: venia-ui `ForgotPassword/forgotPassword.gql.js`.
+ * - `resetPassword`: peregrine `talons/MyAccount/resetPassword.gql.js` (`ResetPassword`).
  * - `GetReCaptchaV3Config`: peregrine `hooks/useGoogleReCaptcha/googleReCaptchaConfig.gql.js`.
  */
 
@@ -25,6 +31,50 @@ export const GET_CUSTOMER_QUERY = /* GraphQL */ `
       firstname
       lastname
       is_subscribed
+    }
+  }
+`;
+
+export const GET_CUSTOMER_PROFILE_QUERY = /* GraphQL */ `
+  query GetCustomerInformation {
+    customer {
+      id
+      firstname
+      middlename
+      lastname
+      email
+      social_profile_photo
+      phone_number
+    }
+  }
+`;
+
+export const UPDATE_CUSTOMER_PHONE_MUTATION = /* GraphQL */ `
+  mutation UpdateCustomerPhone($phone: String!) {
+    updateCustomer(input: { phone_number: $phone }) {
+      customer {
+        phone_number
+      }
+    }
+  }
+`;
+
+export const SET_CUSTOMER_INFORMATION_MUTATION = /* GraphQL */ `
+  mutation SetCustomerInformation($customerInput: CustomerInput!) {
+    updateCustomer(input: $customerInput) {
+      customer {
+        firstname
+        lastname
+        email
+      }
+    }
+  }
+`;
+
+export const CHANGE_CUSTOMER_PASSWORD_MUTATION = /* GraphQL */ `
+  mutation ChangeCustomerPassword($currentPassword: String!, $newPassword: String!) {
+    changeCustomerPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+      email
     }
   }
 `;
@@ -72,6 +122,12 @@ export const CREATE_ACCOUNT_MUTATION = /* GraphQL */ `
 export const REQUEST_PASSWORD_RESET_MUTATION = /* GraphQL */ `
   mutation requestPasswordResetEmail($email: String!) {
     requestPasswordResetEmail(email: $email)
+  }
+`;
+
+export const RESET_PASSWORD_MUTATION = /* GraphQL */ `
+  mutation resetPassword($email: String!, $token: String!, $newPassword: String!) {
+    resetPassword(email: $email, resetPasswordToken: $token, newPassword: $newPassword)
   }
 `;
 

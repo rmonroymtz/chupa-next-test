@@ -16,11 +16,15 @@ import { defineConfig, devices } from '@playwright/test';
  * - `phase-4-smoke`: read-only cart page and customer screen checks
  *   (`e2e/phase-4-smoke.spec.ts`), only with `E2E_BASE_URL` and the opt-in
  *   `E2E_PHASE4_SMOKE=1` (a fresh browser: no cart, no sign-in).
+ * - `phase-5-smoke`: read-only account page checks (`e2e/phase-5-smoke.spec.ts`),
+ *   only with `E2E_BASE_URL` and the opt-in `E2E_PHASE5_SMOKE=1` (a fresh
+ *   browser: a guest, nothing is written).
  */
 const remoteBaseUrl = process.env.E2E_BASE_URL?.trim() || undefined;
 const phase2Smoke = process.env.E2E_PHASE2_SMOKE?.trim() === '1';
 const phase3Smoke = process.env.E2E_PHASE3_SMOKE?.trim() === '1';
 const phase4Smoke = process.env.E2E_PHASE4_SMOKE?.trim() === '1';
+const phase5Smoke = process.env.E2E_PHASE5_SMOKE?.trim() === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -66,6 +70,15 @@ export default defineConfig({
               {
                 name: 'phase-4-smoke',
                 testMatch: 'phase-4-smoke.spec.ts',
+                use: { baseURL: remoteBaseUrl },
+              },
+            ]
+          : []),
+        ...(phase5Smoke
+          ? [
+              {
+                name: 'phase-5-smoke',
+                testMatch: 'phase-5-smoke.spec.ts',
                 use: { baseURL: remoteBaseUrl },
               },
             ]

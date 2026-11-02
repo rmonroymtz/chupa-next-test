@@ -125,6 +125,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   let randomProducts = config.randomProducts;
   let menuDelayMs = config.menuDelayMs ?? 0;
   const carts = new Map<string, MockCartItem[]>();
+  let customerState = initialCustomerState();
 
   const magento = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
@@ -196,6 +197,53 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
         response = { status: randomScenario.status ?? 200, body: randomScenario.body ?? {} };
       } else if (CART_OPERATIONS.has(operation)) {
         response = { status: 200, body: answerCart(operation, variables, carts) };
+      } else if (ADDRESS_OPERATIONS.has(operation)) {
+        response = {
+          status: 200,
+          body: answerAddress(operation, variables, req.headers.authorization, customerState),
+        };
+      } else if (operation === 'GetRegions') {
+        response = {
+          status: 200,
+          body: { data: { country: { id: 'MX', available_regions: MOCK_REGIONS } } },
+        };
+      } else if (operation === 'getSepomexData') {
+        response = {
+          status: 200,
+          body: {
+            data: {
+              getSepomexData: {
+                city: { key: '1', label: 'Tijuana' },
+                municipio: 'Tijuana',
+                neighborhoods: [],
+                state: { key: '2', label: 'Baja California' },
+              },
+            },
+          },
+        };
+      } else if (operation === 'AddressFormConfig') {
+        // No Amasty field list (the storefront falls back to the default Mexican fields), with
+        // Google suggestions on: the e2e tests replace `window.google` with a fake.
+        response = {
+          status: 200,
+          body: {
+            data: {
+              storeConfig: {
+                amasty_checkout_manage_checkout_fields: null,
+                amasty_checkout_customer_address_street_lines: 2,
+                amasty_checkout_geolocation_google_address_suggestion: true,
+                amasty_checkout_geolocation_google_api_key: 'mock-google-key',
+              },
+            },
+          },
+        };
+      } else if (operation === 'resetPassword') {
+        response = { status: 200, body: answerResetPassword(variables, customerState) };
+      } else if (CUSTOMER_OPERATIONS.has(operation)) {
+        response = {
+          status: 200,
+          body: answerCustomer(operation, variables, req.headers.authorization, customerState),
+        };
       } else if (operation === 'StoreConfig') {
         response =
           storeConfig === 'outage'
@@ -299,6 +347,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     reset: () => {
       calls.length = 0;
       carts.clear();
+      customerState = initialCustomerState();
     },
     close: async () => {
       await Promise.all([close(magento), close(chapi)]);
@@ -400,6 +449,201 @@ function answerCategoryProducts(
     },
   };
 }
+
+/** Sign-in token the mock Magento accepts; any other token is "not authorized". */
+export const MOCK_CUSTOMER_TOKEN = 'mock.customer.token';
+
+/** Password of the mock customer, for the profile mutations. */
+export const MOCK_CUSTOMER_PASSWORD = 'Current1!';
+
+interface MockCustomerState {
+  customer: Record<string, unknown>;
+  password: string;
+  addresses: Record<string, unknown>[];
+  nextAddressId: number;
+}
+
+/** Profile of the mock customer (`GetCustomerInformation`, legacy `AccountInformationPageFragment`). */
+function initialCustomerState(): MockCustomerState {
+  return {
+    customer: {
+      id: 1,
+      firstname: 'Ana',
+      middlename: '',
+      lastname: 'Pérez',
+      email: 'ana.perez@example.mx',
+      social_profile_photo: null,
+      phone_number: '6643119682',
+    },
+    password: MOCK_CUSTOMER_PASSWORD,
+    addresses: [
+      {
+        id: 1,
+        city: 'Tijuana',
+        country_code: 'MX',
+        default_billing: false,
+        default_shipping: true,
+        firstname: 'Ana',
+        lastname: 'Pérez',
+        middlename: '',
+        postcode: '22010',
+        region: { region: 'Baja California', region_code: 'BCN', region_id: 1 },
+        street: ['Av. Revolución'],
+        telephone: '6643119682',
+        custom_attributes: [
+          { attribute_code: 'custom_field_1', value: 'García' },
+          { attribute_code: 'custom_field_2', value: '123' },
+          { attribute_code: 'custom_field_3', value: 'Zona Centro' },
+          { attribute_code: 'custom_field_4', value: 'Tijuana' },
+        ],
+      },
+    ],
+    nextAddressId: 2,
+  };
+}
+
+const NOT_AUTHORIZED = {
+  errors: [{ message: "The current customer isn't authorized." }],
+  data: { customer: null },
+};
+const WRONG_PASSWORD = {
+  errors: [
+    { message: "The password doesn't match this account. Verify the password and try again." },
+  ],
+  data: null,
+};
+
+/** The customer operations of the account pages; every one needs the mock token. */
+function answerCustomer(
+  operation: string,
+  variables: Record<string, unknown>,
+  authorization: string | undefined,
+  state: MockCustomerState,
+): unknown {
+  if (authorization !== `Bearer ${MOCK_CUSTOMER_TOKEN}`) return NOT_AUTHORIZED;
+  if (operation === 'UpdateCustomerPhone') {
+    state.customer.phone_number = String(variables.phone);
+    return {
+      data: { updateCustomer: { customer: { phone_number: state.customer.phone_number } } },
+    };
+  }
+  if (operation === 'SetCustomerInformation') {
+    const input = (variables.customerInput ?? {}) as Record<string, unknown>;
+    const emailChanged = input.email !== state.customer.email;
+    if (emailChanged && input.password !== state.password) return WRONG_PASSWORD;
+    state.customer.firstname = String(input.firstname);
+    state.customer.lastname = String(input.lastname);
+    state.customer.email = String(input.email);
+    return { data: { updateCustomer: { customer: { email: state.customer.email } } } };
+  }
+  if (operation === 'ChangeCustomerPassword') {
+    if (variables.currentPassword !== state.password) return WRONG_PASSWORD;
+    state.password = String(variables.newPassword);
+    return { data: { changeCustomerPassword: { email: state.customer.email } } };
+  }
+  return { data: { customer: state.customer } };
+}
+
+/** Reset-password link token the mock Magento accepts; any other token is expired. */
+export const MOCK_RESET_TOKEN = 'mockresettoken0123456789';
+
+/** `resetPassword` is a guest operation: it needs the emailed link token, not a sign-in token. */
+function answerResetPassword(
+  variables: Record<string, unknown>,
+  state: MockCustomerState,
+): unknown {
+  if (variables.token !== MOCK_RESET_TOKEN) {
+    return {
+      errors: [{ message: 'The password token is expired. Reset and try again.' }],
+      data: null,
+    };
+  }
+  state.password = String(variables.newPassword);
+  return { data: { resetPassword: true } };
+}
+
+/** Mexican regions the mock Magento lists (`GetRegions`). */
+const MOCK_REGIONS = [
+  { id: 1, code: 'BCN', name: 'Baja California' },
+  { id: 2, code: 'SON', name: 'Sonora' },
+];
+
+/** The address book operations of the account pages; every one needs the mock token. */
+function answerAddress(
+  operation: string,
+  variables: Record<string, unknown>,
+  authorization: string | undefined,
+  state: MockCustomerState,
+): unknown {
+  if (authorization !== `Bearer ${MOCK_CUSTOMER_TOKEN}`) return NOT_AUTHORIZED;
+  const stored = (
+    input: Record<string, unknown>,
+    id: number,
+    previous?: Record<string, unknown>,
+  ) => {
+    const region = (input.region ?? {}) as Record<string, unknown>;
+    const regionId = Number(region.region_id);
+    const known = MOCK_REGIONS.find((entry) => entry.id === regionId);
+    return {
+      ...previous,
+      id,
+      city: input.city,
+      country_code: input.country_id,
+      default_billing: previous?.default_billing ?? false,
+      default_shipping: previous?.default_shipping ?? state.addresses.length === 0,
+      firstname: input.firstname,
+      lastname: input.lastname,
+      middlename: input.middlename ?? '',
+      postcode: input.postcode,
+      region: {
+        region: known?.name ?? region.region ?? '',
+        region_code: known?.code ?? null,
+        region_id: known?.id ?? null,
+      },
+      street: input.street,
+      telephone: input.telephone,
+      custom_attributes: input.custom_attributes ?? [],
+    };
+  };
+  if (operation === 'AddNewCustomerAddressToAddressBook') {
+    const id = state.nextAddressId++;
+    state.addresses.push(stored(variables.address as Record<string, unknown>, id));
+    return { data: { createCustomerAddress: { id } } };
+  }
+  if (operation === 'UpdateCustomerAddressInAddressBook') {
+    const id = Number(variables.addressId);
+    const index = state.addresses.findIndex((entry) => entry.id === id);
+    if (index === -1)
+      return { errors: [{ message: `Could not find a address with ID "${id}"` }], data: null };
+    state.addresses[index] = stored(
+      variables.updated_address as Record<string, unknown>,
+      id,
+      state.addresses[index],
+    );
+    return { data: { updateCustomerAddress: { id } } };
+  }
+  if (operation === 'DeleteCustomerAddressFromAddressBook') {
+    const id = Number(variables.addressId);
+    const before = state.addresses.length;
+    state.addresses = state.addresses.filter((entry) => entry.id !== id);
+    return { data: { deleteCustomerAddress: state.addresses.length < before } };
+  }
+  return { data: { customer: { addresses: state.addresses } } };
+}
+
+const ADDRESS_OPERATIONS = new Set([
+  'GetCustomerAddressesForAddressBook',
+  'AddNewCustomerAddressToAddressBook',
+  'UpdateCustomerAddressInAddressBook',
+  'DeleteCustomerAddressFromAddressBook',
+]);
+
+const CUSTOMER_OPERATIONS = new Set([
+  'GetCustomerInformation',
+  'UpdateCustomerPhone',
+  'SetCustomerInformation',
+  'ChangeCustomerPassword',
+]);
 
 const CART_OPERATIONS = new Set([
   'createCart',

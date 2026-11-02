@@ -128,6 +128,9 @@ METRICS_NAMESPACE=ChupaStorefront
 # Optional. Set to 1 (with E2E_BASE_URL) to also run the read-only `phase-4-smoke` project
 # (cart page and customer screens, a fresh browser: no cart, no sign-in).
 # E2E_PHASE4_SMOKE=
+# Optional. Set to 1 (with E2E_BASE_URL) to also run the read-only `phase-5-smoke` project
+# (account pages as a guest: status, headers, alias redirects, reset password page).
+# E2E_PHASE5_SMOKE=
 # Optional. CI flag: when truthy, Playwright fails on test.only.
 # CI=
 # E2E_LOCAL_BASE_URL is set automatically by e2e/support/local-stack.ts; do not set it by hand.

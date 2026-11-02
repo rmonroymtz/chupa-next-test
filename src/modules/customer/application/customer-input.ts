@@ -31,6 +31,40 @@ export const createAccountInputSchema = z.object({
 
 export const passwordResetInputSchema = z.object({ email, recaptchaToken });
 
+/** Reset tokens are short alphanumeric strings (Magento sends 32 hex characters). */
+const resetToken = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
+
+export const resetPasswordInputSchema = z.object({
+  email,
+  token: resetToken,
+  newPassword: password,
+  recaptchaToken,
+});
+
 export const signOutInputSchema = z.object({ token: signinTokenSchema.nullable() });
 
 export const getCustomerInputSchema = z.object({ token: signinTokenSchema });
+
+/** Profile edit: any of the three groups, run in the legacy order (phone, identity, password). */
+export const updateProfileInputSchema = z
+  .object({
+    token: signinTokenSchema,
+    phone: z
+      .string()
+      .regex(/^\d{0,10}$/)
+      .optional(),
+    identity: z
+      .object({
+        firstName: name,
+        lastName: name,
+        email,
+        // The current password: empty when the email does not change.
+        password: z.string().max(256),
+      })
+      .optional(),
+    password: z.object({ current: password, next: password }).optional(),
+    recaptchaToken,
+  })
+  .refine((value) => value.phone !== undefined || value.identity || value.password, {
+    message: 'Nothing to update',
+  });

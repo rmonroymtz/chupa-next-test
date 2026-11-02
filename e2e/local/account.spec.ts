@@ -1,0 +1,367 @@
+import { expect, test, type Page } from '@playwright/test';
+import {
+  MOCK_CUSTOMER_PASSWORD,
+  MOCK_CUSTOMER_TOKEN,
+  MOCK_RESET_TOKEN,
+} from '../../tests/integration/support/mock-backends';
+
+/**
+ * Phase 5 account pages on the local stack (standalone server + mock Magento):
+ * the guard, the dashboard, the support page and the legacy aliases. The mock
+ * accepts `MOCK_CUSTOMER_TOKEN` and rejects any other token.
+ */
+const baseUrl = () => {
+  const url = process.env.E2E_LOCAL_BASE_URL;
+  if (!url) throw new Error('E2E_LOCAL_BASE_URL is not set: the local stack did not start');
+  return url;
+};
+
+const TOKEN_KEY = 'M2_VENIA_BROWSER_PERSISTENCE__signin_token';
+
+/** The PWA envelope (`{value, timeStored, ttl}`, ttl 3600 s) PWA Studio writes for the token. */
+async function signInWith(page: Page, token: string): Promise<void> {
+  await page.goto(`${baseUrl()}/sign-in`);
+  await page.evaluate(({ key, value }) => window.localStorage.setItem(key, value), {
+    key: TOKEN_KEY,
+    value: JSON.stringify({
+      value: JSON.stringify(token),
+      timeStored: Date.now(),
+      ttl: 3600,
+    }),
+  });
+}
+
+test.describe('account pages (local stack)', () => {
+  test('a guest is sent to sign in and comes back to the page it asked for', async ({ page }) => {
+    await page.goto(`${baseUrl()}/my-account/support`);
+    await expect(page).toHaveURL(/\/sign-in\?from=%2Fmy-account%2Fsupport$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Inicia sesión' })).toBeVisible();
+  });
+
+  test('a signed-in shopper sees the dashboard with the greeting, the cards and the breadcrumb', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    const response = await page.goto(`${baseUrl()}/my-account`);
+    expect(response?.status()).toBe(200);
+    expect(response?.headers()['cache-control'] ?? '').toContain('no-store');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex, nofollow',
+    );
+
+    await expect(page.getByRole('heading', { level: 1, name: 'MI CUENTA' })).toBeVisible();
+    await expect(page.getByText('Hola, Ana Pérez')).toBeVisible();
+    const cards = page.getByRole('list', { name: 'Secciones de tu cuenta' }).getByRole('link');
+    await expect(cards).toHaveCount(6);
+    await expect(cards.first()).toHaveAttribute('href', '/my-account/order-history');
+    await expect(cards.last()).toHaveAttribute('href', '/my-account/account-information');
+    await expect(
+      page.getByRole('navigation', { name: 'Ruta de navegación' }).getByText('Mi cuenta'),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('the support page is static: phone, WhatsApp and the chat buttons', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/support`);
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'ATENCIÓN A CLIENTES' }),
+    ).toBeVisible();
+    await expect(page.getByText('Lunes a sábados: 09:00hs a 18:00hs')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Click para ir a Whatsapp web' })).toHaveAttribute(
+      'href',
+      'https://wa.me/526643119682',
+    );
+    await expect(page.getByRole('button', { name: 'Chupaprecios' })).toBeVisible();
+    const crumbs = page.getByRole('navigation', { name: 'Ruta de navegación' });
+    await expect(crumbs.getByRole('link', { name: 'Mi cuenta' })).toHaveAttribute(
+      'href',
+      '/my-account',
+    );
+  });
+
+  test('a token Magento rejects is dropped and the shopper goes to sign in', async ({ page }) => {
+    await signInWith(page, 'mock.expired.token');
+    await page.goto(`${baseUrl()}/my-account`);
+
+    await expect(page).toHaveURL(/\/sign-in\?from=%2Fmy-account$/);
+    expect(await page.evaluate((key) => window.localStorage.getItem(key), TOKEN_KEY)).toBeNull();
+  });
+
+  for (const alias of [
+    '/order-history',
+    '/account-information',
+    '/address-book',
+    '/saved-payments',
+    '/quotes',
+  ]) {
+    test(`the legacy alias ${alias} redirects under /my-account and keeps the query`, async ({
+      request,
+    }) => {
+      const response = await request.get(`${baseUrl()}${alias}?callbackUrl=%2Fcheckout`, {
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(307);
+      expect(response.headers()['location']).toBe(`/my-account${alias}?callbackUrl=%2Fcheckout`);
+    });
+  }
+});
+
+test.describe('profile (local stack)', () => {
+  test('shows the profile and opens the edit form with the data filled in', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/account-information`);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'MI PERFIL' })).toBeVisible();
+    await expect(page.getByText('Ana Pérez', { exact: true })).toBeVisible();
+    await expect(page.getByText('+52 6643119682')).toBeVisible();
+
+    await page.getByRole('link', { name: 'EDITAR DATOS' }).click();
+    await expect(page).toHaveURL(/\/my-account\/edit-account-information$/);
+    await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Ana');
+    await expect(page.getByLabel('Correo electrónico')).toHaveValue('ana.perez@example.mx');
+    await expect(page.getByLabel('Teléfono')).toHaveValue('6643119682');
+  });
+
+  test('saving a new phone goes back to the profile with the new number', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/edit-account-information`);
+
+    await page.getByLabel('Teléfono').fill('5512345678');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+
+    await expect(page).toHaveURL(/\/my-account\/account-information$/);
+    await expect(page.getByText('+52 5512345678')).toBeVisible();
+  });
+
+  test('changing the email needs the right current password', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/edit-account-information`);
+
+    await page.getByLabel('Correo electrónico').fill('nueva@example.mx');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('aria-invalid', 'true');
+
+    await page.getByRole('button', { name: 'Cambiar contraseña' }).click();
+    await page.getByLabel('Contraseña actual').fill('not-my-password');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page.getByText('La contraseña actual no es correcta.')).toBeVisible();
+
+    await page.getByLabel('Contraseña actual').fill(MOCK_CUSTOMER_PASSWORD);
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page).toHaveURL(/\/my-account\/account-information$/);
+    await expect(page.getByText('nueva@example.mx')).toBeVisible();
+  });
+});
+
+test.describe('reset password link (local stack)', () => {
+  const resetUrl = (token?: string) =>
+    `${baseUrl()}/customer/account/createPassword${token ? `?token=${token}` : ''}`;
+
+  test('a url without a token shows the legacy error, noindex and no Referer', async ({ page }) => {
+    const response = await page.goto(resetUrl());
+    expect(response?.status()).toBe(200);
+    expect(response?.headers()['cache-control'] ?? '').toContain('no-store');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex, nofollow',
+    );
+    await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer');
+    await expect(
+      page.getByText('Uh oh, algo salió mal. Verifica el enlace o inténtalo de nuevo.'),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Solicitar un enlace nuevo' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
+
+  test('the emailed link saves the new password and shows the confirmation', async ({ page }) => {
+    await page.goto(resetUrl(MOCK_RESET_TOKEN));
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Restablecer contraseña' }),
+    ).toBeVisible();
+
+    await page.getByLabel('Correo electrónico').fill('ana.perez@example.mx');
+    await page.getByLabel('Nueva contraseña', { exact: true }).fill('Brand-new2!');
+    await page.getByRole('button', { name: 'Guardar contraseña' }).click();
+
+    await expect(
+      page.getByText(
+        'Tu nueva contraseña ha sido guardada. Por favor usa esta contraseña para iniciar sesión en tu Cuenta.',
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+  });
+
+  test('an expired link asks for a new one', async ({ page }) => {
+    await page.goto(resetUrl('expiredtoken000000000000'));
+    await page.getByLabel('Correo electrónico').fill('ana.perez@example.mx');
+    await page.getByLabel('Nueva contraseña', { exact: true }).fill('Brand-new2!');
+    await page.getByRole('button', { name: 'Guardar contraseña' }).click();
+
+    await expect(
+      page.getByText(
+        'El enlace para restablecer la contraseña no es válido o ya venció. Solicita uno nuevo.',
+      ),
+    ).toBeVisible();
+  });
+});
+
+/**
+ * The mock Magento turns Google suggestions on, so the address form would load
+ * the real Maps script. These tests replace `window.google` with a fake that only
+ * suggests for text starting with "Av.".
+ */
+async function installFakeGoogle(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const components = [
+      { longText: '123', shortText: '123', types: ['street_number'] },
+      { longText: 'Avenida Revolución', shortText: 'Av. Revolución', types: ['route'] },
+      { longText: 'Zona Centro', shortText: 'Zona Centro', types: ['sublocality_level_1'] },
+      { longText: 'Tijuana', shortText: 'Tijuana', types: ['locality'] },
+      { longText: 'Baja California', shortText: 'B.C.', types: ['administrative_area_level_1'] },
+      { longText: 'México', shortText: 'MX', types: ['country'] },
+      { longText: '22010', shortText: '22010', types: ['postal_code'] },
+    ];
+    (window as unknown as { google: unknown }).google = {
+      maps: {
+        importLibrary: async () => ({
+          AutocompleteSessionToken: class {},
+          AutocompleteSuggestion: {
+            fetchAutocompleteSuggestions: async ({ input }: { input: string }) => ({
+              suggestions: input.startsWith('Av.')
+                ? [
+                    {
+                      placePrediction: {
+                        placeId: 'fake-place',
+                        text: { toString: () => 'Av. Revolución 123, Tijuana' },
+                        toPlace: () => ({
+                          fetchFields: async () => undefined,
+                          addressComponents: components,
+                        }),
+                      },
+                    },
+                  ]
+                : [],
+            }),
+          },
+        }),
+      },
+    };
+  });
+}
+
+test.describe('address book (local stack)', () => {
+  test.beforeEach(async ({ page }) => {
+    await installFakeGoogle(page);
+  });
+
+  test('lists the saved address with the Principal badge and no delete button', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book`);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'MIS DIRECCIONES' })).toBeVisible();
+    const card = page.getByRole('listitem', { name: 'Ana Pérez' });
+    await expect(card.getByText('Principal')).toBeVisible();
+    await expect(card.getByText('Av. Revolución')).toBeVisible();
+    await expect(card.getByText('Zona Centro')).toBeVisible();
+    await expect(card.getByRole('button', { name: /Eliminar/ })).toHaveCount(0);
+  });
+
+  test('adds an address with the default Mexican fields, edits it by direct url and deletes it', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book/new`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Nueva dirección' })).toBeVisible();
+
+    await page.getByLabel(/^Nombre/).fill('Luis');
+    await page.getByLabel(/^Apellido\*$/).fill('Soto');
+    await page.getByLabel(/^Teléfono/).fill('6861234567');
+    await page.getByLabel(/^Código postal/).fill('21100');
+    await page.getByLabel(/^Estado/).selectOption({ label: 'Baja California' });
+    // The DS checkbox hides the native input: click its label.
+    await page.getByText('Sin número', { exact: true }).click();
+    await page.getByLabel(/^Colonia/).fill('Centro Cívico');
+    await page.getByLabel(/^Municipio/).fill('Mexicali');
+    await page.getByLabel(/^Ciudad/).fill('Mexicali');
+    await page.getByPlaceholder('Calle y número').fill('Calle Nueva');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page).toHaveURL(/\/my-account\/address-book$/);
+    const card = page.getByRole('listitem', { name: 'Luis Soto' });
+    await expect(card.getByText('Calle Nueva')).toBeVisible();
+    await expect(card.getByText('S/N')).toBeVisible();
+    await expect(card.getByText('Principal')).toHaveCount(0);
+
+    // Edit through the card, then through a direct url (the legacy showed an empty form there).
+    await card.getByRole('link', { name: 'Editar dirección de Luis Soto' }).click();
+    await expect(page).toHaveURL(/\/my-account\/address-book\/edit\/\d+$/);
+    await expect(page.getByLabel(/^Colonia/)).toHaveValue('Centro Cívico');
+    const editUrl = page.url();
+    await page.getByLabel(/^Colonia/).fill('Nueva Colonia');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(
+      page.getByRole('listitem', { name: 'Luis Soto' }).getByText('Nueva Colonia'),
+    ).toBeVisible();
+
+    await page.goto(editUrl);
+    await expect(page.getByLabel(/^Colonia/)).toHaveValue('Nueva Colonia');
+
+    await page.goto(`${baseUrl()}/my-account/address-book`);
+    await page.getByRole('button', { name: 'Eliminar dirección de Luis Soto' }).click();
+    await page
+      .getByRole('listitem', { name: 'Luis Soto' })
+      .getByRole('button', { name: 'Eliminar', exact: true })
+      .click();
+    await expect(page.getByRole('listitem', { name: 'Luis Soto' })).toHaveCount(0);
+    await expect(page.getByRole('listitem', { name: 'Ana Pérez' })).toBeVisible();
+  });
+
+  test('an address that does not exist, or an id that is not a number, says so', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book/edit/9999`);
+    await expect(page.getByText('No encontramos esta dirección.')).toBeVisible();
+
+    await page.goto(`${baseUrl()}/my-account/address-book/edit/abc`);
+    await expect(page.getByText('No encontramos esta dirección.')).toBeVisible();
+  });
+
+  test('a Google suggestion fills the form and SEPOMEX the municipio, then it saves', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book/new`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Nueva dirección' })).toBeVisible();
+
+    await page.getByLabel(/^Nombre/).fill('Marta');
+    await page.getByLabel(/^Apellido\*$/).fill('Ríos');
+    await page.getByLabel(/^Teléfono/).fill('6641112233');
+    await page.getByPlaceholder('Calle y número').fill('Av. Rev');
+    await page.getByRole('option', { name: 'Av. Revolución 123, Tijuana' }).click();
+
+    await expect(page.getByPlaceholder('Calle y número')).toHaveValue('Av. Revolución');
+    await expect(page.getByLabel(/^Número/)).toHaveValue('123');
+    await expect(page.getByLabel(/^Colonia/)).toHaveValue('Zona Centro');
+    await expect(page.getByLabel(/^Código postal/)).toHaveValue('22010');
+    await expect(page.getByLabel(/^Ciudad/)).toHaveValue('Tijuana');
+    await expect(page.getByLabel(/^Estado/)).toHaveValue('1');
+    // The mock SEPOMEX answers "Tijuana" for any postal code.
+    await expect(page.getByLabel(/^Municipio/)).toHaveValue('Tijuana');
+
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page).toHaveURL(/\/my-account\/address-book$/);
+    await expect(
+      page.getByRole('listitem', { name: 'Marta Ríos' }).getByText('Av. Revolución'),
+    ).toBeVisible();
+  });
+});
