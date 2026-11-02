@@ -8,6 +8,10 @@ import { CategoriesDropdown } from '@/modules/layout/ui/categories-dropdown.clie
 import { NavDrawer } from '@/modules/layout/ui/nav-drawer.client';
 import { SiteHeader } from '@/modules/layout/ui/site-header';
 
+vi.mock('@/modules/customer/ui/customer-actions', () => ({
+  getCustomerAction: vi.fn(),
+  signOutAction: vi.fn(),
+}));
 vi.mock('@/modules/cart/ui/cart-actions', () => ({
   addToCartAction: vi.fn(),
   getCartCountAction: vi.fn(),
@@ -73,7 +77,13 @@ describe('SiteHeader', () => {
     const classes = account.className.split(' ');
     // PWA `SignInButton.module.css` / `accountTrigger.module.css` `.action`.
     expect(classes).toEqual(
-      expect.arrayContaining(['gap-2', 'text-body-md', 'leading-normal', 'text-ds-text', 'hover:text-ds-accent']),
+      expect.arrayContaining([
+        'gap-2',
+        'text-body-md',
+        'leading-normal',
+        'text-ds-text',
+        'hover:text-ds-accent',
+      ]),
     );
     expect(classes).not.toContain('text-body-sm');
     expect(classes).not.toContain('hover:underline');

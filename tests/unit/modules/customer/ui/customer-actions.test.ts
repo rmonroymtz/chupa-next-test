@@ -5,6 +5,7 @@ const service = vi.hoisted(() => ({
   createAccount: vi.fn(),
   requestPasswordReset: vi.fn(),
   signOut: vi.fn(),
+  getCustomer: vi.fn(),
   getRecaptchaConfig: vi.fn(),
 }));
 const warn = vi.hoisted(() => vi.fn());
@@ -17,6 +18,7 @@ vi.mock('@/shared/observability/logger', () => ({
 
 const {
   createAccountAction,
+  getCustomerAction,
   getRecaptchaConfigAction,
   requestPasswordResetAction,
   signInAction,
@@ -90,5 +92,18 @@ describe('customer actions', () => {
     ).resolves.toEqual({ status: 'failed' });
     service.getRecaptchaConfig.mockRejectedValue(new Error('config'));
     await expect(getRecaptchaConfigAction()).resolves.toBeNull();
+  });
+});
+
+describe('getCustomerAction', () => {
+  it('reads the customer for a valid token and fails closed on bad input', async () => {
+    service.getCustomer.mockResolvedValue({ status: 'not_authorized' });
+    await expect(getCustomerAction({ token: 'a.b.c' })).resolves.toEqual({
+      status: 'not_authorized',
+    });
+    expect(service.getCustomer).toHaveBeenCalledWith({ token: 'a.b.c' });
+    await expect(getCustomerAction({ token: 'bad token!' })).resolves.toEqual({ status: 'failed' });
+    service.getCustomer.mockRejectedValue(new Error('config'));
+    await expect(getCustomerAction({ token: 'a.b.c' })).resolves.toEqual({ status: 'failed' });
   });
 });

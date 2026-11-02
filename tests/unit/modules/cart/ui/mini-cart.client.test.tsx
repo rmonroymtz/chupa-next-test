@@ -179,7 +179,13 @@ describe('MiniCart', () => {
     const classes = () => button.className.split(' ');
     // PWA `cartTrigger.module.css` `.action`: gap ds-space-2, 14px, text-primary, hover brand anchor.
     expect(classes()).toEqual(
-      expect.arrayContaining(['gap-2', 'text-body-md', 'leading-normal', 'text-ds-text', 'hover:text-ds-accent']),
+      expect.arrayContaining([
+        'gap-2',
+        'text-body-md',
+        'leading-normal',
+        'text-ds-text',
+        'hover:text-ds-accent',
+      ]),
     );
     expect(classes()).not.toContain('font-medium');
     expect(classes()).not.toContain('text-body-sm');
@@ -197,7 +203,10 @@ describe('MiniCart', () => {
 
   it('keeps the PWA label color with items: no red has-items state (only hover)', async () => {
     await act(async () => render(<MiniCart />));
-    const empty = { button: trigger().className, label: screen.getByTestId('cart-count').parentElement!.className };
+    const empty = {
+      button: trigger().className,
+      label: screen.getByTestId('cart-count').parentElement!.className,
+    };
     act(() => cartCountStore.set(3));
     expect(trigger().className).toBe(empty.button);
     expect(screen.getByTestId('cart-count').parentElement!.className).toBe(empty.label);

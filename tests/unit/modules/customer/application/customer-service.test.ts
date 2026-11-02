@@ -194,3 +194,27 @@ describe('customer service sign-out and config', () => {
     await expect(service.getRecaptchaConfig()).resolves.toEqual(config);
   });
 });
+
+describe('customer service session read', () => {
+  it('answers the customer for a valid token', async () => {
+    const { service, customerGateway } = setup();
+    await expect(service.getCustomer({ token: TOKEN })).resolves.toEqual({
+      status: 'ok',
+      customer: CUSTOMER,
+    });
+    expect(customerGateway.getCustomer).toHaveBeenCalledWith(TOKEN);
+  });
+
+  it('tells a token Magento rejects apart from a failure', async () => {
+    const rejected = setup({
+      getCustomer: vi.fn().mockRejectedValue(new CustomerGatewayError('not_authorized', 'x')),
+    });
+    await expect(rejected.service.getCustomer({ token: TOKEN })).resolves.toEqual({
+      status: 'not_authorized',
+    });
+    const broken = setup({ getCustomer: vi.fn().mockRejectedValue(new Error('boom')) });
+    await expect(broken.service.getCustomer({ token: TOKEN })).resolves.toEqual({
+      status: 'failed',
+    });
+  });
+});
