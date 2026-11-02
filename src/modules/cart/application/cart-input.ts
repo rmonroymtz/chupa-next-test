@@ -36,6 +36,19 @@ export const removeCartItemInputSchema = z.object({
   itemUid: cartItemUid,
 });
 
+export const cartDetailsReadInputSchema = cartReadInputSchema;
+
+export const updateCartItemInputSchema = z.object({
+  cartId: cartIdSchema,
+  ...auth,
+  itemUid: cartItemUid,
+  // Removing is its own action; Magento treats 0 as a removal, so it is not accepted here.
+  quantity: z.number().int().positive().max(1_000_000),
+});
+
+export const removeCartDetailsItemInputSchema = removeCartItemInputSchema;
+
 export type AddToCartInput = z.infer<typeof addToCartInputSchema>;
 export type CartReadInput = z.infer<typeof cartReadInputSchema>;
 export type RemoveCartItemInput = z.infer<typeof removeCartItemInputSchema>;
+export type UpdateCartItemInput = z.infer<typeof updateCartItemInputSchema>;

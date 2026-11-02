@@ -1,4 +1,9 @@
-import type { MiniCart, MiniCartItem } from '@/modules/cart/application/ports';
+import type {
+  CartDetails,
+  CartDetailsItem,
+  MiniCart,
+  MiniCartItem,
+} from '@/modules/cart/application/ports';
 import type { Money } from '@/modules/product/domain/product';
 
 /**
@@ -67,5 +72,32 @@ function mapItem(raw: unknown, productUrlSuffix: string): MiniCartItem | null {
       return label !== null && value !== null ? [{ label, value }] : [];
     }),
     outOfStock: product.stock_status === 'OUT_OF_STOCK',
+  };
+}
+
+/** Maps a `GetCartDetails` cart; items without uid or product are skipped. */
+export function mapCartDetails(raw: unknown, productUrlSuffix: string): CartDetails {
+  const cart = asRecord(raw);
+  const items = Array.isArray(cart?.items) ? cart.items : [];
+  return {
+    totalQuantity: asNumber(cart?.total_quantity) ?? 0,
+    items: items.flatMap((item) => {
+      const mapped = mapDetailsItem(item, productUrlSuffix);
+      return mapped ? [mapped] : [];
+    }),
+  };
+}
+
+function mapDetailsItem(raw: unknown, productUrlSuffix: string): CartDetailsItem | null {
+  const base = mapItem(raw, productUrlSuffix);
+  if (!base) return null;
+  const item = asRecord(raw);
+  const product = asRecord(item?.product);
+  const { thumbnailUrl, ...rest } = base;
+  return {
+    ...rest,
+    imageUrl: asString(asRecord(product?.small_image)?.url) ?? thumbnailUrl,
+    outOfStock: base.outOfStock || item?.out_of_stock === true,
+    isFromQuote: item?.is_from_quote === true,
   };
 }

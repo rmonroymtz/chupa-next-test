@@ -65,6 +65,15 @@ class ScriptedGateway implements CartGateway {
     const { totalQuantity } = await answer(this.readStep);
     return { totalQuantity, subtotal: null, items: [] };
   }
+
+  // The cart page operations have their own suite (cart-details-service.test.ts).
+  getCartDetails = unsupported;
+  updateCartItemQuantity = unsupported;
+  removeCartDetailsItem = unsupported;
+}
+
+function unsupported(): never {
+  throw new Error('not used by this suite');
 }
 
 async function answer(step: Step) {
