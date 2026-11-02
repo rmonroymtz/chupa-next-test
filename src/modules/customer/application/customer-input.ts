@@ -34,3 +34,27 @@ export const passwordResetInputSchema = z.object({ email, recaptchaToken });
 export const signOutInputSchema = z.object({ token: signinTokenSchema.nullable() });
 
 export const getCustomerInputSchema = z.object({ token: signinTokenSchema });
+
+/** Profile edit: any of the three groups, run in the legacy order (phone, identity, password). */
+export const updateProfileInputSchema = z
+  .object({
+    token: signinTokenSchema,
+    phone: z
+      .string()
+      .regex(/^\d{0,10}$/)
+      .optional(),
+    identity: z
+      .object({
+        firstName: name,
+        lastName: name,
+        email,
+        // The current password: empty when the email does not change.
+        password: z.string().max(256),
+      })
+      .optional(),
+    password: z.object({ current: password, next: password }).optional(),
+    recaptchaToken,
+  })
+  .refine((value) => value.phone !== undefined || value.identity || value.password, {
+    message: 'Nothing to update',
+  });

@@ -6,6 +6,9 @@
  *   this storefront only needs it to succeed).
  * - `GetCustomerInformation`: the chupaprecios-pwa override of venia-ui
  *   `AccountInformationPage` (`AccountInformationPageFragment`).
+ * - `UpdateCustomerPhone`, `SetCustomerInformation`, `ChangeCustomerPassword`: the
+ *   chupaprecios-pwa override of venia-ui `EditAccountInformationPage` and peregrine
+ *   `useAccountInformationPage`.
  * - `SignOutFromMenu`: peregrine `talons/Header/accountMenu.gql.js`.
  * - `CreateAccount`: peregrine `talons/CreateAccount/createAccount.gql.js`.
  * - `requestPasswordResetEmail`: venia-ui `ForgotPassword/forgotPassword.gql.js`.
@@ -41,6 +44,36 @@ export const GET_CUSTOMER_PROFILE_QUERY = /* GraphQL */ `
       email
       social_profile_photo
       phone_number
+    }
+  }
+`;
+
+export const UPDATE_CUSTOMER_PHONE_MUTATION = /* GraphQL */ `
+  mutation UpdateCustomerPhone($phone: String!) {
+    updateCustomer(input: { phone_number: $phone }) {
+      customer {
+        phone_number
+      }
+    }
+  }
+`;
+
+export const SET_CUSTOMER_INFORMATION_MUTATION = /* GraphQL */ `
+  mutation SetCustomerInformation($customerInput: CustomerInput!) {
+    updateCustomer(input: $customerInput) {
+      customer {
+        firstname
+        lastname
+        email
+      }
+    }
+  }
+`;
+
+export const CHANGE_CUSTOMER_PASSWORD_MUTATION = /* GraphQL */ `
+  mutation ChangeCustomerPassword($currentPassword: String!, $newPassword: String!) {
+    changeCustomerPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+      email
     }
   }
 `;

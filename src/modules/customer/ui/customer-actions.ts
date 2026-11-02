@@ -6,11 +6,13 @@ import {
   passwordResetInputSchema,
   signInInputSchema,
   signOutInputSchema,
+  updateProfileInputSchema,
 } from '@/modules/customer/application/customer-input';
 import type {
   CreateAccountResult,
   GetCustomerResult,
   GetProfileResult,
+  UpdateProfileResult,
   SignInResult,
 } from '@/modules/customer/application/customer-service';
 import type { RecaptchaConfig } from '@/modules/customer/application/ports';
@@ -100,6 +102,25 @@ export async function getCustomerProfileAction(input: unknown): Promise<GetProfi
     return await getCustomerService().getProfile(parsed.data);
   } catch {
     return { status: 'failed' };
+  }
+}
+
+export async function updateProfileAction(input: unknown): Promise<UpdateProfileResult> {
+  const parsed = updateProfileInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('update_profile');
+    return { status: 'error', reason: 'failed', partial: false };
+  }
+  try {
+    const { phone, identity, password, ...rest } = parsed.data;
+    return await getCustomerService().updateProfile({
+      ...rest,
+      ...(phone !== undefined ? { phone } : {}),
+      ...(identity ? { identity } : {}),
+      ...(password ? { password } : {}),
+    });
+  } catch {
+    return { status: 'error', reason: 'failed', partial: false };
   }
 }
 

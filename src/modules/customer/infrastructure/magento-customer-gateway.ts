@@ -7,6 +7,7 @@ import {
   type CustomerGatewayErrorKind,
 } from '@/modules/customer/application/ports';
 import {
+  CHANGE_CUSTOMER_PASSWORD_MUTATION,
   CREATE_ACCOUNT_MUTATION,
   GET_CUSTOMER_PROFILE_QUERY,
   GET_CUSTOMER_QUERY,
@@ -14,12 +15,15 @@ import {
   RECAPTCHA_CONFIG_QUERY,
   REQUEST_PASSWORD_RESET_MUTATION,
   SIGN_IN_MUTATION,
+  SET_CUSTOMER_INFORMATION_MUTATION,
   SIGN_OUT_MUTATION,
+  UPDATE_CUSTOMER_PHONE_MUTATION,
 } from '@/modules/customer/infrastructure/customer.queries';
 import { MagentoRequestError, type MagentoClient } from '@/shared/graphql/client';
 
 const INVALID_CREDENTIALS_MESSAGE = 'The account sign-in was incorrect';
 const EMAIL_TAKEN_MESSAGE = 'A customer with the same email address already exists';
+const WRONG_PASSWORD_MESSAGE = "The password doesn't match this account";
 const WEAK_PASSWORD_MESSAGE = 'Minimum of different classes of characters in password';
 const NOT_AUTHORIZED_MESSAGES = ["The current customer isn't authorized", 'not authorized'];
 
@@ -27,6 +31,9 @@ function classify(caught: unknown): CustomerGatewayErrorKind {
   if (!(caught instanceof MagentoRequestError) || caught.kind !== 'graphql') return 'failure';
   if (caught.graphqlMessages.some((message) => message.includes(INVALID_CREDENTIALS_MESSAGE))) {
     return 'invalid_credentials';
+  }
+  if (caught.graphqlMessages.some((message) => message.includes(WRONG_PASSWORD_MESSAGE))) {
+    return 'wrong_password';
   }
   if (caught.graphqlMessages.some((message) => message.includes(EMAIL_TAKEN_MESSAGE))) {
     return 'email_taken';
@@ -189,6 +196,36 @@ export function createMagentoCustomerGateway(client: MagentoClient): CustomerGat
         phone: asString(customer.phone_number) || null,
         photoUrl: asString(customer.social_profile_photo) || null,
       } satisfies CustomerProfile;
+    },
+
+    async updatePhone(token, phone) {
+      await call('UpdateCustomerPhone', UPDATE_CUSTOMER_PHONE_MUTATION, { phone }, token);
+    },
+
+    async updateIdentity(token, identity) {
+      await call(
+        'SetCustomerInformation',
+        SET_CUSTOMER_INFORMATION_MUTATION,
+        {
+          customerInput: {
+            firstname: identity.firstName,
+            lastname: identity.lastName,
+            email: identity.email,
+            password: identity.password,
+          },
+        },
+        token,
+      );
+    },
+
+    async changePassword(token, currentPassword, newPassword, recaptchaToken) {
+      await call(
+        'ChangeCustomerPassword',
+        CHANGE_CUSTOMER_PASSWORD_MUTATION,
+        { currentPassword, newPassword },
+        token,
+        recaptchaToken,
+      );
     },
 
     async mergeCarts(sourceCartId, destinationCartId, token) {

@@ -6,6 +6,7 @@ import {
   type CustomerGateway,
   type CustomerProfile,
   type NewCustomer,
+  type ProfileIdentity,
   type RecaptchaConfig,
 } from '@/modules/customer/application/ports';
 import type { MetricsEmitter } from '@/shared/observability/metrics';
@@ -62,11 +63,32 @@ export type GetProfileResult =
   | { readonly status: 'not_authorized' }
   | { readonly status: 'failed' };
 
+export interface UpdateProfileCommand {
+  readonly token: string;
+  readonly phone?: string;
+  readonly identity?: ProfileIdentity;
+  readonly password?: { readonly current: string; readonly next: string };
+  /** reCAPTCHA token for the password step (`CUSTOMER_EDIT`). */
+  readonly recaptchaToken: string | null;
+}
+
+export type UpdateProfileResult =
+  | { readonly status: 'saved' }
+  | { readonly status: 'not_authorized' }
+  | {
+      readonly status: 'error';
+      readonly reason: 'email_taken' | 'wrong_password' | 'weak_password' | 'failed';
+      /** An earlier step already saved: the page shows data that is only partly updated. */
+      readonly partial: boolean;
+    };
+
 export interface CustomerService {
   /** Reads the signed-in customer for the header (name, account menu). */
   getCustomer(command: { readonly token: string }): Promise<GetCustomerResult>;
   /** The account pages' profile; `not_authorized` when Magento rejects the token. */
   getProfile(command: { readonly token: string }): Promise<GetProfileResult>;
+  /** Runs the requested steps in the legacy order and stops at the first failure. */
+  updateProfile(command: UpdateProfileCommand): Promise<UpdateProfileResult>;
   signIn(command: SignInCommand): Promise<SignInResult>;
   /** Creates the account only; the browser then signs in (each Magento call needs its own reCAPTCHA token). */
   createAccount(command: CreateAccountCommand): Promise<CreateAccountResult>;
@@ -206,6 +228,52 @@ export function createCustomerService({
         logger.warn({ kind }, 'customer profile read failed');
         return { status: 'failed' };
       }
+    },
+
+    async updateProfile({ token, phone, identity, password, recaptchaToken }) {
+      const steps: { name: string; run: () => Promise<void> }[] = [];
+      if (phone !== undefined)
+        steps.push({ name: 'phone', run: () => customerGateway.updatePhone(token, phone) });
+      if (identity)
+        steps.push({
+          name: 'identity',
+          run: () => customerGateway.updateIdentity(token, identity),
+        });
+      if (password) {
+        steps.push({
+          name: 'password',
+          run: () =>
+            customerGateway.changePassword(token, password.current, password.next, recaptchaToken),
+        });
+      }
+      let saved = 0;
+      for (const step of steps) {
+        try {
+          await step.run();
+          saved += 1;
+        } catch (caught) {
+          const kind = kindOf(caught);
+          const partial = saved > 0;
+          if (kind === 'not_authorized') {
+            metrics.emitMetric({
+              name: 'ProfileUpdate',
+              value: 1,
+              dimensions: { Outcome: 'not_authorized' },
+            });
+            return { status: 'not_authorized' };
+          }
+          const reason =
+            kind === 'email_taken' || kind === 'wrong_password' || kind === 'weak_password'
+              ? kind
+              : 'failed';
+          metrics.emitMetric({ name: 'ProfileUpdate', value: 1, dimensions: { Outcome: reason } });
+          logger.warn({ step: step.name, kind, partial }, 'profile update failed');
+          return { status: 'error', reason, partial };
+        }
+      }
+      metrics.emitMetric({ name: 'ProfileUpdate', value: 1, dimensions: { Outcome: 'saved' } });
+      logger.info({ steps: steps.map((step) => step.name) }, 'profile updated');
+      return { status: 'saved' };
     },
 
     getRecaptchaConfig: () => customerGateway.getRecaptchaConfig(),

@@ -20,6 +20,13 @@ export interface CustomerProfile {
   readonly photoUrl: string | null;
 }
 
+export interface ProfileIdentity {
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly email: string;
+  readonly password: string;
+}
+
 export interface NewCustomer {
   readonly email: string;
   readonly firstName: string;
@@ -38,13 +45,19 @@ export interface RecaptchaConfig {
 }
 
 export type CustomerGatewayErrorKind =
-  'invalid_credentials' | 'not_authorized' | 'email_taken' | 'weak_password' | 'failure';
+  | 'invalid_credentials'
+  | 'not_authorized'
+  | 'email_taken'
+  | 'weak_password'
+  | 'wrong_password'
+  | 'failure';
 
 /**
  * `invalid_credentials`: Magento rejected the email/password pair (also its
  * temporary lock). `not_authorized`: Magento no longer accepts the sign-in
  * token (expired or revoked before the 1 h client ttl). `email_taken` and
- * `weak_password` come from account creation.
+ * `weak_password` come from account creation and profile updates;
+ * `wrong_password` is the current password Magento rejects on a profile update.
  */
 export class CustomerGatewayError extends Error {
   override readonly name = 'CustomerGatewayError';
@@ -72,6 +85,20 @@ export interface CustomerGateway {
   getCustomer(token: string): Promise<Customer>;
   /** `GetCustomerInformation`: what the account pages show. */
   getProfile(token: string): Promise<CustomerProfile>;
+  /** `updateCustomer(input:{phone_number})`. */
+  updatePhone(token: string, phone: string): Promise<void>;
+  /**
+   * `updateCustomer(input:{email,firstname,lastname,password})`: Magento needs the
+   * current password to change the email, so it is always sent (empty when not needed).
+   */
+  updateIdentity(token: string, identity: ProfileIdentity): Promise<void>;
+  /** `changeCustomerPassword`; `recaptchaToken` goes in `X-ReCaptcha` (form `CUSTOMER_EDIT`). */
+  changePassword(
+    token: string,
+    currentPassword: string,
+    newPassword: string,
+    recaptchaToken: string | null,
+  ): Promise<void>;
   /** Moves the guest cart items into the customer's cart (`mergeCarts`). */
   mergeCarts(sourceCartId: string, destinationCartId: string, token: string): Promise<void>;
   /** `revokeCustomerToken`: whether Magento revoked it. */
