@@ -196,6 +196,8 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
         response = { status: randomScenario.status ?? 200, body: randomScenario.body ?? {} };
       } else if (CART_OPERATIONS.has(operation)) {
         response = { status: 200, body: answerCart(operation, variables, carts) };
+      } else if (operation === 'GetCustomerInformation') {
+        response = { status: 200, body: answerCustomerProfile(req.headers.authorization) };
       } else if (operation === 'StoreConfig') {
         response =
           storeConfig === 'outage'
@@ -398,6 +400,30 @@ function answerCategoryProducts(
         },
       },
     },
+  };
+}
+
+/** Sign-in token the mock Magento accepts; any other token is "not authorized". */
+export const MOCK_CUSTOMER_TOKEN = 'mock.customer.token';
+
+/** Profile of the mock customer (`GetCustomerInformation`, legacy `AccountInformationPageFragment`). */
+const MOCK_CUSTOMER = {
+  id: 1,
+  firstname: 'Ana',
+  middlename: '',
+  lastname: 'Pérez',
+  email: 'ana.perez@example.mx',
+  social_profile_photo: null,
+  phone_number: '6643119682',
+};
+
+function answerCustomerProfile(authorization: string | undefined): unknown {
+  if (authorization === `Bearer ${MOCK_CUSTOMER_TOKEN}`) {
+    return { data: { customer: MOCK_CUSTOMER } };
+  }
+  return {
+    errors: [{ message: "The current customer isn't authorized." }],
+    data: { customer: null },
   };
 }
 
