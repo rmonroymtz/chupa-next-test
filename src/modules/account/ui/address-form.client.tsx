@@ -49,6 +49,12 @@ const SAVE_ERROR = 'No pudimos guardar la dirección. Revisa los datos e intént
 const COUNTRY_LABEL = 'México';
 const COUNTRY_CODE = 'MX';
 
+/** A token Magento rejects: drop it and sign in again, coming back to this form. */
+function dropSession(returnPath: string): void {
+  browserCartStorage.clearSigninToken();
+  redirectBrowser(authHref('/sign-in', returnPath));
+}
+
 /** Fields of the legacy "Destinatario" group; the others go under "Dirección". */
 const RECIPIENT_CODES: readonly FieldCode[] = [
   'firstname',
@@ -87,11 +93,6 @@ export function AddressForm({ addressId }: AddressFormProps) {
   const editing = addressId !== undefined;
   const returnPath = editing ? `${ADDRESS_BOOK_PATH}/edit/${addressId}` : NEW_PATH;
 
-  function handleUnauthorized(): void {
-    browserCartStorage.clearSigninToken();
-    redirectBrowser(authHref('/sign-in', returnPath));
-  }
-
   // Nothing sets state before the first await, so the mount effect never sets it synchronously.
   useEffect(() => {
     let cancelled = false;
@@ -104,7 +105,7 @@ export function AddressForm({ addressId }: AddressFormProps) {
         ]);
         if (cancelled) return;
         if (list?.status === 'not_authorized') {
-          handleUnauthorized();
+          dropSession(returnPath);
           return;
         }
         if (list && list.status !== 'ok') {
@@ -135,7 +136,7 @@ export function AddressForm({ addressId }: AddressFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [token, addressId]);
+  }, [token, addressId, returnPath]);
 
   if (state.kind === 'loading') {
     return (
@@ -173,7 +174,7 @@ export function AddressForm({ addressId }: AddressFormProps) {
       regions={state.regions}
       original={state.original}
       initial={state.initial}
-      onUnauthorized={handleUnauthorized}
+      onUnauthorized={() => dropSession(returnPath)}
     />
   );
 }
