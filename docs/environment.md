@@ -125,6 +125,9 @@ METRICS_NAMESPACE=ChupaStorefront
 # /{store}-{sku}-search.html url whose sku CHAPI knows. Defaults are staging examples.
 # E2E_SEARCH_QUERY=taladro
 # E2E_SKU_SEARCH_PATH=/amazon-B00IJ0ALYS-search.html
+# Optional. Set to 1 (with E2E_BASE_URL) to also run the read-only `phase-4-smoke` project
+# (cart page and customer screens, a fresh browser: no cart, no sign-in).
+# E2E_PHASE4_SMOKE=
 # Optional. CI flag: when truthy, Playwright fails on test.only.
 # CI=
 # E2E_LOCAL_BASE_URL is set automatically by e2e/support/local-stack.ts; do not set it by hand.
