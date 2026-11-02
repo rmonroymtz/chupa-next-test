@@ -2,6 +2,8 @@ import type {
   CartDetails,
   CartDetailsItem,
   CartExtras,
+  CartPriceChange,
+  RenewedQuoteItem,
   CartSummary,
   MiniCart,
   MiniCartItem,
@@ -137,5 +139,42 @@ function mapDetailsItem(raw: unknown, productUrlSuffix: string): CartDetailsItem
     imageUrl: asString(asRecord(product?.small_image)?.url) ?? thumbnailUrl,
     outOfStock: base.outOfStock || item?.out_of_stock === true,
     isFromQuote: item?.is_from_quote === true,
+    rowTotal: toMoney({
+      currency: asRecord(asRecord(item?.prices)?.price)?.currency,
+      ...asRecord(asRecord(item?.prices)?.row_total),
+    }),
+    quoteExpiresAt: asString(item?.quote_expiration_date),
+    quotePriceExpired: item?.is_quote_price_expired === true,
+    priceChange: mapPriceChange(item?.cp_price_change),
   };
+}
+
+function mapPriceChange(raw: unknown): CartPriceChange | null {
+  const change = asRecord(raw);
+  if (!change) return null;
+  return {
+    changed: change.changed === true,
+    previousPrice: asNumber(change.previous_price),
+    currentPrice: asNumber(change.current_price),
+    delta: asNumber(change.delta),
+    outOfStock: change.out_of_stock === true,
+  };
+}
+
+/** Maps `items_renewed` of the quote refresh; entries without an item uid are skipped. */
+export function mapRenewedItems(raw: unknown): readonly RenewedQuoteItem[] {
+  return asArray(raw).flatMap((entry) => {
+    const renewed = asRecord(entry);
+    const itemUid = asString(renewed?.cart_item_uid);
+    if (!renewed || !itemUid) return [];
+    return [
+      {
+        itemUid,
+        sku: asString(renewed.product_sku) ?? '',
+        name: asString(renewed.product_name) ?? asString(renewed.product_sku) ?? '',
+        previousPrice: asNumber(renewed.previous_price),
+        newPrice: asNumber(renewed.new_price),
+      },
+    ];
+  });
 }

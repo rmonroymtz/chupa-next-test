@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import type { CartDetailsItem } from '@/modules/cart/application/ports';
+import { QuoteBadge } from '@/modules/cart/ui/quote-badge';
 import { formatPrice } from '@/modules/product/ui/format-price';
 import { cx } from '@/shared/ui/class-names';
 
@@ -66,6 +67,7 @@ export function CartPageItem({
         >
           {item.name}
         </a>
+        <QuoteBadge item={item} />
         {item.options.length > 0 ? (
           <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ds-text-secondary">
             {item.options.map((option) => (

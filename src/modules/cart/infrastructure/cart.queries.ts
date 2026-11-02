@@ -102,8 +102,23 @@ export const REMOVE_ITEM_MUTATION = /* GraphQL */ `
   }
 `;
 
-/** Item fields of the legacy `ProductListingFragment` the Next cart page shows. */
-const CART_DETAILS_FIELDS = /* GraphQL */ `
+/**
+ * Fields of the legacy `ProductListingFragment` the Next cart page shows.
+ * `cp_price_change` is only asked for with the backend switch on: with it off
+ * Magento may not know the field (legacy `CHUPAPRECIOS_CART_REFRESH_BACKEND`).
+ */
+function cartDetailsFields(priceChangeNotices: boolean): string {
+  const priceChange = priceChangeNotices
+    ? `
+        cp_price_change {
+          changed
+          previous_price
+          current_price
+          delta
+          out_of_stock
+        }`
+    : '';
+  return /* GraphQL */ `
       id
       total_quantity
       prices {
@@ -157,10 +172,15 @@ const CART_DETAILS_FIELDS = /* GraphQL */ `
             currency
             value
           }
+          row_total {
+            value
+          }
         }
         quantity
         is_from_quote
-        out_of_stock
+        quote_expiration_date
+        is_quote_price_expired
+        out_of_stock${priceChange}
         ... on ConfigurableCartItem {
           configurable_options {
             option_label
@@ -169,28 +189,55 @@ const CART_DETAILS_FIELDS = /* GraphQL */ `
         }
       }
 `;
+}
 
-export const CART_DETAILS_QUERY = /* GraphQL */ `
+export const cartDetailsQuery = (priceChangeNotices: boolean): string => /* GraphQL */ `
   query GetCartDetails($cartId: String!) {
-    cart(cart_id: $cartId) {${CART_DETAILS_FIELDS}    }
+    cart(cart_id: $cartId) {${cartDetailsFields(priceChangeNotices)}    }
   }
 `;
 
-export const CART_DETAILS_REMOVE_ITEM_MUTATION = /* GraphQL */ `
+export const cartDetailsRemoveItemMutation = (
+  priceChangeNotices: boolean,
+): string => /* GraphQL */ `
   mutation removeItem($cartId: String!, $itemId: ID!) {
     removeItemFromCart(input: { cart_id: $cartId, cart_item_uid: $itemId }) {
-      cart {${CART_DETAILS_FIELDS}      }
+      cart {${cartDetailsFields(priceChangeNotices)}      }
     }
   }
 `;
 
-export const UPDATE_ITEM_QUANTITY_MUTATION = /* GraphQL */ `
+export const updateItemQuantityMutation = (priceChangeNotices: boolean): string => /* GraphQL */ `
   mutation updateItemQuantity($cartId: String!, $itemId: ID!, $quantity: Float!) {
     updateCartItems(
       input: { cart_id: $cartId, cart_items: [{ cart_item_uid: $itemId, quantity: $quantity }] }
     ) {
-      cart {${CART_DETAILS_FIELDS}      }
+      cart {${cartDetailsFields(priceChangeNotices)}      }
     }
+  }
+`;
+
+/** `@chupaprecios/dashboard` `graphql/cotizaciones.gql.js`; the cart is read again afterwards. */
+export const REFRESH_EXPIRED_QUOTE_PRICES_MUTATION = /* GraphQL */ `
+  mutation RefreshExpiredQuoteCartItemPrices($cart_id: String!) {
+    refreshExpiredQuoteCartItemPrices(cart_id: $cart_id) {
+      items_renewed {
+        cart_item_uid
+        product_sku
+        product_name
+        previous_price
+        new_price
+        quote_request_id
+      }
+      quotes_renewed
+    }
+  }
+`;
+
+/** `useCartPriceChanges` dismiss mutation; answers a scalar. */
+export const ACKNOWLEDGE_PRICE_CHANGES_MUTATION = /* GraphQL */ `
+  mutation AcknowledgeCartPriceChanges($cartId: String!) {
+    acknowledgeCartPriceChanges(cart_id: $cartId)
   }
 `;
 

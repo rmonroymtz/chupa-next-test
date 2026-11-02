@@ -10,6 +10,8 @@ const actions = vi.hoisted(() => ({
   getCartDetailsAction: vi.fn(),
   updateCartItemAction: vi.fn(),
   removeCartDetailsItemAction: vi.fn(),
+  refreshExpiredQuotePricesAction: vi.fn(),
+  acknowledgePriceChangesAction: vi.fn(),
 }));
 vi.mock('@/modules/cart/ui/cart-actions', () => actions);
 
@@ -27,6 +29,10 @@ const PLAYERA: CartDetailsItem = {
   options: [{ label: 'Talla', value: 'M' }],
   outOfStock: false,
   isFromQuote: false,
+  rowTotal: null,
+  quoteExpiresAt: null,
+  quotePriceExpired: false,
+  priceChange: null,
 };
 
 const LAMPARA: CartDetailsItem = {
@@ -40,6 +46,10 @@ const LAMPARA: CartDetailsItem = {
   options: [],
   outOfStock: false,
   isFromQuote: false,
+  rowTotal: null,
+  quoteExpiresAt: null,
+  quotePriceExpired: false,
+  priceChange: null,
 };
 
 const mxn = (amount: number) => ({ amount, currency: 'MXN' });
@@ -424,6 +434,248 @@ describe('CartPage', () => {
       await waitFor(() =>
         expect(within(summary()).getByTestId('summary-subtotal').textContent).toMatch(/2,314\.67/),
       );
+    });
+  });
+
+  describe('quotes', () => {
+    const QUOTE: CartDetailsItem = {
+      ...LAMPARA,
+      uid: 'item-q',
+      name: 'Cámara',
+      isFromQuote: true,
+      quoteExpiresAt: '2026-11-20 23:59:59',
+    };
+    const EXPIRED: CartDetailsItem = { ...QUOTE, quotePriceExpired: true };
+
+    it('badges a quote item with its expiry date', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA, QUOTE) });
+      render(<CartPage />);
+      await screen.findByText('Cámara');
+
+      const quote = within(row('Cámara'));
+      expect(quote.getByText('Precio de cotización')).toBeTruthy();
+      expect(quote.getByText('Válido hasta: 2026-11-20')).toBeTruthy();
+      expect(within(row('Playera')).queryByText('Precio de cotización')).toBeNull();
+      expect(screen.queryByText(/tienes .* con precio/i)).toBeNull();
+    });
+
+    it('badges an expired quote item and shows the banner with the count', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(EXPIRED) });
+      render(<CartPage />);
+      await screen.findByText('Cámara');
+
+      const quote = within(row('Cámara'));
+      expect(quote.getByText('Precio expirado')).toBeTruthy();
+      expect(quote.queryByText(/Válido hasta/)).toBeNull();
+      expect(
+        screen.getByText('Tienes 1 producto con precio de cotización expirado.'),
+      ).toBeTruthy();
+    });
+
+    it('asks to confirm in a modal, then renews the prices and shows what changed', async () => {
+      storeCart();
+      storeToken();
+      const other = { ...EXPIRED, uid: 'item-q2', name: 'Bocina' };
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(EXPIRED, other) });
+      actions.refreshExpiredQuotePricesAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartOf({ ...EXPIRED, quotePriceExpired: false, unitPrice: mxn(300) }, other),
+        renewed: [
+          { itemUid: 'item-q', sku: 'B0LAMP', name: 'Cámara', previousPrice: 250, newPrice: 300 },
+        ],
+      });
+      render(<CartPage />);
+      await screen.findByText('Cámara');
+      expect(
+        screen.getByText('Tienes 2 productos con precios de cotización expirados.'),
+      ).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Actualizar precios' }));
+      const dialog = screen.getByRole('dialog', { name: 'Precios de cotización expirados' });
+      expect(
+        within(dialog).getByText(
+          'Los siguientes productos tienen precios de cotización vencidos. Al actualizar, se aplicarán los precios vigentes del catálogo.',
+        ),
+      ).toBeTruthy();
+      expect(within(dialog).getByText('Cámara')).toBeTruthy();
+      expect(within(dialog).getByText('Bocina')).toBeTruthy();
+      expect(actions.refreshExpiredQuotePricesAction).not.toHaveBeenCalled();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Actualizar y continuar' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(actions.refreshExpiredQuotePricesAction).toHaveBeenCalledWith({
+        cartId: 'pwa-cart',
+        signinToken: 'a.b.c',
+      });
+      expect(screen.getByRole('status').textContent).toBe(
+        'Precio actualizado: Cámara ($250.00 → $300.00)',
+      );
+      expect(
+        screen.getByText('Tienes 1 producto con precio de cotización expirado.'),
+      ).toBeTruthy();
+    });
+
+    it('keeps the cart untouched when the shopper goes back', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(EXPIRED) });
+      render(<CartPage />);
+      await screen.findByText('Cámara');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Actualizar precios' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Volver al carrito' }));
+      expect(screen.queryByRole('dialog')).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Actualizar precios' }));
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(actions.refreshExpiredQuotePricesAction).not.toHaveBeenCalled();
+    });
+
+    it('keeps the modal open and says so when the renewal fails', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(EXPIRED) });
+      actions.refreshExpiredQuotePricesAction.mockResolvedValue({ status: 'failed' });
+      render(<CartPage />);
+      await screen.findByText('Cámara');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Actualizar precios' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Actualizar y continuar' }));
+
+      const alert = await within(screen.getByRole('dialog')).findByRole('alert');
+      expect(alert.textContent).toBe('Error al actualizar precios de cotización. Intenta nuevamente.');
+    });
+  });
+
+  describe('price-change notices', () => {
+    const CHANGED: CartDetailsItem = {
+      ...PLAYERA,
+      priceChange: {
+        changed: true,
+        previousPrice: 500,
+        currentPrice: 516.17,
+        delta: 16.17,
+        outOfStock: false,
+      },
+    };
+    const GONE: CartDetailsItem = {
+      ...LAMPARA,
+      priceChange: {
+        changed: false,
+        previousPrice: null,
+        currentPrice: null,
+        delta: null,
+        outOfStock: true,
+      },
+      rowTotal: mxn(250),
+    };
+
+    it('shows nothing when the backend sends no price changes', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA) });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      expect(screen.queryByText('Actualización en los productos de tu carrito')).toBeNull();
+    });
+
+    it('lists the changed prices with the direction and the amount', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(CHANGED) });
+      render(<CartPage />);
+      await screen.findByText('Actualización en los productos de tu carrito');
+
+      expect(
+        screen.getByText(
+          '1 producto de tu carrito cambió de precio para alinearse con los costos actuales de la página:',
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText('Playera: $500.00 → $516.17 (+$16.17)')).toBeTruthy();
+    });
+
+    it('lists lowered prices with a minus sign and pluralizes the text', async () => {
+      storeCart();
+      const lowered: CartDetailsItem = {
+        ...LAMPARA,
+        priceChange: {
+          changed: true,
+          previousPrice: 300,
+          currentPrice: 250,
+          delta: -50,
+          outOfStock: false,
+        },
+      };
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartOf(CHANGED, lowered),
+      });
+      render(<CartPage />);
+
+      expect(
+        await screen.findByText(
+          '2 productos de tu carrito cambiaron de precio para alinearse con los costos actuales de la página:',
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText('Lámpara: $300.00 → $250.00 (-$50.00)')).toBeTruthy();
+    });
+
+    it('dismisses the notice with the acknowledge action and shows the refreshed cart', async () => {
+      storeCart();
+      storeToken();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(CHANGED) });
+      actions.acknowledgePriceChangesAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartOf({ ...CHANGED, priceChange: null }),
+      });
+      render(<CartPage />);
+      await screen.findByText('Actualización en los productos de tu carrito');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Entendido' }));
+
+      await waitFor(() =>
+        expect(screen.queryByText('Actualización en los productos de tu carrito')).toBeNull(),
+      );
+      expect(actions.acknowledgePriceChangesAction).toHaveBeenCalledWith({
+        cartId: 'pwa-cart',
+        signinToken: 'a.b.c',
+      });
+    });
+
+    it('hides a flagged out-of-stock item from the list, notices it, and drops it from the subtotal', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartWith({ subtotal: mxn(1798.5), grandTotal: mxn(1798.5) }, CHANGED, GONE),
+      });
+      render(<CartPage />);
+      await screen.findByText('Playera: $500.00 → $516.17 (+$16.17)');
+
+      expect(screen.queryByRole('listitem', { name: 'Lámpara' })).toBeNull();
+      expect(screen.getByText('1 producto de tu carrito no está disponible:')).toBeTruthy();
+      expect(screen.getByText('Lámpara')).toBeTruthy();
+      const summary = screen.getByRole('complementary', { name: 'Resumen de compra' });
+      expect(within(summary).getByTestId('summary-subtotal').textContent).toMatch(/1,548\.50/);
+      expect(within(summary).getByTestId('summary-total').textContent).toMatch(/1,798\.50/);
+    });
+
+    it('lists out-of-stock quote items in the same notice', async () => {
+      storeCart();
+      const quoteGone: CartDetailsItem = {
+        ...LAMPARA,
+        name: 'Cámara',
+        isFromQuote: true,
+        outOfStock: true,
+      };
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartOf(PLAYERA, quoteGone),
+      });
+      render(<CartPage />);
+
+      expect(await screen.findByText('1 producto de tu carrito no está disponible:')).toBeTruthy();
+      expect(screen.getByRole('listitem', { name: 'Cámara' })).toBeTruthy();
     });
   });
 });

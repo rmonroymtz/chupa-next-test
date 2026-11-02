@@ -4,6 +4,8 @@ const service = vi.hoisted(() => ({
   getCartDetails: vi.fn(),
   updateCartItemQuantity: vi.fn(),
   removeCartDetailsItem: vi.fn(),
+  refreshExpiredQuotePrices: vi.fn(),
+  acknowledgePriceChanges: vi.fn(),
 }));
 const warn = vi.hoisted(() => vi.fn());
 vi.mock('@/modules/cart/infrastructure/cart.composition', () => ({
@@ -13,8 +15,13 @@ vi.mock('@/shared/observability/logger', () => ({
   getLogger: () => ({ child: () => ({ warn }) }),
 }));
 
-const { getCartDetailsAction, updateCartItemAction, removeCartDetailsItemAction } =
-  await import('@/modules/cart/ui/cart-actions');
+const {
+  getCartDetailsAction,
+  updateCartItemAction,
+  removeCartDetailsItemAction,
+  refreshExpiredQuotePricesAction,
+  acknowledgePriceChangesAction,
+} = await import('@/modules/cart/ui/cart-actions');
 
 const CART = { totalQuantity: 0, items: [] };
 const AUTH = { cartId: 'pwa-cart', signinToken: 'a.b.c' };
@@ -71,5 +78,34 @@ describe('cart details actions', () => {
   it('answer failed when the service cannot be built', async () => {
     service.getCartDetails.mockRejectedValue(new Error('MAGENTO_GRAPHQL_URL is not set'));
     await expect(getCartDetailsAction(AUTH)).resolves.toEqual({ status: 'failed' });
+  });
+
+  it('pass the cart id and token of the quote and price-change actions to the service', async () => {
+    service.refreshExpiredQuotePrices.mockResolvedValue({ status: 'ok', cart: CART, renewed: [] });
+    service.acknowledgePriceChanges.mockResolvedValue({ status: 'ok', cart: CART });
+
+    await expect(refreshExpiredQuotePricesAction(AUTH)).resolves.toEqual({
+      status: 'ok',
+      cart: CART,
+      renewed: [],
+    });
+    await expect(acknowledgePriceChangesAction(AUTH)).resolves.toEqual({
+      status: 'ok',
+      cart: CART,
+    });
+    expect(service.refreshExpiredQuotePrices).toHaveBeenCalledWith(AUTH);
+    expect(service.acknowledgePriceChanges).toHaveBeenCalledWith(AUTH);
+  });
+
+  it('reject invalid input of the quote and price-change actions', async () => {
+    const bad = { cartId: '', signinToken: null };
+    await expect(refreshExpiredQuotePricesAction(bad)).resolves.toEqual({ status: 'failed' });
+    await expect(acknowledgePriceChangesAction(bad)).resolves.toEqual({ status: 'failed' });
+    expect(service.refreshExpiredQuotePrices).not.toHaveBeenCalled();
+    expect(service.acknowledgePriceChanges).not.toHaveBeenCalled();
+    expect(warn.mock.calls.map((call) => call[0])).toEqual([
+      { action: 'refresh_expired_quote_prices' },
+      { action: 'acknowledge_price_changes' },
+    ]);
   });
 });

@@ -53,6 +53,31 @@ export interface CartDetailsItem {
   readonly outOfStock: boolean;
   /** The item was added from a quote (legacy `is_from_quote`). */
   readonly isFromQuote: boolean;
+  /** `prices.row_total`. */
+  readonly rowTotal: Money | null;
+  /** `quote_expiration_date` as Magento sends it (`YYYY-MM-DD HH:MM:SS`). */
+  readonly quoteExpiresAt: string | null;
+  /** `is_quote_price_expired`. */
+  readonly quotePriceExpired: boolean;
+  /** `cp_price_change`; null unless the backend switch (`CART_REFRESH_BACKEND`) is on. */
+  readonly priceChange: CartPriceChange | null;
+}
+
+export interface CartPriceChange {
+  readonly changed: boolean;
+  readonly previousPrice: number | null;
+  readonly currentPrice: number | null;
+  readonly delta: number | null;
+  readonly outOfStock: boolean;
+}
+
+/** One entry of `refreshExpiredQuoteCartItemPrices.items_renewed`. */
+export interface RenewedQuoteItem {
+  readonly itemUid: string;
+  readonly sku: string;
+  readonly name: string;
+  readonly previousPrice: number | null;
+  readonly newPrice: number | null;
 }
 
 /** Cart prices the `/cart` summary shows (legacy `PriceSummaryFragment` + the Chupaprecios wrapper). */
@@ -128,6 +153,10 @@ export interface CartGateway {
     quantity: number,
     auth: CartAuth,
   ): Promise<CartDetails>;
+  /** Renews the expired quote prices (`refreshExpiredQuoteCartItemPrices`); the cart is read again by the caller. */
+  refreshExpiredQuotePrices(cartId: string, auth: CartAuth): Promise<readonly RenewedQuoteItem[]>;
+  /** Dismisses the price-change notices (`acknowledgeCartPriceChanges`). */
+  acknowledgeCartPriceChanges(cartId: string, auth: CartAuth): Promise<void>;
   /** Removes one item from the `/cart` page and answers the updated cart. */
   removeCartDetailsItem(cartId: string, itemUid: string, auth: CartAuth): Promise<CartDetails>;
 }
