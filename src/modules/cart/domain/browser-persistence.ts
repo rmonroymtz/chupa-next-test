@@ -15,7 +15,7 @@ const PREFIX = 'M2_VENIA_BROWSER_PERSISTENCE__';
 
 /** Written by peregrine without ttl (`saveCartId`) and by this storefront when it creates a cart. */
 export const CART_ID_KEY = 'cartId';
-/** Written by peregrine with a 3600 s ttl on sign-in; this storefront only reads it. */
+/** Written with a 3600 s ttl on sign-in, by peregrine and by this storefront. */
 export const SIGNIN_TOKEN_KEY = 'signin_token';
 
 export function pwaStorageKey(name: string): string {

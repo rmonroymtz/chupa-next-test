@@ -1,0 +1,190 @@
+import 'server-only';
+import {
+  CustomerGatewayError,
+  type Customer,
+  type CustomerGateway,
+  type CustomerGatewayErrorKind,
+} from '@/modules/customer/application/ports';
+import {
+  CREATE_ACCOUNT_MUTATION,
+  GET_CUSTOMER_QUERY,
+  MERGE_CARTS_MUTATION,
+  RECAPTCHA_CONFIG_QUERY,
+  REQUEST_PASSWORD_RESET_MUTATION,
+  SIGN_IN_MUTATION,
+  SIGN_OUT_MUTATION,
+} from '@/modules/customer/infrastructure/customer.queries';
+import { MagentoRequestError, type MagentoClient } from '@/shared/graphql/client';
+
+const INVALID_CREDENTIALS_MESSAGE = 'The account sign-in was incorrect';
+const EMAIL_TAKEN_MESSAGE = 'A customer with the same email address already exists';
+const WEAK_PASSWORD_MESSAGE = 'Minimum of different classes of characters in password';
+const NOT_AUTHORIZED_MESSAGES = ["The current customer isn't authorized", 'not authorized'];
+
+function classify(caught: unknown): CustomerGatewayErrorKind {
+  if (!(caught instanceof MagentoRequestError) || caught.kind !== 'graphql') return 'failure';
+  if (caught.graphqlMessages.some((message) => message.includes(INVALID_CREDENTIALS_MESSAGE))) {
+    return 'invalid_credentials';
+  }
+  if (caught.graphqlMessages.some((message) => message.includes(EMAIL_TAKEN_MESSAGE))) {
+    return 'email_taken';
+  }
+  if (caught.graphqlMessages.some((message) => message.includes(WEAK_PASSWORD_MESSAGE))) {
+    return 'weak_password';
+  }
+  if (
+    caught.graphqlMessages.some((message) =>
+      NOT_AUTHORIZED_MESSAGES.some((fragment) => message.includes(fragment)),
+    )
+  ) {
+    return 'not_authorized';
+  }
+  return 'failure';
+}
+
+const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+/**
+ * Magento customer adapter. The password and the token only travel in the
+ * request; the client logs no variables or headers, and errors here carry
+ * only the operation name.
+ */
+export function createMagentoCustomerGateway(client: MagentoClient): CustomerGateway {
+  async function call<TData>(
+    operationName: string,
+    query: string,
+    variables: Record<string, unknown>,
+    token: string | null,
+    recaptchaToken?: string | null,
+  ): Promise<TData> {
+    const headers = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(recaptchaToken ? { 'X-ReCaptcha': recaptchaToken } : {}),
+    };
+    try {
+      return await client.request<TData>({
+        operationName,
+        query,
+        variables,
+        ...(Object.keys(headers).length > 0 ? { headers } : {}),
+      });
+    } catch (caught) {
+      throw new CustomerGatewayError(classify(caught), `Magento ${operationName} failed`, {
+        cause: caught,
+      });
+    }
+  }
+
+  return {
+    async signIn(email, password, recaptchaToken) {
+      const data = await call<{ generateCustomerToken: { token?: unknown } | null } | null>(
+        'SignIn',
+        SIGN_IN_MUTATION,
+        { email, password },
+        null,
+        recaptchaToken,
+      );
+      const token = data?.generateCustomerToken?.token;
+      if (typeof token !== 'string' || token === '') {
+        throw new CustomerGatewayError('failure', 'Magento SignIn returned no token');
+      }
+      return token;
+    },
+
+    async createAccount(customer, recaptchaToken) {
+      await call(
+        'CreateAccount',
+        CREATE_ACCOUNT_MUTATION,
+        {
+          email: customer.email,
+          firstname: customer.firstName,
+          lastname: customer.lastName,
+          password: customer.password,
+          is_subscribed: customer.isSubscribed,
+        },
+        null,
+        recaptchaToken,
+      );
+    },
+
+    async requestPasswordReset(email, recaptchaToken) {
+      await call(
+        'requestPasswordResetEmail',
+        REQUEST_PASSWORD_RESET_MUTATION,
+        { email },
+        null,
+        recaptchaToken,
+      );
+    },
+
+    async getRecaptchaConfig() {
+      try {
+        const data = await client.request<{
+          recaptchaV3Config: Record<string, unknown> | null;
+        } | null>({
+          operationName: 'GetReCaptchaV3Config',
+          query: RECAPTCHA_CONFIG_QUERY,
+          variables: {},
+        });
+        const config = data?.recaptchaV3Config;
+        if (!config || typeof config.website_key !== 'string' || config.website_key === '') {
+          return null;
+        }
+        return {
+          siteKey: config.website_key,
+          badgePosition: asString(config.badge_position) || 'bottomright',
+          languageCode: asString(config.language_code) || null,
+          forms: Array.isArray(config.forms)
+            ? config.forms.filter((form): form is string => typeof form === 'string')
+            : [],
+        };
+      } catch {
+        return null;
+      }
+    },
+
+    async getCustomer(token) {
+      const data = await call<{ customer: Record<string, unknown> | null } | null>(
+        'GetCustomerAfterSignIn',
+        GET_CUSTOMER_QUERY,
+        {},
+        token,
+      );
+      const customer = data?.customer;
+      if (!customer) {
+        throw new CustomerGatewayError(
+          'failure',
+          'Magento GetCustomerAfterSignIn returned no customer',
+        );
+      }
+      return {
+        email: asString(customer.email),
+        firstName: asString(customer.firstname),
+        lastName: asString(customer.lastname),
+        isSubscribed: customer.is_subscribed === true,
+      } satisfies Customer;
+    },
+
+    async mergeCarts(sourceCartId, destinationCartId, token) {
+      const data = await call<{ mergeCarts: { id?: unknown } | null } | null>(
+        'MergeCartsAfterSignIn',
+        MERGE_CARTS_MUTATION,
+        { sourceCartId, destinationCartId },
+        token,
+      );
+      if (!data?.mergeCarts) {
+        throw new CustomerGatewayError('failure', 'Magento MergeCartsAfterSignIn returned no cart');
+      }
+    },
+
+    async revokeToken(token) {
+      const data = await call<{ revokeCustomerToken: { result?: unknown } | null } | null>(
+        'SignOutFromMenu',
+        SIGN_OUT_MUTATION,
+        {},
+        token,
+      );
+      return data?.revokeCustomerToken?.result === true;
+    },
+  };
+}

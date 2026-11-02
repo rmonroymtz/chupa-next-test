@@ -8,14 +8,14 @@ import { z } from 'zod';
  */
 
 // Magento masked cart ids are 32 alphanumeric characters; leave some room.
-const cartId = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
+export const cartIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
 // Magento customer tokens: opaque strings or JWTs.
-const signinToken = z.string().regex(/^[A-Za-z0-9._~+/=-]{1,4096}$/);
+export const signinTokenSchema = z.string().regex(/^[A-Za-z0-9._~+/=-]{1,4096}$/);
 
-const auth = { signinToken: signinToken.nullable() };
+const auth = { signinToken: signinTokenSchema.nullable() };
 
 export const addToCartInputSchema = z.object({
-  cartId: cartId.nullable(),
+  cartId: cartIdSchema.nullable(),
   ...auth,
   item: z.object({
     sku: z.string().trim().min(1).max(255),
@@ -25,12 +25,16 @@ export const addToCartInputSchema = z.object({
   }),
 });
 
-export const cartReadInputSchema = z.object({ cartId, ...auth });
+export const cartReadInputSchema = z.object({ cartId: cartIdSchema, ...auth });
 
 // Magento cart item uids are base64 strings (`MTIzNDU=`).
 const cartItemUid = z.string().regex(/^[A-Za-z0-9+/=_-]{1,256}$/);
 
-export const removeCartItemInputSchema = z.object({ cartId, ...auth, itemUid: cartItemUid });
+export const removeCartItemInputSchema = z.object({
+  cartId: cartIdSchema,
+  ...auth,
+  itemUid: cartItemUid,
+});
 
 export type AddToCartInput = z.infer<typeof addToCartInputSchema>;
 export type CartReadInput = z.infer<typeof cartReadInputSchema>;
