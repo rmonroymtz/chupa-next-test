@@ -7,6 +7,7 @@ import { FormError } from '@/modules/customer/ui/form-error';
 import { startSession } from '@/modules/customer/ui/start-session';
 import { useRecaptcha } from '@/modules/customer/ui/use-recaptcha';
 import { Button } from '@/shared/ui/button';
+import { Icon } from '@/shared/ui/icon';
 import { Input } from '@/shared/ui/input';
 
 // Shopper copy from the legacy PWA (`es_MX.json`, venia-ui `SignIn`).
@@ -70,47 +71,55 @@ export function SignInForm({ redirectTo, createAccountHref, forgotPasswordHref }
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      <p className="text-[13px] text-ds-text-secondary">*Este campo es obligatorio</p>
       <FormError message={formError} />
       <Input
-        label="Correo electrónico *"
+        label="Correo electrónico"
         type="email"
         name="email"
         autoComplete="email"
+        placeholder="tu@correo.com"
+        leadingIcon="mail"
+        aria-required="true"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         error={errors.email}
-        aria-label="Correo electrónico requerido"
       />
-      <div className="flex flex-col gap-2">
-        <Input
-          label="Contraseña *"
-          type={showPassword ? 'text' : 'password'}
-          name="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          error={errors.password}
-          aria-label="Contraseña requerida"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword((shown) => !shown)}
-          aria-pressed={showPassword}
-          className="self-start text-sm text-ds-link underline"
-        >
-          {showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-        </button>
-      </div>
-      <a href={forgotPasswordHref} className="self-start text-sm text-ds-link underline">
-        Olvidé mi contraseña
+      <Input
+        label="Contraseña"
+        type={showPassword ? 'text' : 'password'}
+        name="password"
+        autoComplete="current-password"
+        placeholder="Ingresa tu contraseña"
+        leadingIcon="lock"
+        aria-required="true"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        error={errors.password}
+        trailing={
+          <button
+            type="button"
+            onClick={() => setShowPassword((shown) => !shown)}
+            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={showPassword}
+            className="flex size-8 items-center justify-center rounded-xs text-ds-text-secondary hover:text-ds-text focus-visible:outline-2 focus-visible:outline-ds-focus"
+          >
+            <Icon name="eye" size={18} />
+          </button>
+        }
+      />
+      <a
+        href={forgotPasswordHref}
+        className="self-end text-[13px] font-semibold text-ds-link hover:underline"
+      >
+        ¿Olvidaste tu contraseña?
       </a>
-      <Button type="submit" size="lg" loading={submitting}>
+      <Button type="submit" size="lg" loading={submitting} className="w-full">
+        <Icon name="arrow-right" size={18} />
         {submitting ? 'Iniciando sesión' : 'Iniciar sesión'}
       </Button>
-      <p className="flex items-center gap-2 text-sm">
-        <strong>¿No tienes cuenta?</strong>
-        <a href={createAccountHref} className="text-ds-link underline">
+      <p className="text-center text-sm text-ds-text-secondary">
+        ¿No tienes cuenta?{' '}
+        <a href={createAccountHref} className="font-semibold text-ds-link hover:underline">
           Crear cuenta
         </a>
       </p>

@@ -1,12 +1,16 @@
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 import { cx } from './class-names';
 import { CONTROL, FIELD_LABEL, FieldMessage, useFieldA11y, type FieldMessageProps } from './field';
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 
 type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, keyof FieldMessageProps> &
   FieldMessageProps & {
     /** Completed/valid state (green border + check, V3 D§5). Error wins. */
     readonly success?: boolean;
+    /** Decorative glyph inside the control, before the text. */
+    readonly leadingIcon?: IconName;
+    /** Control placed inside the field, after the text (e.g. a show-password button). */
+    readonly trailing?: ReactNode;
     /** Class for the wrapping field (label + control + message). */
     readonly className?: string;
   };
@@ -17,6 +21,8 @@ export function Input({
   helperText,
   error,
   success = false,
+  leadingIcon,
+  trailing,
   id,
   className,
   'aria-describedby': ariaDescribedBy,
@@ -37,6 +43,8 @@ export function Input({
           {...field.controlProps}
           className={cx(
             CONTROL,
+            leadingIcon ? 'pl-11' : null,
+            trailing ? 'pr-12' : null,
             field.hasError
               ? 'border-ds-border-error bg-ds-error-bg'
               : isSuccess
@@ -44,6 +52,16 @@ export function Input({
                 : 'border-ds-border',
           )}
         />
+        {leadingIcon ? (
+          <Icon
+            name={leadingIcon}
+            size={18}
+            className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-ds-text-secondary"
+          />
+        ) : null}
+        {trailing ? (
+          <div className="absolute top-1/2 right-2 -translate-y-1/2">{trailing}</div>
+        ) : null}
         {isSuccess ? (
           <Icon
             name="check"
