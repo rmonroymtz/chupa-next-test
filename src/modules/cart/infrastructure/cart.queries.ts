@@ -126,9 +126,6 @@ const CART_DETAILS_FIELDS = /* GraphQL */ `
             currency
             value
           }
-          row_total {
-            value
-          }
         }
         quantity
         is_from_quote

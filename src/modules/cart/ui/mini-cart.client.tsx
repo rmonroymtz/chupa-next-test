@@ -18,6 +18,7 @@ import {
   getMiniCartAction,
   removeCartItemAction,
 } from '@/modules/cart/ui/cart-actions';
+import { OUT_OF_STOCK_MESSAGE } from '@/modules/cart/domain/cart-page';
 import { cartCountStore, useCartCount } from '@/modules/cart/ui/cart-store';
 import { MiniCartItem } from '@/modules/cart/ui/mini-cart-item';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
@@ -36,8 +37,6 @@ const DROPDOWN_QUERY = DESKTOP_MEDIA_QUERY;
 /** PWA `MiniCart` viewport fit: the panel keeps this gap above the viewport bottom. */
 const VIEWPORT_MARGIN_BOTTOM = 15;
 
-const STOCK_MESSAGE =
-  'Un artículo en tu carrito está agotado actualmente y debe eliminarse para proceder al pago.';
 const REMOVE_ERROR = 'No pudimos eliminar el artículo. Inténtalo de nuevo.';
 
 /**
@@ -430,7 +429,7 @@ function MiniCartContents({
         // PWA `StockStatusMessage` (venia: red-400 left border, red-700 text, 16px insets).
         <div data-slot="mini-cart-stock" className="px-4">
           <p className="border-l-4 border-solid border-[#f87171] py-4 pr-0 pl-4 text-[14px] leading-normal font-semibold text-[#b91c1c]">
-            {STOCK_MESSAGE}
+            {OUT_OF_STOCK_MESSAGE}
           </p>
         </div>
       ) : null}
