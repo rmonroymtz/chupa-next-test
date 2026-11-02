@@ -15,6 +15,7 @@ import {
   updateCartItemAction,
 } from '@/modules/cart/ui/cart-actions';
 import { CartPageItem } from '@/modules/cart/ui/cart-page-item';
+import { CartPageSummary } from '@/modules/cart/ui/cart-page-summary';
 import { cartCountStore } from '@/modules/cart/ui/cart-store';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { Button } from '@/shared/ui/button';
@@ -175,12 +176,19 @@ export function CartPage() {
           </p>
         ) : null}
       </header>
-      {regular.length > 0 ? (
-        <ItemSection title="Productos en tu carrito">{regular.map(renderItem)}</ItemSection>
-      ) : null}
-      {quotes.length > 0 ? (
-        <ItemSection title="Productos en tus cotizaciones">{quotes.map(renderItem)}</ItemSection>
-      ) : null}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex flex-col gap-6">
+          {regular.length > 0 ? (
+            <ItemSection title="Productos en tu carrito">{regular.map(renderItem)}</ItemSection>
+          ) : null}
+          {quotes.length > 0 ? (
+            <ItemSection title="Productos en tus cotizaciones">
+              {quotes.map(renderItem)}
+            </ItemSection>
+          ) : null}
+        </div>
+        <CartPageSummary summary={cart.summary} updating={busy} />
+      </div>
     </div>
   );
 }

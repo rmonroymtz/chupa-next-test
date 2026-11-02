@@ -173,6 +173,25 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
     }
   }
 
+  /**
+   * The shipping estimate follows the subtotal, so it is read after every
+   * change (as the legacy wrapper refetches it). It is best effort: without it
+   * the page shows the summary it has and no estimate.
+   */
+  async function withExtras(
+    cart: CartDetails,
+    cartId: string,
+    auth: CartAuth,
+  ): Promise<CartDetails> {
+    try {
+      const extras = await gateway.getCartExtras(cartId, auth);
+      return { ...cart, summary: { ...cart.summary, ...extras } };
+    } catch {
+      logger.warn({ signedIn: auth.signinToken !== null }, 'cart summary extras unavailable');
+      return cart;
+    }
+  }
+
   async function mutateDetails(
     metric: 'CartUpdateItem' | 'CartRemoveItem',
     message: string,
@@ -198,15 +217,23 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
     removeCartItem,
     getCartDetails: ({ cartId, signinToken }) =>
       read('cart_details', signinToken !== null, async () => ({
-        cart: await gateway.getCartDetails(cartId, { signinToken }),
+        cart: await withExtras(await gateway.getCartDetails(cartId, { signinToken }), cartId, {
+          signinToken,
+        }),
       })),
     updateCartItemQuantity: ({ cartId, itemUid, quantity, signinToken }) =>
-      mutateDetails('CartUpdateItem', 'update cart item', signinToken !== null, () =>
-        gateway.updateCartItemQuantity(cartId, itemUid, quantity, { signinToken }),
+      mutateDetails('CartUpdateItem', 'update cart item', signinToken !== null, async () =>
+        withExtras(
+          await gateway.updateCartItemQuantity(cartId, itemUid, quantity, { signinToken }),
+          cartId,
+          { signinToken },
+        ),
       ),
     removeCartDetailsItem: ({ cartId, itemUid, signinToken }) =>
-      mutateDetails('CartRemoveItem', 'remove cart item', signinToken !== null, () =>
-        gateway.removeCartDetailsItem(cartId, itemUid, { signinToken }),
+      mutateDetails('CartRemoveItem', 'remove cart item', signinToken !== null, async () =>
+        withExtras(await gateway.removeCartDetailsItem(cartId, itemUid, { signinToken }), cartId, {
+          signinToken,
+        }),
       ),
     getCartCount: ({ cartId, signinToken }) =>
       read('count', signinToken !== null, async () => ({

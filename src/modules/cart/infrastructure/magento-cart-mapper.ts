@@ -1,6 +1,8 @@
 import type {
   CartDetails,
   CartDetailsItem,
+  CartExtras,
+  CartSummary,
   MiniCart,
   MiniCartItem,
 } from '@/modules/cart/application/ports';
@@ -85,6 +87,42 @@ export function mapCartDetails(raw: unknown, productUrlSuffix: string): CartDeta
       const mapped = mapDetailsItem(item, productUrlSuffix);
       return mapped ? [mapped] : [];
     }),
+    summary: mapSummary(cart),
+  };
+}
+
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** Prices only; the estimate and threshold come from {@link mapCartExtras} via the service. */
+function mapSummary(cart: Raw | null): CartSummary {
+  const prices = asRecord(cart?.prices);
+  const address = asRecord(asArray(cart?.shipping_addresses)[0]);
+  return {
+    subtotal: toMoney(prices?.subtotal_excluding_tax),
+    discounts: asArray(prices?.discounts).flatMap((entry) => {
+      const discount = asRecord(entry);
+      const amount = toMoney(discount?.amount);
+      return amount ? [{ label: asString(discount?.label) ?? '', amount }] : [];
+    }),
+    taxes: asArray(prices?.applied_taxes).flatMap((entry) => {
+      const amount = toMoney(asRecord(entry)?.amount);
+      return amount ? [amount] : [];
+    }),
+    selectedShipping: toMoney(asRecord(address?.selected_shipping_method)?.amount),
+    shippingEstimate: null,
+    grandTotal: toMoney(prices?.grand_total),
+    freeShippingThreshold: null,
+  };
+}
+
+/** Maps a `GetCartSummaryExtras` answer; the threshold arrives as a string or a number. */
+export function mapCartExtras(raw: unknown): CartExtras {
+  const data = asRecord(raw);
+  const prices = asRecord(asRecord(data?.cart)?.prices);
+  const threshold = Number(asRecord(data?.storeConfig)?.free_shipping_subtotal);
+  return {
+    shippingEstimate: toMoney(prices?.chupaprecios_shipping_estimate),
+    freeShippingThreshold: Number.isFinite(threshold) && threshold > 0 ? threshold : null,
   };
 }
 

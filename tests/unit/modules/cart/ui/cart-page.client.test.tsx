@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CartDetailsItem } from '@/modules/cart/application/ports';
+import type { CartDetailsItem, CartSummary } from '@/modules/cart/application/ports';
 import { encodePersisted } from '@/modules/cart/domain/browser-persistence';
 import { CartPage } from '@/modules/cart/ui/cart-page.client';
 import { cartCountStore } from '@/modules/cart/ui/cart-store';
@@ -42,9 +42,24 @@ const LAMPARA: CartDetailsItem = {
   isFromQuote: false,
 };
 
-const cartOf = (...items: CartDetailsItem[]) => ({
+const mxn = (amount: number) => ({ amount, currency: 'MXN' });
+
+const SUMMARY: CartSummary = {
+  subtotal: mxn(1798.5),
+  discounts: [],
+  taxes: [],
+  selectedShipping: null,
+  shippingEstimate: null,
+  grandTotal: mxn(1798.5),
+  freeShippingThreshold: null,
+};
+
+const cartOf = (...items: CartDetailsItem[]) => cartWith({}, ...items);
+
+const cartWith = (summary: Partial<CartSummary>, ...items: CartDetailsItem[]) => ({
   totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
   items,
+  summary: { ...SUMMARY, ...summary },
 });
 
 function storeCart(): void {
@@ -289,5 +304,126 @@ describe('CartPage', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('No pudimos eliminar el artículo');
     expect(screen.getByText('Lámpara')).toBeTruthy();
+  });
+
+  describe('price summary', () => {
+    const summary = () => screen.getByRole('complementary', { name: 'Resumen de compra' });
+
+    it('shows the subtotal and the estimated total', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA) });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      expect(within(summary()).getByText('Subtotal')).toBeTruthy();
+      expect(within(summary()).getByTestId('summary-subtotal').textContent).toMatch(/1,798\.50/);
+      expect(within(summary()).getByText('Total estimado')).toBeTruthy();
+      expect(within(summary()).getByTestId('summary-total').textContent).toMatch(/1,798\.50/);
+      expect(within(summary()).queryByText('Envío')).toBeNull();
+      expect(within(summary()).queryByText('Descuentos aplicados')).toBeNull();
+    });
+
+    it('adds the shipping estimate to the total and lists discounts and taxes', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartWith(
+          {
+            shippingEstimate: mxn(149),
+            discounts: [{ label: 'Cupón', amount: mxn(98.5) }],
+            taxes: [mxn(20), mxn(5)],
+            grandTotal: mxn(1700),
+          },
+          PLAYERA,
+        ),
+      });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      expect(within(summary()).getByTestId('summary-shipping').textContent).toMatch(/149\.00/);
+      expect(within(summary()).getByTestId('summary-total').textContent).toMatch(/1,849\.00/);
+      expect(within(summary()).getByTestId('summary-discounts').textContent).toMatch(/-.*98\.50/);
+      expect(within(summary()).getByTestId('summary-taxes').textContent).toMatch(/25\.00/);
+    });
+
+    it('shows a zero shipping estimate as free', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartWith({ shippingEstimate: mxn(0) }, PLAYERA),
+      });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      expect(within(summary()).getByTestId('summary-shipping').textContent).toBe('Gratis');
+    });
+
+    it('shows the free shipping threshold when Magento has one', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartWith({ freeShippingThreshold: 999 }, PLAYERA),
+      });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      expect(
+        within(summary()).getByText(/Tu envío es gratuito en compras mayores a/).textContent,
+      ).toMatch(/999/);
+    });
+
+    it('links the checkout button to the PWA checkout', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA) });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      const checkout = within(summary()).getByRole('link', { name: 'Proceder al pago' });
+      expect(checkout.getAttribute('href')).toBe('/checkout');
+    });
+
+    it('blocks the checkout button while the cart is updating, like the legacy isUpdating', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA) });
+      let finish: (value: unknown) => void = () => {};
+      actions.updateCartItemAction.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Aumentar cantidad de Playera' }));
+
+      const checkout = await within(summary()).findByRole('link', { name: 'Proceder al pago' });
+      expect(checkout.getAttribute('aria-disabled')).toBe('true');
+      expect(checkout.hasAttribute('href')).toBe(false);
+      finish({ status: 'ok', cart: cartOf({ ...PLAYERA, quantity: 4 }) });
+      await waitFor(() =>
+        expect(
+          within(summary()).getByRole('link', { name: 'Proceder al pago' }).getAttribute('href'),
+        ).toBe('/checkout'),
+      );
+    });
+
+    it('refreshes the summary with the response of a change', async () => {
+      storeCart();
+      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA) });
+      actions.updateCartItemAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartWith(
+          { subtotal: mxn(2314.67), grandTotal: mxn(2314.67) },
+          {
+            ...PLAYERA,
+            quantity: 4,
+          },
+        ),
+      });
+      render(<CartPage />);
+      await screen.findByText('Playera');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Aumentar cantidad de Playera' }));
+
+      await waitFor(() =>
+        expect(within(summary()).getByTestId('summary-subtotal').textContent).toMatch(/2,314\.67/),
+      );
+    });
   });
 });

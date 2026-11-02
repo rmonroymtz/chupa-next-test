@@ -9,6 +9,7 @@ import {
   ADD_PRODUCT_TO_CART_MUTATION,
   CART_DETAILS_QUERY,
   CART_DETAILS_REMOVE_ITEM_MUTATION,
+  CART_SUMMARY_EXTRAS_QUERY,
   CREATE_CART_MUTATION,
   ITEM_COUNT_QUERY,
   MINI_CART_QUERY,
@@ -18,6 +19,7 @@ import {
 import {
   isInvalidCartMessage,
   mapCartDetails,
+  mapCartExtras,
   mapMiniCart,
 } from '@/modules/cart/infrastructure/magento-cart-mapper';
 import { DEFAULT_PRODUCT_URL_SUFFIX } from '@/modules/product/domain/product-url';
@@ -134,6 +136,16 @@ export function createMagentoCartGateway(client: MagentoClient): CartGateway {
       if (!data?.cart)
         throw new CartGatewayError('failure', 'Magento GetCartDetails returned no cart');
       return mapCartDetails(data.cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async getCartExtras(cartId, auth) {
+      const data = await call<unknown>(
+        'GetCartSummaryExtras',
+        CART_SUMMARY_EXTRAS_QUERY,
+        { cartId },
+        auth,
+      );
+      return mapCartExtras(data);
     },
 
     async updateCartItemQuantity(cartId, itemUid, quantity, auth) {

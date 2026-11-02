@@ -106,6 +106,37 @@ export const REMOVE_ITEM_MUTATION = /* GraphQL */ `
 const CART_DETAILS_FIELDS = /* GraphQL */ `
       id
       total_quantity
+      prices {
+        subtotal_excluding_tax {
+          currency
+          value
+        }
+        grand_total {
+          currency
+          value
+        }
+        discounts {
+          amount {
+            currency
+            value
+          }
+          label
+        }
+        applied_taxes {
+          amount {
+            currency
+            value
+          }
+        }
+      }
+      shipping_addresses {
+        selected_shipping_method {
+          amount {
+            currency
+            value
+          }
+        }
+      }
       items {
         uid
         product {
@@ -159,6 +190,27 @@ export const UPDATE_ITEM_QUANTITY_MUTATION = /* GraphQL */ `
       input: { cart_id: $cartId, cart_items: [{ cart_item_uid: $itemId, quantity: $quantity }] }
     ) {
       cart {${CART_DETAILS_FIELDS}      }
+    }
+  }
+`;
+
+/**
+ * `GetShippingEstimate` (`@chupaprecios/cart-price-summary` `priceSummary.gql.js`) and
+ * `FreeShippingMessage`'s `storeConfig.free_shipping_subtotal`, in one request.
+ */
+export const CART_SUMMARY_EXTRAS_QUERY = /* GraphQL */ `
+  query GetCartSummaryExtras($cartId: String!) {
+    cart(cart_id: $cartId) {
+      id
+      prices {
+        chupaprecios_shipping_estimate {
+          value
+          currency
+        }
+      }
+    }
+    storeConfig {
+      free_shipping_subtotal
     }
   }
 `;
