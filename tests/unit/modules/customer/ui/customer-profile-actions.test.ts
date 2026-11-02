@@ -1,0 +1,44 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const service = vi.hoisted(() => ({ getProfile: vi.fn() }));
+const warn = vi.hoisted(() => vi.fn());
+vi.mock('@/modules/customer/infrastructure/customer.composition', () => ({
+  getCustomerService: () => service,
+}));
+vi.mock('@/shared/observability/logger', () => ({
+  getLogger: () => ({ child: () => ({ warn }) }),
+}));
+
+const { getCustomerProfileAction } = await import('@/modules/customer/ui/customer-actions');
+
+beforeEach(() => {
+  service.getProfile.mockReset();
+  warn.mockReset();
+});
+
+describe('getCustomerProfileAction', () => {
+  it('passes the token to the service', async () => {
+    service.getProfile.mockResolvedValue({ status: 'ok', profile: {} });
+    await expect(getCustomerProfileAction({ token: 'a.b.c' })).resolves.toEqual({
+      status: 'ok',
+      profile: {},
+    });
+    expect(service.getProfile).toHaveBeenCalledWith({ token: 'a.b.c' });
+  });
+
+  it('rejects an invalid input without reaching Magento and logs only the action name', async () => {
+    await expect(getCustomerProfileAction({ token: '' })).resolves.toEqual({ status: 'failed' });
+    expect(service.getProfile).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      { action: 'get_customer_profile' },
+      'invalid customer action input',
+    );
+  });
+
+  it('answers failed when the service cannot be built', async () => {
+    service.getProfile.mockRejectedValue(new Error('MAGENTO_GRAPHQL_URL is not set'));
+    await expect(getCustomerProfileAction({ token: 'a.b.c' })).resolves.toEqual({
+      status: 'failed',
+    });
+  });
+});

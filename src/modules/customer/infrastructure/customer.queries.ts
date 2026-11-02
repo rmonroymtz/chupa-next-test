@@ -4,6 +4,8 @@
  * - `SignIn`, `GetCustomerAfterSignIn`, `MergeCartsAfterSignIn`: peregrine
  *   `talons/SignIn/signIn.gql.js` (`mergeCarts` without the checkout fragment,
  *   this storefront only needs it to succeed).
+ * - `GetCustomerInformation`: the chupaprecios-pwa override of venia-ui
+ *   `AccountInformationPage` (`AccountInformationPageFragment`).
  * - `SignOutFromMenu`: peregrine `talons/Header/accountMenu.gql.js`.
  * - `CreateAccount`: peregrine `talons/CreateAccount/createAccount.gql.js`.
  * - `requestPasswordResetEmail`: venia-ui `ForgotPassword/forgotPassword.gql.js`.
@@ -25,6 +27,20 @@ export const GET_CUSTOMER_QUERY = /* GraphQL */ `
       firstname
       lastname
       is_subscribed
+    }
+  }
+`;
+
+export const GET_CUSTOMER_PROFILE_QUERY = /* GraphQL */ `
+  query GetCustomerInformation {
+    customer {
+      id
+      firstname
+      middlename
+      lastname
+      email
+      social_profile_photo
+      phone_number
     }
   }
 `;

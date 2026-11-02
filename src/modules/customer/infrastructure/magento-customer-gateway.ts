@@ -3,10 +3,12 @@ import {
   CustomerGatewayError,
   type Customer,
   type CustomerGateway,
+  type CustomerProfile,
   type CustomerGatewayErrorKind,
 } from '@/modules/customer/application/ports';
 import {
   CREATE_ACCOUNT_MUTATION,
+  GET_CUSTOMER_PROFILE_QUERY,
   GET_CUSTOMER_QUERY,
   MERGE_CARTS_MUTATION,
   RECAPTCHA_CONFIG_QUERY,
@@ -163,6 +165,30 @@ export function createMagentoCustomerGateway(client: MagentoClient): CustomerGat
         lastName: asString(customer.lastname),
         isSubscribed: customer.is_subscribed === true,
       } satisfies Customer;
+    },
+
+    async getProfile(token) {
+      const data = await call<{ customer: Record<string, unknown> | null } | null>(
+        'GetCustomerInformation',
+        GET_CUSTOMER_PROFILE_QUERY,
+        {},
+        token,
+      );
+      const customer = data?.customer;
+      if (!customer) {
+        throw new CustomerGatewayError(
+          'failure',
+          'Magento GetCustomerInformation returned no customer',
+        );
+      }
+      return {
+        firstName: asString(customer.firstname),
+        middleName: asString(customer.middlename),
+        lastName: asString(customer.lastname),
+        email: asString(customer.email),
+        phone: asString(customer.phone_number) || null,
+        photoUrl: asString(customer.social_profile_photo) || null,
+      } satisfies CustomerProfile;
     },
 
     async mergeCarts(sourceCartId, destinationCartId, token) {

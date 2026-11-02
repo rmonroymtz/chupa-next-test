@@ -5,6 +5,21 @@ export interface Customer {
   readonly isSubscribed: boolean;
 }
 
+/**
+ * The account pages' view of the customer (legacy `AccountInformationPageFragment`):
+ * `middlename`, `social_profile_photo` and `phone_number` are fields the Chupaprecios
+ * Magento adds to `Customer`.
+ */
+export interface CustomerProfile {
+  readonly firstName: string;
+  /** Empty when the customer has none. */
+  readonly middleName: string;
+  readonly lastName: string;
+  readonly email: string;
+  readonly phone: string | null;
+  readonly photoUrl: string | null;
+}
+
 export interface NewCustomer {
   readonly email: string;
   readonly firstName: string;
@@ -55,6 +70,8 @@ export interface CustomerGateway {
   /** Null when Magento has no reCAPTCHA v3 config or it cannot be read: forms then work without it. */
   getRecaptchaConfig(): Promise<RecaptchaConfig | null>;
   getCustomer(token: string): Promise<Customer>;
+  /** `GetCustomerInformation`: what the account pages show. */
+  getProfile(token: string): Promise<CustomerProfile>;
   /** Moves the guest cart items into the customer's cart (`mergeCarts`). */
   mergeCarts(sourceCartId: string, destinationCartId: string, token: string): Promise<void>;
   /** `revokeCustomerToken`: whether Magento revoked it. */

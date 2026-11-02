@@ -4,6 +4,7 @@ import {
   CustomerGatewayError,
   type Customer,
   type CustomerGateway,
+  type CustomerProfile,
   type NewCustomer,
   type RecaptchaConfig,
 } from '@/modules/customer/application/ports';
@@ -56,9 +57,16 @@ export type GetCustomerResult =
   | { readonly status: 'not_authorized' }
   | { readonly status: 'failed' };
 
+export type GetProfileResult =
+  | { readonly status: 'ok'; readonly profile: CustomerProfile }
+  | { readonly status: 'not_authorized' }
+  | { readonly status: 'failed' };
+
 export interface CustomerService {
   /** Reads the signed-in customer for the header (name, account menu). */
   getCustomer(command: { readonly token: string }): Promise<GetCustomerResult>;
+  /** The account pages' profile; `not_authorized` when Magento rejects the token. */
+  getProfile(command: { readonly token: string }): Promise<GetProfileResult>;
   signIn(command: SignInCommand): Promise<SignInResult>;
   /** Creates the account only; the browser then signs in (each Magento call needs its own reCAPTCHA token). */
   createAccount(command: CreateAccountCommand): Promise<CreateAccountResult>;
@@ -185,6 +193,17 @@ export function createCustomerService({
         const kind = kindOf(caught);
         if (kind === 'not_authorized') return { status: 'not_authorized' };
         logger.warn({ kind }, 'customer read failed');
+        return { status: 'failed' };
+      }
+    },
+
+    async getProfile({ token }) {
+      try {
+        return { status: 'ok', profile: await customerGateway.getProfile(token) };
+      } catch (caught) {
+        const kind = kindOf(caught);
+        if (kind === 'not_authorized') return { status: 'not_authorized' };
+        logger.warn({ kind }, 'customer profile read failed');
         return { status: 'failed' };
       }
     },

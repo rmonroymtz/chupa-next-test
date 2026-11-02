@@ -23,6 +23,7 @@ function setup(overrides: Partial<CustomerGateway> = {}, cartOverrides: Partial<
     requestPasswordReset: vi.fn().mockResolvedValue(undefined),
     getRecaptchaConfig: vi.fn().mockResolvedValue(null),
     getCustomer: vi.fn().mockResolvedValue(CUSTOMER),
+    getProfile: vi.fn(),
     mergeCarts: vi.fn().mockResolvedValue(undefined),
     revokeToken: vi.fn().mockResolvedValue(true),
     ...overrides,

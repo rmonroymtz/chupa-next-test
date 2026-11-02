@@ -10,6 +10,7 @@ import {
 import type {
   CreateAccountResult,
   GetCustomerResult,
+  GetProfileResult,
   SignInResult,
 } from '@/modules/customer/application/customer-service';
 import type { RecaptchaConfig } from '@/modules/customer/application/ports';
@@ -84,6 +85,19 @@ export async function getCustomerAction(input: unknown): Promise<GetCustomerResu
   }
   try {
     return await getCustomerService().getCustomer(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+export async function getCustomerProfileAction(input: unknown): Promise<GetProfileResult> {
+  const parsed = getCustomerInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('get_customer_profile');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCustomerService().getProfile(parsed.data);
   } catch {
     return { status: 'failed' };
   }
