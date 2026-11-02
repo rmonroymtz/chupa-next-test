@@ -25,6 +25,9 @@ const SUMMARY: CartSummary = {
   freeShippingThreshold: null,
 };
 const DETAILS: CartDetails = { totalQuantity: 2, items: [], summary: SUMMARY };
+const RENEWED = [
+  { itemUid: 'MTIz', sku: 'B0LAMP', name: 'Lámpara', previousPrice: 250, newPrice: 300 },
+];
 const EXTRAS = { shippingEstimate: { amount: 149, currency: 'MXN' }, freeShippingThreshold: 999 };
 /** What the service answers: the cart with the extras merged into its summary. */
 const WITH_EXTRAS: CartDetails = { ...DETAILS, summary: { ...SUMMARY, ...EXTRAS } };
@@ -62,6 +65,13 @@ class DetailsGateway {
   removeCartDetailsItem(cartId: string, itemUid: string, auth: CartAuth) {
     return this.answer(`remove:${itemUid}`, cartId, auth);
   }
+  async refreshExpiredQuotePrices(cartId: string, auth: CartAuth) {
+    await this.answer('refresh', cartId, auth);
+    return RENEWED;
+  }
+  async acknowledgeCartPriceChanges(cartId: string, auth: CartAuth) {
+    await this.answer('acknowledge', cartId, auth);
+  }
 }
 
 function setup(step: Step, extrasFail = false) {
@@ -74,6 +84,59 @@ function setup(step: Step, extrasFail = false) {
   });
   return { gateway, service, ...observability };
 }
+
+describe('cartService quote and price-change operations', () => {
+  it('refreshes expired quote prices, answers the renewed items and the cart read again', async () => {
+    const { gateway, service, metricsNamed } = setup('ok');
+    // The gateway answers the same cart for the read that follows the refresh.
+    expect(await service.refreshExpiredQuotePrices({ cartId: 'c', signinToken: TOKEN })).toEqual({
+      status: 'ok',
+      cart: WITH_EXTRAS,
+      renewed: RENEWED,
+    });
+    expect(gateway.calls).toEqual([
+      { op: 'refresh', cartId: 'c', token: TOKEN },
+      { op: 'details', cartId: 'c', token: TOKEN },
+      { op: 'extras', cartId: 'c', token: TOKEN },
+    ]);
+    expect(metricsNamed('CartRefreshQuotePrices')).toEqual([
+      expect.objectContaining({ value: 1, dimensions: { Outcome: 'success' } }),
+    ]);
+  });
+
+  it('acknowledges the price changes and answers the cart read again', async () => {
+    const { gateway, service, metricsNamed } = setup('ok');
+    expect(await service.acknowledgePriceChanges({ cartId: 'c', signinToken: null })).toEqual({
+      status: 'ok',
+      cart: WITH_EXTRAS,
+    });
+    expect(gateway.calls.map((call) => call.op)).toEqual(['acknowledge', 'details', 'extras']);
+    expect(metricsNamed('CartAcknowledgePriceChanges')).toEqual([
+      expect.objectContaining({ value: 1, dimensions: { Outcome: 'success' } }),
+    ]);
+  });
+
+  it('reports invalid carts and failures without leaking the token or the cart id', async () => {
+    const invalid = setup('invalid');
+    expect(
+      await invalid.service.refreshExpiredQuotePrices({ cartId: 'c', signinToken: null }),
+    ).toEqual({
+      status: 'invalid_cart',
+    });
+    expect(
+      await invalid.service.acknowledgePriceChanges({ cartId: 'c', signinToken: null }),
+    ).toEqual({
+      status: 'invalid_cart',
+    });
+
+    const failing = setup('failure');
+    const command = { cartId: 'secret-cart', signinToken: TOKEN };
+    expect(await failing.service.refreshExpiredQuotePrices(command)).toEqual({ status: 'failed' });
+    expect(await failing.service.acknowledgePriceChanges(command)).toEqual({ status: 'failed' });
+    expect(JSON.stringify(failing.logLines)).not.toContain(TOKEN);
+    expect(JSON.stringify(failing.logLines)).not.toContain('secret-cart');
+  });
+});
 
 describe('cartService cart details', () => {
   it('reads the cart with the cart id and token', async () => {

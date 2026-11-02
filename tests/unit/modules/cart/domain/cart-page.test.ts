@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { CartDetailsItem, CartSummary } from '@/modules/cart/application/ports';
 import {
   cartHeading,
+  displayedSubtotal,
+  expiredBannerText,
+  expiredQuoteItems,
+  priceChangedItems,
+  renewalMessage,
+  unavailableItems,
   discountTotal,
   hasOutOfStockItem,
   orderTotal,
@@ -21,6 +27,10 @@ function item(uid: string, overrides: Partial<CartDetailsItem> = {}): CartDetail
     options: [],
     outOfStock: false,
     isFromQuote: false,
+    rowTotal: null,
+    quoteExpiresAt: null,
+    quotePriceExpired: false,
+    priceChange: null,
     ...overrides,
   };
 }
@@ -114,5 +124,118 @@ describe('discountTotal', () => {
     expect(discountTotal(summary({ discounts }))).toEqual(mxn(75.5));
     expect(discountTotal(summary())).toBeNull();
     expect(discountTotal(summary({ discounts: [{ label: 'x', amount: mxn(0) }] }))).toBeNull();
+  });
+});
+
+const change = (overrides: Partial<NonNullable<CartDetailsItem['priceChange']>> = {}) => ({
+  changed: false,
+  previousPrice: null,
+  currentPrice: null,
+  delta: null,
+  outOfStock: false,
+  ...overrides,
+});
+
+describe('partitionCartItems with price-change availability', () => {
+  it('hides regular items the backend flags out of stock (they show in the notice only)', () => {
+    const items = [item('a'), item('gone', { priceChange: change({ outOfStock: true }) })];
+    expect(partitionCartItems(items).regular.map((entry) => entry.uid)).toEqual(['a']);
+  });
+
+  it('keeps quote items even when flagged', () => {
+    const items = [item('q', { isFromQuote: true, priceChange: change({ outOfStock: true }) })];
+    expect(partitionCartItems(items).quotes.map((entry) => entry.uid)).toEqual(['q']);
+  });
+});
+
+describe('expiredQuoteItems', () => {
+  it('lists quote items whose price expired', () => {
+    const items = [
+      item('a', { quotePriceExpired: true }),
+      item('q1', { isFromQuote: true, quotePriceExpired: true }),
+      item('q2', { isFromQuote: true }),
+    ];
+    expect(expiredQuoteItems(items).map((entry) => entry.uid)).toEqual(['q1']);
+  });
+});
+
+describe('priceChangedItems', () => {
+  it('lists regular items whose price changed and has a previous price', () => {
+    const items = [
+      item('up', {
+        priceChange: change({ changed: true, previousPrice: 100, currentPrice: 120, delta: 20 }),
+      }),
+      item('noprev', { priceChange: change({ changed: true, currentPrice: 120, delta: 20 }) }),
+      item('same', { priceChange: change() }),
+      item('quote', {
+        isFromQuote: true,
+        priceChange: change({ changed: true, previousPrice: 1, currentPrice: 2, delta: 1 }),
+      }),
+    ];
+    expect(priceChangedItems(items).map((entry) => entry.uid)).toEqual(['up']);
+  });
+});
+
+describe('unavailableItems', () => {
+  it('joins regular items flagged by the backend and quote items out of stock, in cart order', () => {
+    const items = [
+      item('gone', { priceChange: change({ outOfStock: true }) }),
+      item('ok'),
+      item('q', { isFromQuote: true, outOfStock: true }),
+      item('qok', { isFromQuote: true }),
+    ];
+    expect(unavailableItems(items).map((entry) => entry.uid)).toEqual(['gone', 'q']);
+  });
+});
+
+describe('displayedSubtotal', () => {
+  it('subtracts the row totals of the hidden out-of-stock items, never below zero', () => {
+    const items = [
+      item('gone', { rowTotal: mxn(300), priceChange: change({ outOfStock: true }) }),
+      item('ok', { rowTotal: mxn(700) }),
+    ];
+    expect(displayedSubtotal(summary({ subtotal: mxn(1000) }), items)).toEqual(mxn(700));
+    expect(displayedSubtotal(summary({ subtotal: mxn(200) }), items)).toEqual(mxn(0));
+  });
+
+  it('is the subtotal untouched when nothing is hidden, and null without a subtotal', () => {
+    expect(displayedSubtotal(summary({ subtotal: mxn(1000) }), [item('ok')])).toEqual(mxn(1000));
+    expect(displayedSubtotal(summary({ subtotal: null }), [item('ok')])).toBeNull();
+  });
+});
+
+describe('expiredBannerText', () => {
+  it('uses the singular for one product and the plural otherwise', () => {
+    expect(expiredBannerText(1)).toBe('Tienes 1 producto con precio de cotización expirado.');
+    expect(expiredBannerText(3)).toBe('Tienes 3 productos con precios de cotización expirados.');
+  });
+});
+
+describe('renewalMessage', () => {
+  const renewed = (name: string, previousPrice: number | null, newPrice: number | null) => ({
+    itemUid: name,
+    sku: name,
+    name,
+    previousPrice,
+    newPrice,
+  });
+
+  it('names the product and both prices for one renewal', () => {
+    expect(renewalMessage([renewed('Lámpara', 250, 300)], 'MXN')).toBe(
+      'Precio actualizado: Lámpara ($250.00 → $300.00)',
+    );
+  });
+
+  it('counts several renewals and explains when there were none', () => {
+    expect(renewalMessage([renewed('a', 1, 2), renewed('b', 1, 2)], 'MXN')).toBe(
+      '2 precios de cotización actualizados.',
+    );
+    expect(renewalMessage([], 'MXN')).toBe('No se encontraron precios por actualizar.');
+  });
+
+  it('falls back to the name only when a price is unknown', () => {
+    expect(renewalMessage([renewed('Lámpara', null, 300)], 'MXN')).toBe(
+      'Precio actualizado: Lámpara',
+    );
   });
 });

@@ -5,6 +5,7 @@ import {
   type CartDetails,
   type CartGateway,
   type CartItemInput,
+  type RenewedQuoteItem,
   type CartUserError,
   type MiniCart,
 } from '@/modules/cart/application/ports';
@@ -59,6 +60,12 @@ export interface CartService {
   updateCartItemQuantity(
     command: UpdateCartItemCommand,
   ): Promise<CartReadResult<{ cart: CartDetails }>>;
+  /** Renews the expired quote prices; answers the renewed items and the cart read again. */
+  refreshExpiredQuotePrices(
+    command: CartReadCommand,
+  ): Promise<CartReadResult<{ cart: CartDetails; renewed: readonly RenewedQuoteItem[] }>>;
+  /** Dismisses the price-change notices; answers the cart read again. */
+  acknowledgePriceChanges(command: CartReadCommand): Promise<CartReadResult<{ cart: CartDetails }>>;
   /** Removes an item from the `/cart` page and answers the updated cart. */
   removeCartDetailsItem(
     command: RemoveCartItemCommand,
@@ -192,17 +199,21 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
     }
   }
 
-  async function mutateDetails(
-    metric: 'CartUpdateItem' | 'CartRemoveItem',
+  async function mutateDetails<T extends object>(
+    metric:
+      | 'CartUpdateItem'
+      | 'CartRemoveItem'
+      | 'CartRefreshQuotePrices'
+      | 'CartAcknowledgePriceChanges',
     message: string,
     signedIn: boolean,
-    run: () => Promise<CartDetails>,
-  ): Promise<CartReadResult<{ cart: CartDetails }>> {
+    run: () => Promise<{ cart: CartDetails } & T>,
+  ): Promise<CartReadResult<{ cart: CartDetails } & T>> {
     try {
-      const cart = await run();
+      const result = await run();
       metrics.emitMetric({ name: metric, value: 1, dimensions: { Outcome: 'success' } });
       logger.info({ outcome: 'success', signedIn }, message);
-      return { status: 'ok', cart };
+      return { status: 'ok', ...result };
     } catch (caught) {
       const invalid = caught instanceof CartGatewayError && caught.kind === 'invalid_cart';
       const outcome = invalid ? 'invalid_cart' : 'failure';
@@ -210,6 +221,12 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
       logger.warn({ outcome, signedIn }, `${message} failed`);
       return { status: invalid ? 'invalid_cart' : 'failed' };
     }
+  }
+
+  /** The cart as the page shows it: read again with its summary extras. */
+  async function readDetails(cartId: string, signinToken: string | null): Promise<CartDetails> {
+    const auth = { signinToken };
+    return withExtras(await gateway.getCartDetails(cartId, auth), cartId, auth);
   }
 
   return {
@@ -222,18 +239,40 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
         }),
       })),
     updateCartItemQuantity: ({ cartId, itemUid, quantity, signinToken }) =>
-      mutateDetails('CartUpdateItem', 'update cart item', signinToken !== null, async () =>
-        withExtras(
+      mutateDetails('CartUpdateItem', 'update cart item', signinToken !== null, async () => ({
+        cart: await withExtras(
           await gateway.updateCartItemQuantity(cartId, itemUid, quantity, { signinToken }),
           cartId,
           { signinToken },
         ),
-      ),
+      })),
     removeCartDetailsItem: ({ cartId, itemUid, signinToken }) =>
-      mutateDetails('CartRemoveItem', 'remove cart item', signinToken !== null, async () =>
-        withExtras(await gateway.removeCartDetailsItem(cartId, itemUid, { signinToken }), cartId, {
-          signinToken,
-        }),
+      mutateDetails('CartRemoveItem', 'remove cart item', signinToken !== null, async () => ({
+        cart: await withExtras(
+          await gateway.removeCartDetailsItem(cartId, itemUid, { signinToken }),
+          cartId,
+          { signinToken },
+        ),
+      })),
+    refreshExpiredQuotePrices: ({ cartId, signinToken }) =>
+      mutateDetails(
+        'CartRefreshQuotePrices',
+        'refresh quote prices',
+        signinToken !== null,
+        async () => {
+          const renewed = await gateway.refreshExpiredQuotePrices(cartId, { signinToken });
+          return { renewed, cart: await readDetails(cartId, signinToken) };
+        },
+      ),
+    acknowledgePriceChanges: ({ cartId, signinToken }) =>
+      mutateDetails(
+        'CartAcknowledgePriceChanges',
+        'acknowledge price changes',
+        signinToken !== null,
+        async () => {
+          await gateway.acknowledgeCartPriceChanges(cartId, { signinToken });
+          return { cart: await readDetails(cartId, signinToken) };
+        },
       ),
     getCartCount: ({ cartId, signinToken }) =>
       read('count', signinToken !== null, async () => ({

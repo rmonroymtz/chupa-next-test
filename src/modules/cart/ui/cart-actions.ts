@@ -9,7 +9,7 @@ import {
   removeCartItemInputSchema,
   updateCartItemInputSchema,
 } from '@/modules/cart/application/cart-input';
-import type { CartDetails, MiniCart } from '@/modules/cart/application/ports';
+import type { CartDetails, MiniCart, RenewedQuoteItem } from '@/modules/cart/application/ports';
 import { getCartService } from '@/modules/cart/infrastructure/cart.composition';
 import { getLogger } from '@/shared/observability/logger';
 
@@ -129,6 +129,38 @@ export async function removeCartDetailsItemAction(
   }
   try {
     return await getCartService().removeCartDetailsItem(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+/** Renews the expired quote prices; answers the renewed items and the updated cart. */
+export async function refreshExpiredQuotePricesAction(
+  input: unknown,
+): Promise<CartReadResult<{ cart: CartDetails; renewed: readonly RenewedQuoteItem[] }>> {
+  const parsed = cartDetailsReadInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('refresh_expired_quote_prices');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCartService().refreshExpiredQuotePrices(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+/** Dismisses the price-change notices; answers the updated cart. */
+export async function acknowledgePriceChangesAction(
+  input: unknown,
+): Promise<CartReadResult<{ cart: CartDetails }>> {
+  const parsed = cartDetailsReadInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('acknowledge_price_changes');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCartService().acknowledgePriceChanges(parsed.data);
   } catch {
     return { status: 'failed' };
   }

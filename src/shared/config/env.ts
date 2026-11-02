@@ -89,6 +89,11 @@ const productVendors = z.preprocess(
     }),
 );
 
+/** `true`/`false` only; blank counts as unset (off), anything else is a configuration mistake. */
+const booleanFlag = z
+  .preprocess(blankAsUndefined, z.enum(['true', 'false']).default('false'))
+  .transform((value) => value === 'true');
+
 const httpUrl = z.url({ protocol: /^https?$/ });
 
 /** Comma-separated absolute http(s) urls; blank means none. */
@@ -153,6 +158,12 @@ const serverEnvSchema = z.object({
     blankAsUndefined,
     z.string().trim().min(1).default('ChupaStorefront'),
   ),
+  /**
+   * Cart price-change backend (legacy build flag `CHUPAPRECIOS_CART_REFRESH_BACKEND`, off by
+   * default): when on, the cart page reads `cp_price_change` and shows the price-change and
+   * out-of-stock notices. Runtime, so no rebuild is needed to flip it.
+   */
+  CART_REFRESH_BACKEND: booleanFlag,
   /** Organization logo for structured data (absolute url); optional. */
   ORGANIZATION_LOGO_URL: z.preprocess(blankAsUndefined, httpUrl.optional()),
   /** Official social profiles for Organization `sameAs` (comma-separated urls). */

@@ -16,7 +16,7 @@ interface Captured {
   body: { operationName: string; query: string; variables: Record<string, unknown> };
 }
 
-function setup() {
+function setup(options?: { priceChangeNotices?: boolean }) {
   const observability = createCapturingObservability();
   const client = createMagentoClient({
     url: URL,
@@ -26,7 +26,7 @@ function setup() {
     logger: observability.logger,
     metrics: observability.metrics,
   });
-  return { gateway: createMagentoCartGateway(client), ...observability };
+  return { gateway: createMagentoCartGateway(client, options), ...observability };
 }
 
 function respondWith(payload: JsonBodyType, captured: Captured[]) {
@@ -63,11 +63,20 @@ const RAW_CART = {
         price: { currency: 'MXN', value: 649.25 },
         row_total: { value: 1298.5 },
       },
+      cp_price_change: {
+        changed: true,
+        previous_price: 600,
+        current_price: 649.25,
+        delta: 49.25,
+        out_of_stock: false,
+      },
     },
     {
       uid: 'item-2',
       quantity: 1,
       is_from_quote: true,
+      quote_expiration_date: '2026-11-20 23:59:59',
+      is_quote_price_expired: true,
       out_of_stock: true,
       product: {
         uid: 'p2',
@@ -129,6 +138,16 @@ const DETAILS = {
       options: [],
       outOfStock: false,
       isFromQuote: false,
+      rowTotal: { amount: 1298.5, currency: 'MXN' },
+      quoteExpiresAt: null,
+      quotePriceExpired: false,
+      priceChange: {
+        changed: true,
+        previousPrice: 600,
+        currentPrice: 649.25,
+        delta: 49.25,
+        outOfStock: false,
+      },
     },
     {
       uid: 'item-2',
@@ -144,6 +163,10 @@ const DETAILS = {
       ],
       outOfStock: true,
       isFromQuote: true,
+      rowTotal: { amount: 250, currency: 'MXN' },
+      quoteExpiresAt: '2026-11-20 23:59:59',
+      quotePriceExpired: true,
+      priceChange: null,
     },
   ],
 };
@@ -166,6 +189,19 @@ describe('mapCartDetails', () => {
       ],
     };
     expect(mapCartDetails(raw, '.html').items[0]?.outOfStock).toBe(true);
+  });
+
+  it('has no row total, quote date or price change when Magento sends none', () => {
+    const raw = {
+      total_quantity: 1,
+      items: [{ uid: 'i', quantity: 1, product: { name: 'x', sku: 'x' } }],
+    };
+    expect(mapCartDetails(raw, '.html').items[0]).toMatchObject({
+      rowTotal: null,
+      quoteExpiresAt: null,
+      quotePriceExpired: false,
+      priceChange: null,
+    });
   });
 
   it('maps the price summary: subtotal, discounts, taxes, selected shipping and grand total', () => {
@@ -205,6 +241,85 @@ describe('mapCartDetails', () => {
 });
 
 describe('createMagentoCartGateway cart details', () => {
+  it('asks for cp_price_change only when the refresh backend switch is on', async () => {
+    const off: Captured[] = [];
+    respondWith({ data: { cart: RAW_CART } }, off);
+    await setup().gateway.getCartDetails('cart-1', { signinToken: null });
+    expect(off[0]?.body.query).not.toContain('cp_price_change');
+    expect(off[0]?.body.query).toContain('quote_expiration_date');
+    expect(off[0]?.body.query).toContain('is_quote_price_expired');
+
+    const on: Captured[] = [];
+    respondWith({ data: { cart: RAW_CART } }, on);
+    await setup({ priceChangeNotices: true }).gateway.getCartDetails('cart-1', {
+      signinToken: null,
+    });
+    expect(on[0]?.body.query).toContain('cp_price_change');
+  });
+
+  it('refreshes expired quote prices with the legacy mutation and maps the renewed items', async () => {
+    const captured: Captured[] = [];
+    respondWith(
+      {
+        data: {
+          refreshExpiredQuoteCartItemPrices: {
+            items_renewed: [
+              {
+                cart_item_uid: 'MTIz',
+                product_sku: 'B0LAMP',
+                product_name: 'Lámpara',
+                previous_price: 250,
+                new_price: 300,
+                quote_request_id: 7,
+              },
+              null,
+            ],
+            quotes_renewed: 1,
+          },
+        },
+      },
+      captured,
+    );
+    const { gateway } = setup();
+
+    await expect(
+      gateway.refreshExpiredQuotePrices('cart-1', { signinToken: TOKEN }),
+    ).resolves.toEqual([
+      { itemUid: 'MTIz', sku: 'B0LAMP', name: 'Lámpara', previousPrice: 250, newPrice: 300 },
+    ]);
+    expect(captured[0]?.authorization).toBe(`Bearer ${TOKEN}`);
+    expect(captured[0]?.body.operationName).toBe('RefreshExpiredQuoteCartItemPrices');
+    expect(captured[0]?.body.variables).toEqual({ cart_id: 'cart-1' });
+  });
+
+  it('fails when the refresh answers nothing', async () => {
+    respondWith({ data: { refreshExpiredQuoteCartItemPrices: null } }, []);
+    const error = await setup()
+      .gateway.refreshExpiredQuotePrices('cart-1', { signinToken: null })
+      .catch((caught: unknown) => caught);
+    expect((error as CartGatewayError).kind).toBe('failure');
+  });
+
+  it('acknowledges the price changes with the legacy mutation', async () => {
+    const captured: Captured[] = [];
+    respondWith({ data: { acknowledgeCartPriceChanges: true } }, captured);
+
+    await expect(
+      setup().gateway.acknowledgeCartPriceChanges('cart-1', { signinToken: TOKEN }),
+    ).resolves.toBeUndefined();
+    expect(captured[0]?.body.operationName).toBe('AcknowledgeCartPriceChanges');
+    expect(captured[0]?.body.variables).toEqual({ cartId: 'cart-1' });
+    expect(captured[0]?.authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it('maps an acknowledge Magento rejects to invalid_cart', async () => {
+    respondWith({ errors: [{ message: 'Could not find a cart with ID "x"' }], data: null }, []);
+    const error = await setup()
+      .gateway.acknowledgeCartPriceChanges('x', { signinToken: null })
+      .catch((caught: unknown) => caught);
+    expect((error as CartGatewayError).kind).toBe('invalid_cart');
+  });
+
   it('reads the cart with the legacy GetCartDetails operation and the Bearer token', async () => {
     const captured: Captured[] = [];
     respondWith({ data: { cart: RAW_CART } }, captured);

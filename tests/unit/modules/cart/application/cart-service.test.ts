@@ -69,6 +69,8 @@ class ScriptedGateway implements CartGateway {
   // The cart page operations have their own suite (cart-details-service.test.ts).
   getCartDetails = unsupported;
   getCartExtras = unsupported;
+  refreshExpiredQuotePrices = unsupported;
+  acknowledgeCartPriceChanges = unsupported;
   updateCartItemQuantity = unsupported;
   removeCartDetailsItem = unsupported;
 }

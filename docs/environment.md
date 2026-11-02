@@ -48,6 +48,11 @@ MAGENTO_RECOMMENDATIONS_TIMEOUT_MS=
 # It never blocks the response. Default: 10000
 COPY_MUTATION_TIMEOUT_MS=10000
 
+# Optional. `true` makes the /cart page read the backend `cp_price_change` data and show the
+# price-change and out-of-stock notices (legacy build flag CHUPAPRECIOS_CART_REFRESH_BACKEND).
+# Turn it on only when Magento has the field. `true` or `false`. Default: false
+CART_REFRESH_BACKEND=false
+
 # === CHAPI (internal scraper API) ============================================
 # REQUIRED. Base URL of CHAPI (http/https). Trailing slashes are stripped. No default.
 # Internal address: do not commit the real value.
