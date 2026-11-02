@@ -449,7 +449,10 @@ describe('CartPage', () => {
 
     it('badges a quote item with its expiry date', async () => {
       storeCart();
-      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(PLAYERA, QUOTE) });
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartOf(PLAYERA, QUOTE),
+      });
       render(<CartPage />);
       await screen.findByText('Cámara');
 
@@ -469,16 +472,17 @@ describe('CartPage', () => {
       const quote = within(row('Cámara'));
       expect(quote.getByText('Precio expirado')).toBeTruthy();
       expect(quote.queryByText(/Válido hasta/)).toBeNull();
-      expect(
-        screen.getByText('Tienes 1 producto con precio de cotización expirado.'),
-      ).toBeTruthy();
+      expect(screen.getByText('Tienes 1 producto con precio de cotización expirado.')).toBeTruthy();
     });
 
     it('asks to confirm in a modal, then renews the prices and shows what changed', async () => {
       storeCart();
       storeToken();
       const other = { ...EXPIRED, uid: 'item-q2', name: 'Bocina' };
-      actions.getCartDetailsAction.mockResolvedValue({ status: 'ok', cart: cartOf(EXPIRED, other) });
+      actions.getCartDetailsAction.mockResolvedValue({
+        status: 'ok',
+        cart: cartOf(EXPIRED, other),
+      });
       actions.refreshExpiredQuotePricesAction.mockResolvedValue({
         status: 'ok',
         cart: cartOf({ ...EXPIRED, quotePriceExpired: false, unitPrice: mxn(300) }, other),
@@ -513,9 +517,7 @@ describe('CartPage', () => {
       expect(screen.getByRole('status').textContent).toBe(
         'Precio actualizado: Cámara ($250.00 → $300.00)',
       );
-      expect(
-        screen.getByText('Tienes 1 producto con precio de cotización expirado.'),
-      ).toBeTruthy();
+      expect(screen.getByText('Tienes 1 producto con precio de cotización expirado.')).toBeTruthy();
     });
 
     it('keeps the cart untouched when the shopper goes back', async () => {
@@ -545,7 +547,9 @@ describe('CartPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Actualizar y continuar' }));
 
       const alert = await within(screen.getByRole('dialog')).findByRole('alert');
-      expect(alert.textContent).toBe('Error al actualizar precios de cotización. Intenta nuevamente.');
+      expect(alert.textContent).toBe(
+        'Error al actualizar precios de cotización. Intenta nuevamente.',
+      );
     });
   });
 

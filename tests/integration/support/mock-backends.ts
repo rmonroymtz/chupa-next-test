@@ -125,6 +125,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   let randomProducts = config.randomProducts;
   let menuDelayMs = config.menuDelayMs ?? 0;
   const carts = new Map<string, MockCartItem[]>();
+  let customerState = initialCustomerState();
 
   const magento = createServer((req, res) => {
     void handle(req, res, nextSeq, async (body) => {
@@ -196,8 +197,11 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
         response = { status: randomScenario.status ?? 200, body: randomScenario.body ?? {} };
       } else if (CART_OPERATIONS.has(operation)) {
         response = { status: 200, body: answerCart(operation, variables, carts) };
-      } else if (operation === 'GetCustomerInformation') {
-        response = { status: 200, body: answerCustomerProfile(req.headers.authorization) };
+      } else if (CUSTOMER_OPERATIONS.has(operation)) {
+        response = {
+          status: 200,
+          body: answerCustomer(operation, variables, req.headers.authorization, customerState),
+        };
       } else if (operation === 'StoreConfig') {
         response =
           storeConfig === 'outage'
@@ -301,6 +305,7 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
     reset: () => {
       calls.length = 0;
       carts.clear();
+      customerState = initialCustomerState();
     },
     close: async () => {
       await Promise.all([close(magento), close(chapi)]);
@@ -406,26 +411,78 @@ function answerCategoryProducts(
 /** Sign-in token the mock Magento accepts; any other token is "not authorized". */
 export const MOCK_CUSTOMER_TOKEN = 'mock.customer.token';
 
-/** Profile of the mock customer (`GetCustomerInformation`, legacy `AccountInformationPageFragment`). */
-const MOCK_CUSTOMER = {
-  id: 1,
-  firstname: 'Ana',
-  middlename: '',
-  lastname: 'Pérez',
-  email: 'ana.perez@example.mx',
-  social_profile_photo: null,
-  phone_number: '6643119682',
-};
+/** Password of the mock customer, for the profile mutations. */
+export const MOCK_CUSTOMER_PASSWORD = 'Current1!';
 
-function answerCustomerProfile(authorization: string | undefined): unknown {
-  if (authorization === `Bearer ${MOCK_CUSTOMER_TOKEN}`) {
-    return { data: { customer: MOCK_CUSTOMER } };
-  }
+interface MockCustomerState {
+  customer: Record<string, unknown>;
+  password: string;
+}
+
+/** Profile of the mock customer (`GetCustomerInformation`, legacy `AccountInformationPageFragment`). */
+function initialCustomerState(): MockCustomerState {
   return {
-    errors: [{ message: "The current customer isn't authorized." }],
-    data: { customer: null },
+    customer: {
+      id: 1,
+      firstname: 'Ana',
+      middlename: '',
+      lastname: 'Pérez',
+      email: 'ana.perez@example.mx',
+      social_profile_photo: null,
+      phone_number: '6643119682',
+    },
+    password: MOCK_CUSTOMER_PASSWORD,
   };
 }
+
+const NOT_AUTHORIZED = {
+  errors: [{ message: "The current customer isn't authorized." }],
+  data: { customer: null },
+};
+const WRONG_PASSWORD = {
+  errors: [
+    { message: "The password doesn't match this account. Verify the password and try again." },
+  ],
+  data: null,
+};
+
+/** The customer operations of the account pages; every one needs the mock token. */
+function answerCustomer(
+  operation: string,
+  variables: Record<string, unknown>,
+  authorization: string | undefined,
+  state: MockCustomerState,
+): unknown {
+  if (authorization !== `Bearer ${MOCK_CUSTOMER_TOKEN}`) return NOT_AUTHORIZED;
+  if (operation === 'UpdateCustomerPhone') {
+    state.customer.phone_number = String(variables.phone);
+    return {
+      data: { updateCustomer: { customer: { phone_number: state.customer.phone_number } } },
+    };
+  }
+  if (operation === 'SetCustomerInformation') {
+    const input = (variables.customerInput ?? {}) as Record<string, unknown>;
+    const emailChanged = input.email !== state.customer.email;
+    if (emailChanged && input.password !== state.password) return WRONG_PASSWORD;
+    state.customer.firstname = String(input.firstname);
+    state.customer.lastname = String(input.lastname);
+    state.customer.email = String(input.email);
+    return { data: { updateCustomer: { customer: { email: state.customer.email } } } };
+  }
+  if (operation === 'ChangeCustomerPassword') {
+    if (variables.currentPassword !== state.password) return WRONG_PASSWORD;
+    state.password = String(variables.newPassword);
+    return { data: { changeCustomerPassword: { email: state.customer.email } } };
+  }
+  return { data: { customer: state.customer } };
+}
+
+const CUSTOMER_OPERATIONS = new Set([
+  'GetCustomerInformation',
+  'UpdateCustomerPhone',
+  'SetCustomerInformation',
+  'ChangeCustomerPassword',
+]);
 
 const CART_OPERATIONS = new Set([
   'createCart',

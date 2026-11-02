@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MOCK_CUSTOMER_TOKEN } from '../../tests/integration/support/mock-backends';
+import {
+  MOCK_CUSTOMER_PASSWORD,
+  MOCK_CUSTOMER_TOKEN,
+} from '../../tests/integration/support/mock-backends';
 
 /**
  * Phase 5 account pages on the local stack (standalone server + mock Magento):
@@ -102,4 +105,51 @@ test.describe('account pages (local stack)', () => {
       expect(response.headers()['location']).toBe(`/my-account${alias}?callbackUrl=%2Fcheckout`);
     });
   }
+});
+
+test.describe('profile (local stack)', () => {
+  test('shows the profile and opens the edit form with the data filled in', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/account-information`);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'MI PERFIL' })).toBeVisible();
+    await expect(page.getByText('Ana Pérez', { exact: true })).toBeVisible();
+    await expect(page.getByText('+52 6643119682')).toBeVisible();
+
+    await page.getByRole('link', { name: 'EDITAR DATOS' }).click();
+    await expect(page).toHaveURL(/\/my-account\/edit-account-information$/);
+    await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Ana');
+    await expect(page.getByLabel('Correo electrónico')).toHaveValue('ana.perez@example.mx');
+    await expect(page.getByLabel('Teléfono')).toHaveValue('6643119682');
+  });
+
+  test('saving a new phone goes back to the profile with the new number', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/edit-account-information`);
+
+    await page.getByLabel('Teléfono').fill('5512345678');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+
+    await expect(page).toHaveURL(/\/my-account\/account-information$/);
+    await expect(page.getByText('+52 5512345678')).toBeVisible();
+  });
+
+  test('changing the email needs the right current password', async ({ page }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/edit-account-information`);
+
+    await page.getByLabel('Correo electrónico').fill('nueva@example.mx');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('aria-invalid', 'true');
+
+    await page.getByRole('button', { name: 'Cambiar contraseña' }).click();
+    await page.getByLabel('Contraseña actual').fill('not-my-password');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page.getByText('La contraseña actual no es correcta.')).toBeVisible();
+
+    await page.getByLabel('Contraseña actual').fill(MOCK_CUSTOMER_PASSWORD);
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page).toHaveURL(/\/my-account\/account-information$/);
+    await expect(page.getByText('nueva@example.mx')).toBeVisible();
+  });
 });
