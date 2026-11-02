@@ -211,3 +211,80 @@ test.describe('reset password link (local stack)', () => {
     ).toBeVisible();
   });
 });
+
+test.describe('address book (local stack)', () => {
+  test('lists the saved address with the Principal badge and no delete button', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book`);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'MIS DIRECCIONES' })).toBeVisible();
+    const card = page.getByRole('listitem', { name: 'Ana Pérez' });
+    await expect(card.getByText('Principal')).toBeVisible();
+    await expect(card.getByText('Av. Revolución')).toBeVisible();
+    await expect(card.getByText('Zona Centro')).toBeVisible();
+    await expect(card.getByRole('button', { name: /Eliminar/ })).toHaveCount(0);
+  });
+
+  test('adds an address with the default Mexican fields, edits it by direct url and deletes it', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book/new`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Nueva dirección' })).toBeVisible();
+
+    await page.getByLabel(/^Nombre/).fill('Luis');
+    await page.getByLabel(/^Apellido\*$/).fill('Soto');
+    await page.getByLabel(/^Teléfono/).fill('6861234567');
+    await page.getByLabel(/^Código postal/).fill('21100');
+    await page.getByLabel(/^Estado/).selectOption({ label: 'Baja California' });
+    // The DS checkbox hides the native input: click its label.
+    await page.getByText('Sin número', { exact: true }).click();
+    await page.getByLabel(/^Colonia/).fill('Centro Cívico');
+    await page.getByLabel(/^Municipio/).fill('Mexicali');
+    await page.getByLabel(/^Ciudad/).fill('Mexicali');
+    await page.getByPlaceholder('Calle y número').fill('Calle Nueva');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page).toHaveURL(/\/my-account\/address-book$/);
+    const card = page.getByRole('listitem', { name: 'Luis Soto' });
+    await expect(card.getByText('Calle Nueva')).toBeVisible();
+    await expect(card.getByText('S/N')).toBeVisible();
+    await expect(card.getByText('Principal')).toHaveCount(0);
+
+    // Edit through the card, then through a direct url (the legacy showed an empty form there).
+    await card.getByRole('link', { name: 'Editar dirección de Luis Soto' }).click();
+    await expect(page).toHaveURL(/\/my-account\/address-book\/edit\/\d+$/);
+    await expect(page.getByLabel(/^Colonia/)).toHaveValue('Centro Cívico');
+    const editUrl = page.url();
+    await page.getByLabel(/^Colonia/).fill('Nueva Colonia');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(
+      page.getByRole('listitem', { name: 'Luis Soto' }).getByText('Nueva Colonia'),
+    ).toBeVisible();
+
+    await page.goto(editUrl);
+    await expect(page.getByLabel(/^Colonia/)).toHaveValue('Nueva Colonia');
+
+    await page.goto(`${baseUrl()}/my-account/address-book`);
+    await page.getByRole('button', { name: 'Eliminar dirección de Luis Soto' }).click();
+    await page
+      .getByRole('listitem', { name: 'Luis Soto' })
+      .getByRole('button', { name: 'Eliminar', exact: true })
+      .click();
+    await expect(page.getByRole('listitem', { name: 'Luis Soto' })).toHaveCount(0);
+    await expect(page.getByRole('listitem', { name: 'Ana Pérez' })).toBeVisible();
+  });
+
+  test('an address that does not exist, or an id that is not a number, says so', async ({
+    page,
+  }) => {
+    await signInWith(page, MOCK_CUSTOMER_TOKEN);
+    await page.goto(`${baseUrl()}/my-account/address-book/edit/9999`);
+    await expect(page.getByText('No encontramos esta dirección.')).toBeVisible();
+
+    await page.goto(`${baseUrl()}/my-account/address-book/edit/abc`);
+    await expect(page.getByText('No encontramos esta dirección.')).toBeVisible();
+  });
+});
