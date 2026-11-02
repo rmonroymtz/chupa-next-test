@@ -27,6 +27,7 @@ function setup(overrides: Partial<CustomerGateway> = {}, cartOverrides: Partial<
     updatePhone: vi.fn(),
     updateIdentity: vi.fn(),
     changePassword: vi.fn(),
+    resetPassword: vi.fn(),
     mergeCarts: vi.fn().mockResolvedValue(undefined),
     revokeToken: vi.fn().mockResolvedValue(true),
     ...overrides,

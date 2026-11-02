@@ -12,6 +12,7 @@
  * - `SignOutFromMenu`: peregrine `talons/Header/accountMenu.gql.js`.
  * - `CreateAccount`: peregrine `talons/CreateAccount/createAccount.gql.js`.
  * - `requestPasswordResetEmail`: venia-ui `ForgotPassword/forgotPassword.gql.js`.
+ * - `resetPassword`: peregrine `talons/MyAccount/resetPassword.gql.js` (`ResetPassword`).
  * - `GetReCaptchaV3Config`: peregrine `hooks/useGoogleReCaptcha/googleReCaptchaConfig.gql.js`.
  */
 
@@ -121,6 +122,12 @@ export const CREATE_ACCOUNT_MUTATION = /* GraphQL */ `
 export const REQUEST_PASSWORD_RESET_MUTATION = /* GraphQL */ `
   mutation requestPasswordResetEmail($email: String!) {
     requestPasswordResetEmail(email: $email)
+  }
+`;
+
+export const RESET_PASSWORD_MUTATION = /* GraphQL */ `
+  mutation resetPassword($email: String!, $token: String!, $newPassword: String!) {
+    resetPassword(email: $email, resetPasswordToken: $token, newPassword: $newPassword)
   }
 `;
 

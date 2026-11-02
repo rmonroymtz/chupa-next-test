@@ -31,6 +31,16 @@ export const createAccountInputSchema = z.object({
 
 export const passwordResetInputSchema = z.object({ email, recaptchaToken });
 
+/** Reset tokens are short alphanumeric strings (Magento sends 32 hex characters). */
+const resetToken = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
+
+export const resetPasswordInputSchema = z.object({
+  email,
+  token: resetToken,
+  newPassword: password,
+  recaptchaToken,
+});
+
 export const signOutInputSchema = z.object({ token: signinTokenSchema.nullable() });
 
 export const getCustomerInputSchema = z.object({ token: signinTokenSchema });

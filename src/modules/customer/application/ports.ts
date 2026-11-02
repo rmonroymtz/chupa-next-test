@@ -50,6 +50,7 @@ export type CustomerGatewayErrorKind =
   | 'email_taken'
   | 'weak_password'
   | 'wrong_password'
+  | 'invalid_token'
   | 'failure';
 
 /**
@@ -58,6 +59,7 @@ export type CustomerGatewayErrorKind =
  * token (expired or revoked before the 1 h client ttl). `email_taken` and
  * `weak_password` come from account creation and profile updates;
  * `wrong_password` is the current password Magento rejects on a profile update.
+ * `invalid_token` is a reset-password link token Magento rejects (mismatched or expired).
  */
 export class CustomerGatewayError extends Error {
   override readonly name = 'CustomerGatewayError';
@@ -80,6 +82,13 @@ export interface CustomerGateway {
   createAccount(customer: NewCustomer, recaptchaToken?: string | null): Promise<void>;
   /** `requestPasswordResetEmail`. Magento answers true even for unknown emails. */
   requestPasswordReset(email: string, recaptchaToken?: string | null): Promise<void>;
+  /** `resetPassword`: sets a new password with the token of the emailed link. */
+  resetPassword(
+    email: string,
+    token: string,
+    newPassword: string,
+    recaptchaToken?: string | null,
+  ): Promise<void>;
   /** Null when Magento has no reCAPTCHA v3 config or it cannot be read: forms then work without it. */
   getRecaptchaConfig(): Promise<RecaptchaConfig | null>;
   getCustomer(token: string): Promise<Customer>;

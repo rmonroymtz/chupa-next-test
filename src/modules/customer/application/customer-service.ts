@@ -82,6 +82,20 @@ export type UpdateProfileResult =
       readonly partial: boolean;
     };
 
+export interface ResetPasswordCommand {
+  readonly email: string;
+  /** The `token` query value of the emailed link. */
+  readonly token: string;
+  readonly newPassword: string;
+  readonly recaptchaToken: string | null;
+}
+
+export type ResetPasswordResult =
+  | { readonly status: 'reset' }
+  | { readonly status: 'invalid_token' }
+  | { readonly status: 'weak_password' }
+  | { readonly status: 'failed' };
+
 export interface CustomerService {
   /** Reads the signed-in customer for the header (name, account menu). */
   getCustomer(command: { readonly token: string }): Promise<GetCustomerResult>;
@@ -93,6 +107,8 @@ export interface CustomerService {
   /** Creates the account only; the browser then signs in (each Magento call needs its own reCAPTCHA token). */
   createAccount(command: CreateAccountCommand): Promise<CreateAccountResult>;
   requestPasswordReset(command: PasswordResetCommand): Promise<{ status: 'sent' | 'failed' }>;
+  /** Sets the new password from the emailed link (`/customer/account/createPassword?token=`). */
+  resetPassword(command: ResetPasswordCommand): Promise<ResetPasswordResult>;
   /** Peregrine `signOut`: revoking is best effort, the browser always clears its session. */
   signOut(command: SignOutCommand): Promise<{ status: 'signed_out' }>;
   getRecaptchaConfig(): Promise<RecaptchaConfig | null>;
@@ -194,6 +210,21 @@ export function createCustomerService({
       } catch {
         logger.warn('password reset request failed');
         return { status: 'failed' };
+      }
+    },
+
+    async resetPassword({ email, token, newPassword, recaptchaToken }) {
+      try {
+        await customerGateway.resetPassword(email, token, newPassword, recaptchaToken);
+        metrics.emitMetric({ name: 'PasswordReset', value: 1, dimensions: { Outcome: 'reset' } });
+        return { status: 'reset' };
+      } catch (caught) {
+        const kind = kindOf(caught);
+        const status =
+          kind === 'invalid_token' || kind === 'weak_password' ? kind : ('failed' as const);
+        metrics.emitMetric({ name: 'PasswordReset', value: 1, dimensions: { Outcome: status } });
+        logger.warn({ kind }, 'password reset failed');
+        return { status };
       }
     },
 

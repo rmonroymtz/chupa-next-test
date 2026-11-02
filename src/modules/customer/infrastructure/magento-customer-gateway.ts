@@ -13,6 +13,7 @@ import {
   GET_CUSTOMER_QUERY,
   MERGE_CARTS_MUTATION,
   RECAPTCHA_CONFIG_QUERY,
+  RESET_PASSWORD_MUTATION,
   REQUEST_PASSWORD_RESET_MUTATION,
   SIGN_IN_MUTATION,
   SET_CUSTOMER_INFORMATION_MUTATION,
@@ -23,6 +24,7 @@ import { MagentoRequestError, type MagentoClient } from '@/shared/graphql/client
 
 const INVALID_CREDENTIALS_MESSAGE = 'The account sign-in was incorrect';
 const EMAIL_TAKEN_MESSAGE = 'A customer with the same email address already exists';
+const INVALID_TOKEN_MESSAGES = ['password token is mismatched', 'password token is expired'];
 const WRONG_PASSWORD_MESSAGE = "The password doesn't match this account";
 const WEAK_PASSWORD_MESSAGE = 'Minimum of different classes of characters in password';
 const NOT_AUTHORIZED_MESSAGES = ["The current customer isn't authorized", 'not authorized'];
@@ -31,6 +33,13 @@ function classify(caught: unknown): CustomerGatewayErrorKind {
   if (!(caught instanceof MagentoRequestError) || caught.kind !== 'graphql') return 'failure';
   if (caught.graphqlMessages.some((message) => message.includes(INVALID_CREDENTIALS_MESSAGE))) {
     return 'invalid_credentials';
+  }
+  if (
+    caught.graphqlMessages.some((message) =>
+      INVALID_TOKEN_MESSAGES.some((fragment) => message.includes(fragment)),
+    )
+  ) {
+    return 'invalid_token';
   }
   if (caught.graphqlMessages.some((message) => message.includes(WRONG_PASSWORD_MESSAGE))) {
     return 'wrong_password';
@@ -226,6 +235,19 @@ export function createMagentoCustomerGateway(client: MagentoClient): CustomerGat
         token,
         recaptchaToken,
       );
+    },
+
+    async resetPassword(email, token, newPassword, recaptchaToken) {
+      const data = await call<{ resetPassword: unknown } | null>(
+        'resetPassword',
+        RESET_PASSWORD_MUTATION,
+        { email, token, newPassword },
+        null,
+        recaptchaToken,
+      );
+      if (data?.resetPassword !== true) {
+        throw new CustomerGatewayError('failure', 'Magento resetPassword did not confirm');
+      }
     },
 
     async mergeCarts(sourceCartId, destinationCartId, token) {

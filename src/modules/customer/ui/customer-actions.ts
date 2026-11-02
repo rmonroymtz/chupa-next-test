@@ -4,6 +4,7 @@ import {
   createAccountInputSchema,
   getCustomerInputSchema,
   passwordResetInputSchema,
+  resetPasswordInputSchema,
   signInInputSchema,
   signOutInputSchema,
   updateProfileInputSchema,
@@ -12,6 +13,7 @@ import type {
   CreateAccountResult,
   GetCustomerResult,
   GetProfileResult,
+  ResetPasswordResult,
   UpdateProfileResult,
   SignInResult,
 } from '@/modules/customer/application/customer-service';
@@ -100,6 +102,19 @@ export async function getCustomerProfileAction(input: unknown): Promise<GetProfi
   }
   try {
     return await getCustomerService().getProfile(parsed.data);
+  } catch {
+    return { status: 'failed' };
+  }
+}
+
+export async function resetPasswordAction(input: unknown): Promise<ResetPasswordResult> {
+  const parsed = resetPasswordInputSchema.safeParse(input);
+  if (!parsed.success) {
+    warnInvalidInput('reset_password');
+    return { status: 'failed' };
+  }
+  try {
+    return await getCustomerService().resetPassword(parsed.data);
   } catch {
     return { status: 'failed' };
   }
