@@ -74,7 +74,8 @@ export function addressToValues(address: CustomerAddress, streetLines: number): 
   return {
     firstName: address.firstName,
     lastName: address.lastName,
-    telephone: address.telephone,
+    // A stored phone may carry spaces or a prefix; the form and Magento input take digits only.
+    telephone: sanitizeDigits(address.telephone, TELEPHONE_DIGITS),
     postcode: address.postcode,
     city: address.city,
     countryId: address.countryCode || 'MX',
@@ -123,25 +124,32 @@ export function validateAddress(
   return errors;
 }
 
-/** The `CustomerAddressInput` payload; `middleName` is kept from the address being edited. */
+/**
+ * The `CustomerAddressInput` payload. For an edit, `original` supplies what the
+ * form does not render (the config may disable city, phone, postcode or region):
+ * those keep their stored value instead of being blanked, and the middle name is
+ * kept. Custom fields the config does not render are left out (Magento keeps them).
+ */
 export function toAddressInput(
   values: AddressFormValues,
   fields: readonly FormField[],
-  middleName = '',
+  original: CustomerAddress | null = null,
 ): AddressInput {
   const has = (code: FieldCode): boolean => fields.some((field) => field.code === code);
   return {
     firstName: values.firstName.trim(),
-    middleName,
+    middleName: original?.middleName ?? '',
     lastName: values.lastName.trim(),
     street: values.street.map((line) => line.trim()).filter(Boolean),
-    city: has('city') ? values.city.trim() : '',
-    postcode: has('postcode') ? values.postcode.trim() : '',
+    city: has('city') ? values.city.trim() : (original?.city ?? ''),
+    postcode: has('postcode') ? values.postcode.trim() : (original?.postcode ?? ''),
     countryId: values.countryId,
     region: has('region')
       ? { name: values.regionName.trim(), id: values.regionId }
-      : { name: '', id: null },
-    telephone: has('telephone') ? values.telephone.trim() : '',
+      : { name: original?.region.name ?? '', id: original?.region.id ?? null },
+    telephone: has('telephone')
+      ? values.telephone.trim()
+      : sanitizeDigits(original?.telephone ?? '', TELEPHONE_DIGITS),
     customFields: Object.fromEntries(
       CUSTOM_FIELD_CODES.filter((code) => has(code)).map((code) => [
         code,

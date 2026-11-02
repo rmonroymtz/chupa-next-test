@@ -149,6 +149,17 @@ describe('validateAddress', () => {
   });
 });
 
+describe('addressToValues phone', () => {
+  it('keeps only the digits of a stored phone with spaces or a prefix', () => {
+    expect(addressToValues({ ...ADDRESS, telephone: '55 1234 5678' }, 2).telephone).toBe(
+      '5512345678',
+    );
+    expect(addressToValues({ ...ADDRESS, telephone: '+52 664 311 9682' }, 2).telephone).toBe(
+      '526643119682',
+    );
+  });
+});
+
 describe('toAddressInput', () => {
   it('builds the payload: trimmed values, non-empty street lines, the config custom fields', () => {
     expect(
@@ -176,7 +187,7 @@ describe('toAddressInput', () => {
   });
 
   it('keeps the middle name of the address being edited', () => {
-    expect(toAddressInput(filled(), DEFAULT_FIELDS, 'María').middleName).toBe('María');
+    expect(toAddressInput(filled(), DEFAULT_FIELDS, ADDRESS).middleName).toBe('María');
   });
 
   it('leaves out the fields the config does not render', () => {
@@ -189,5 +200,20 @@ describe('toAddressInput', () => {
     expect(input.postcode).toBe('');
     expect(input.telephone).toBe('');
     expect(input.region).toEqual({ name: '', id: null });
+  });
+
+  it('keeps the stored city, postcode, region and phone of an edit when the config does not render them', () => {
+    const input = toAddressInput(
+      filled({ city: 'Otra', postcode: '99999', telephone: '1' }),
+      only('firstname', 'lastname', 'street'),
+      { ...ADDRESS, telephone: '664 311 9682' },
+    );
+    expect(input).toMatchObject({
+      city: 'Tijuana',
+      postcode: '22010',
+      region: { name: 'Baja California', id: 1 },
+      telephone: '6643119682',
+      middleName: 'María',
+    });
   });
 });

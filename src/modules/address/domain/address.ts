@@ -74,8 +74,12 @@ type Raw = Record<string, unknown>;
 const asRecord = (value: unknown): Raw | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Raw) : null;
 const asText = (value: unknown): string => (typeof value === 'string' ? value : '');
-const flag = (value: unknown): boolean =>
-  Number(value) !== 0 && value !== undefined && value !== null && value !== '';
+/** Amasty stores flags as "0"/"1" strings; "false" and blanks count as off. */
+const flag = (value: unknown): boolean => {
+  if (value === undefined || value === null || value === '' || value === false) return false;
+  if (typeof value === 'string' && value.trim().toLowerCase() === 'false') return false;
+  return Number(value) !== 0;
+};
 const positive = (value: unknown, fallback: number): number => {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : fallback;

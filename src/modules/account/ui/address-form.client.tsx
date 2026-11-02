@@ -274,7 +274,7 @@ function AddressFormBody({
 
     setSubmitting(true);
     try {
-      const input = toAddressInput(values, config.fields, original?.middleName ?? '');
+      const input = toAddressInput(values, config.fields, original);
       const result =
         addressId === undefined
           ? await createAddressAction({ token, address: input })

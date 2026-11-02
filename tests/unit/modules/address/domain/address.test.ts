@@ -79,6 +79,18 @@ describe('parseFormFields', () => {
     expect(codes(fields)).toEqual(['country_id', 'city']);
   });
 
+  it('treats "false", "0" and blanks as disabled', () => {
+    const fields = parseFormFields(
+      config(
+        field('firstname', { enabled: 'false' }),
+        field('lastname', { enabled: '0' }),
+        field('city', { enabled: '' }),
+        field('telephone', { enabled: true }),
+      ),
+    );
+    expect(codes(fields)).toEqual(['telephone']);
+  });
+
   it('accepts a list of fields as well as an object', () => {
     expect(codes(parseFormFields(JSON.stringify([field('firstname'), field('city')])))).toEqual([
       'firstname',
