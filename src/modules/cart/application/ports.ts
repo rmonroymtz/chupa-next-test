@@ -35,6 +35,31 @@ export interface MiniCart {
   readonly items: readonly MiniCartItem[];
 }
 
+/** One row of the `/cart` page (legacy `ProductListingFragment`). */
+export interface CartDetailsItem {
+  readonly uid: string;
+  readonly name: string;
+  readonly sku: string;
+  /** Product page path, e.g. `/amazon-B0X-lamp.html`. */
+  readonly url: string;
+  /** `small_image`, else `thumbnail`. */
+  readonly imageUrl: string | null;
+  readonly quantity: number;
+  /** Unit price as Magento returns it. */
+  readonly unitPrice: Money | null;
+  /** Selected variant options (`configurable_options`). */
+  readonly options: readonly { readonly label: string; readonly value: string }[];
+  /** Item `out_of_stock` flag or product stock status `OUT_OF_STOCK`. */
+  readonly outOfStock: boolean;
+  /** The item was added from a quote (legacy `is_from_quote`). */
+  readonly isFromQuote: boolean;
+}
+
+export interface CartDetails {
+  readonly totalQuantity: number;
+  readonly items: readonly CartDetailsItem[];
+}
+
 export type CartGatewayErrorKind = 'invalid_cart' | 'failure';
 
 /**
@@ -68,4 +93,15 @@ export interface CartGateway {
    * output has no `user_errors`.
    */
   removeItemFromCart(cartId: string, itemUid: string, auth: CartAuth): Promise<MiniCart>;
+  /** The `/cart` page read (legacy `GetCartDetails`). */
+  getCartDetails(cartId: string, auth: CartAuth): Promise<CartDetails>;
+  /** Sets one item's quantity (`updateCartItems`) and answers the updated cart. */
+  updateCartItemQuantity(
+    cartId: string,
+    itemUid: string,
+    quantity: number,
+    auth: CartAuth,
+  ): Promise<CartDetails>;
+  /** Removes one item from the `/cart` page and answers the updated cart. */
+  removeCartDetailsItem(cartId: string, itemUid: string, auth: CartAuth): Promise<CartDetails>;
 }

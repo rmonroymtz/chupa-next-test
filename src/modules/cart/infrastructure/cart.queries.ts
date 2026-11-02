@@ -8,6 +8,10 @@
  * - `MiniCartQuery`: venia-ui `MiniCart/miniCart.gql.js` (`MiniCartFragment`,
  *   `ProductListFragment`), without the variant thumbnails it does not show.
  * - `RemoveItemForMiniCart`: venia-ui `MiniCart/miniCart.gql.js` (`REMOVE_ITEM_MUTATION`).
+ * - `GetCartDetails`, `removeItem`, `updateItemQuantity`: the chupaprecios-pwa overrides of
+ *   `CartPage/cartPage.gql.js`, `ProductListing/product.js`, with the item fields of its
+ *   `ProductListingFragment` the Next page shows (the price summary, coupons, gift cards and
+ *   shipping fragments belong to the summary task).
  */
 
 export const CREATE_CART_MUTATION = /* GraphQL */ `
@@ -94,6 +98,67 @@ export const REMOVE_ITEM_MUTATION = /* GraphQL */ `
   mutation RemoveItemForMiniCart($cartId: String!, $itemId: ID!) {
     removeItemFromCart(input: { cart_id: $cartId, cart_item_uid: $itemId }) {
       cart {${MINI_CART_FIELDS}      }
+    }
+  }
+`;
+
+/** Item fields of the legacy `ProductListingFragment` the Next cart page shows. */
+const CART_DETAILS_FIELDS = /* GraphQL */ `
+      id
+      total_quantity
+      items {
+        uid
+        product {
+          uid
+          name
+          sku
+          url_key
+          thumbnail {
+            url
+          }
+          small_image {
+            url
+          }
+          stock_status
+        }
+        prices {
+          price {
+            currency
+            value
+          }
+        }
+        quantity
+        is_from_quote
+        out_of_stock
+        ... on ConfigurableCartItem {
+          configurable_options {
+            option_label
+            value_label
+          }
+        }
+      }
+`;
+
+export const CART_DETAILS_QUERY = /* GraphQL */ `
+  query GetCartDetails($cartId: String!) {
+    cart(cart_id: $cartId) {${CART_DETAILS_FIELDS}    }
+  }
+`;
+
+export const CART_DETAILS_REMOVE_ITEM_MUTATION = /* GraphQL */ `
+  mutation removeItem($cartId: String!, $itemId: ID!) {
+    removeItemFromCart(input: { cart_id: $cartId, cart_item_uid: $itemId }) {
+      cart {${CART_DETAILS_FIELDS}      }
+    }
+  }
+`;
+
+export const UPDATE_ITEM_QUANTITY_MUTATION = /* GraphQL */ `
+  mutation updateItemQuantity($cartId: String!, $itemId: ID!, $quantity: Float!) {
+    updateCartItems(
+      input: { cart_id: $cartId, cart_items: [{ cart_item_uid: $itemId, quantity: $quantity }] }
+    ) {
+      cart {${CART_DETAILS_FIELDS}      }
     }
   }
 `;

@@ -7,13 +7,17 @@ import {
 } from '@/modules/cart/application/ports';
 import {
   ADD_PRODUCT_TO_CART_MUTATION,
+  CART_DETAILS_QUERY,
+  CART_DETAILS_REMOVE_ITEM_MUTATION,
   CREATE_CART_MUTATION,
   ITEM_COUNT_QUERY,
   MINI_CART_QUERY,
   REMOVE_ITEM_MUTATION,
+  UPDATE_ITEM_QUANTITY_MUTATION,
 } from '@/modules/cart/infrastructure/cart.queries';
 import {
   isInvalidCartMessage,
+  mapCartDetails,
   mapMiniCart,
 } from '@/modules/cart/infrastructure/magento-cart-mapper';
 import { DEFAULT_PRODUCT_URL_SUFFIX } from '@/modules/product/domain/product-url';
@@ -118,6 +122,43 @@ export function createMagentoCartGateway(client: MagentoClient): CartGateway {
         throw new CartGatewayError('failure', 'Magento RemoveItemForMiniCart returned no cart');
       }
       return mapMiniCart(cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async getCartDetails(cartId, auth) {
+      const data = await call<{ cart: unknown } | null>(
+        'GetCartDetails',
+        CART_DETAILS_QUERY,
+        { cartId },
+        auth,
+      );
+      if (!data?.cart)
+        throw new CartGatewayError('failure', 'Magento GetCartDetails returned no cart');
+      return mapCartDetails(data.cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async updateCartItemQuantity(cartId, itemUid, quantity, auth) {
+      const data = await call<{ updateCartItems: { cart: unknown } | null } | null>(
+        'updateItemQuantity',
+        UPDATE_ITEM_QUANTITY_MUTATION,
+        { cartId, itemId: itemUid, quantity },
+        auth,
+      );
+      const cart = data?.updateCartItems?.cart;
+      if (!cart)
+        throw new CartGatewayError('failure', 'Magento updateItemQuantity returned no cart');
+      return mapCartDetails(cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async removeCartDetailsItem(cartId, itemUid, auth) {
+      const data = await call<{ removeItemFromCart: { cart: unknown } | null } | null>(
+        'removeItem',
+        CART_DETAILS_REMOVE_ITEM_MUTATION,
+        { cartId, itemId: itemUid },
+        auth,
+      );
+      const cart = data?.removeItemFromCart?.cart;
+      if (!cart) throw new CartGatewayError('failure', 'Magento removeItem returned no cart');
+      return mapCartDetails(cart, DEFAULT_PRODUCT_URL_SUFFIX);
     },
   };
 }

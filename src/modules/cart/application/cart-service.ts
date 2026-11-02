@@ -2,6 +2,7 @@ import type { Logger } from 'pino';
 import {
   CartGatewayError,
   type CartAuth,
+  type CartDetails,
   type CartGateway,
   type CartItemInput,
   type CartUserError,
@@ -38,6 +39,10 @@ export interface RemoveCartItemCommand extends CartReadCommand {
   readonly itemUid: string;
 }
 
+export interface UpdateCartItemCommand extends RemoveCartItemCommand {
+  readonly quantity: number;
+}
+
 export interface CartService {
   addToCart(command: AddToCartCommand): Promise<AddToCartResult>;
   getCartCount(command: CartReadCommand): Promise<CartReadResult<{ totalQuantity: number }>>;
@@ -48,6 +53,16 @@ export interface CartService {
    * as `invalid_cart` and never recreated: there is nothing to remove from.
    */
   removeCartItem(command: RemoveCartItemCommand): Promise<CartReadResult<{ cart: MiniCart }>>;
+  /** The `/cart` page read. A cart Magento rejects is `invalid_cart`, never recreated. */
+  getCartDetails(command: CartReadCommand): Promise<CartReadResult<{ cart: CartDetails }>>;
+  /** Sets an item's quantity and answers the updated cart. */
+  updateCartItemQuantity(
+    command: UpdateCartItemCommand,
+  ): Promise<CartReadResult<{ cart: CartDetails }>>;
+  /** Removes an item from the `/cart` page and answers the updated cart. */
+  removeCartDetailsItem(
+    command: RemoveCartItemCommand,
+  ): Promise<CartReadResult<{ cart: CartDetails }>>;
 }
 
 export interface CartServiceDeps {
@@ -119,7 +134,7 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
   }
 
   async function read<T>(
-    operation: 'count' | 'mini_cart',
+    operation: 'count' | 'mini_cart' | 'cart_details',
     signedIn: boolean,
     run: () => Promise<T>,
   ): Promise<CartReadResult<T>> {
@@ -158,9 +173,41 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
     }
   }
 
+  async function mutateDetails(
+    metric: 'CartUpdateItem' | 'CartRemoveItem',
+    message: string,
+    signedIn: boolean,
+    run: () => Promise<CartDetails>,
+  ): Promise<CartReadResult<{ cart: CartDetails }>> {
+    try {
+      const cart = await run();
+      metrics.emitMetric({ name: metric, value: 1, dimensions: { Outcome: 'success' } });
+      logger.info({ outcome: 'success', signedIn }, message);
+      return { status: 'ok', cart };
+    } catch (caught) {
+      const invalid = caught instanceof CartGatewayError && caught.kind === 'invalid_cart';
+      const outcome = invalid ? 'invalid_cart' : 'failure';
+      metrics.emitMetric({ name: metric, value: 1, dimensions: { Outcome: outcome } });
+      logger.warn({ outcome, signedIn }, `${message} failed`);
+      return { status: invalid ? 'invalid_cart' : 'failed' };
+    }
+  }
+
   return {
     addToCart,
     removeCartItem,
+    getCartDetails: ({ cartId, signinToken }) =>
+      read('cart_details', signinToken !== null, async () => ({
+        cart: await gateway.getCartDetails(cartId, { signinToken }),
+      })),
+    updateCartItemQuantity: ({ cartId, itemUid, quantity, signinToken }) =>
+      mutateDetails('CartUpdateItem', 'update cart item', signinToken !== null, () =>
+        gateway.updateCartItemQuantity(cartId, itemUid, quantity, { signinToken }),
+      ),
+    removeCartDetailsItem: ({ cartId, itemUid, signinToken }) =>
+      mutateDetails('CartRemoveItem', 'remove cart item', signinToken !== null, () =>
+        gateway.removeCartDetailsItem(cartId, itemUid, { signinToken }),
+      ),
     getCartCount: ({ cartId, signinToken }) =>
       read('count', signinToken !== null, async () => ({
         totalQuantity: await gateway.getCartCount(cartId, { signinToken }),
