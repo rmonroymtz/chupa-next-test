@@ -45,7 +45,7 @@ const credentials = { email: 'a@b.mx', password: 'hunter2', recaptchaToken: 'rc'
 
 describe('customer service sign-in', () => {
   it('signs in, creates the customer cart, merges the guest cart and answers the customer', async () => {
-    const { service, customerGateway, cartGateway } = setup();
+    const { service, customerGateway, cartGateway, metricsNamed } = setup();
     const result = await service.signIn({ ...credentials, guestCartId: 'guest' });
     expect(result).toEqual({
       status: 'signed_in',
@@ -53,6 +53,7 @@ describe('customer service sign-in', () => {
       cartId: 'customer-cart',
       customer: CUSTOMER,
     });
+    expect(metricsNamed('SignIn')[0]?.dimensions).toEqual({ Outcome: 'signed_in' });
     expect(customerGateway.signIn).toHaveBeenCalledWith('a@b.mx', 'hunter2', 'rc');
     expect(cartGateway.createEmptyCart).toHaveBeenCalledWith({ signinToken: TOKEN });
     expect(customerGateway.mergeCarts).toHaveBeenCalledWith('guest', 'customer-cart', TOKEN);
@@ -105,6 +106,8 @@ describe('customer service sign-in', () => {
     const result = await cartFails.service.signIn({ ...credentials, guestCartId: 'g' });
     expect(result).toMatchObject({ status: 'signed_in', cartId: null });
     expect(cartFails.customerGateway.mergeCarts).not.toHaveBeenCalled();
+    expect(cartFails.metricsNamed('SignIn')[0]?.dimensions).toEqual({ Outcome: 'degraded' });
+    expect(mergeFails.metricsNamed('SignIn')[0]?.dimensions).toEqual({ Outcome: 'degraded' });
   });
 
   it('never logs the email, password or token', async () => {
