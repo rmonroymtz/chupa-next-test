@@ -407,6 +407,11 @@ const CART_OPERATIONS = new Set([
   'getItemCount',
   'MiniCartQuery',
   'RemoveItemForMiniCart',
+  // The /cart page (legacy GetCartDetails, removeItem, updateItemQuantity) and its summary extras.
+  'GetCartDetails',
+  'removeItem',
+  'updateItemQuantity',
+  'GetCartSummaryExtras',
 ]);
 
 /**
@@ -431,17 +436,24 @@ function answerCart(
       data:
         operation === 'AddProductToCart'
           ? { addProductsToCart: null }
-          : operation === 'RemoveItemForMiniCart'
+          : operation === 'RemoveItemForMiniCart' || operation === 'removeItem'
             ? null
-            : { cart: null },
+            : operation === 'updateItemQuantity'
+              ? { updateCartItems: null }
+              : { cart: null },
     };
   }
-  if (operation === 'RemoveItemForMiniCart') {
+  if (operation === 'RemoveItemForMiniCart' || operation === 'removeItem') {
     // Item uids are `item-<position>` (see the cart payload below), as Magento answers them.
     const index = items.findIndex((_item, position) => `item-${position + 1}` === variables.itemId);
     if (index === -1)
       return { errors: [{ message: "The cart doesn't contain the item" }], data: null };
     items.splice(index, 1);
+  }
+  if (operation === 'updateItemQuantity') {
+    const item = items.find((_item, position) => `item-${position + 1}` === variables.itemId);
+    if (!item) return { errors: [{ message: "The cart doesn't contain the item" }], data: null };
+    item.quantity = Number(variables.quantity);
   }
   if (operation === 'AddProductToCart') {
     const product = (variables.product ?? {}) as Record<string, unknown>;
@@ -461,10 +473,24 @@ function answerCart(
   if (operation === 'getItemCount') {
     return { data: { cart: { id: cartId, total_quantity: totalQuantity } } };
   }
+  if (operation === 'GetCartSummaryExtras') {
+    return {
+      data: {
+        cart: {
+          id: cartId,
+          prices: { chupaprecios_shipping_estimate: { currency: 'MXN', value: 50 } },
+        },
+        storeConfig: { free_shipping_subtotal: '500' },
+      },
+    };
+  }
   const cart = {
     id: cartId,
     total_quantity: totalQuantity,
-    prices: { subtotal_excluding_tax: { currency: 'MXN', value: 100 * totalQuantity } },
+    prices: {
+      subtotal_excluding_tax: { currency: 'MXN', value: 100 * totalQuantity },
+      grand_total: { currency: 'MXN', value: 100 * totalQuantity },
+    },
     items: items.map((item, index) => ({
       uid: `item-${index + 1}`,
       quantity: item.quantity,
@@ -479,7 +505,10 @@ function answerCart(
       prices: { price: { currency: 'MXN', value: 100 } },
     })),
   };
-  return operation === 'RemoveItemForMiniCart'
-    ? { data: { removeItemFromCart: { cart } } }
+  if (operation === 'RemoveItemForMiniCart' || operation === 'removeItem') {
+    return { data: { removeItemFromCart: { cart } } };
+  }
+  return operation === 'updateItemQuantity'
+    ? { data: { updateCartItems: { cart } } }
     : { data: { cart } };
 }
