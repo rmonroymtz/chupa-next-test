@@ -59,7 +59,7 @@ Numbers refer to the specs and open points in `odd/tasks/phase-4-customer-cart.m
 | Quotes               | "Descargar cotización" with phone capture and guest prompt; toasts             | Not on the Next cart (stays on PWA pages); the renewal result is an inline status line.                                                 |
 | Quote badge button   | "Actualizar precio" on an expired badge (only where `onRefresh` is passed)     | Not built: the cart does not pass it either; the banner opens the modal.                                                                |
 | Wishlist, edit modal | On each cart row                                                               | Not built. No GTM events from the cart page.                                                                                            |
-| Header account       | Static link until the PWA loads                                                | Reads the session from the PWA storage and shows the menu once Magento answers.                                                         |
+| Header account       | Account menu with the legacy items                                             | The same items, read from the session in the PWA storage once Magento answers.                                                          |
 
 ## Verification
 
