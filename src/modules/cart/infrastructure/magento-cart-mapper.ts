@@ -1,4 +1,13 @@
-import type { MiniCart, MiniCartItem } from '@/modules/cart/application/ports';
+import type {
+  CartDetails,
+  CartDetailsItem,
+  CartExtras,
+  CartPriceChange,
+  RenewedQuoteItem,
+  CartSummary,
+  MiniCart,
+  MiniCartItem,
+} from '@/modules/cart/application/ports';
 import type { Money } from '@/modules/product/domain/product';
 
 /**
@@ -68,4 +77,104 @@ function mapItem(raw: unknown, productUrlSuffix: string): MiniCartItem | null {
     }),
     outOfStock: product.stock_status === 'OUT_OF_STOCK',
   };
+}
+
+/** Maps a `GetCartDetails` cart; items without uid or product are skipped. */
+export function mapCartDetails(raw: unknown, productUrlSuffix: string): CartDetails {
+  const cart = asRecord(raw);
+  const items = Array.isArray(cart?.items) ? cart.items : [];
+  return {
+    totalQuantity: asNumber(cart?.total_quantity) ?? 0,
+    items: items.flatMap((item) => {
+      const mapped = mapDetailsItem(item, productUrlSuffix);
+      return mapped ? [mapped] : [];
+    }),
+    summary: mapSummary(cart),
+  };
+}
+
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/** Prices only; the estimate and threshold come from {@link mapCartExtras} via the service. */
+function mapSummary(cart: Raw | null): CartSummary {
+  const prices = asRecord(cart?.prices);
+  const address = asRecord(asArray(cart?.shipping_addresses)[0]);
+  return {
+    subtotal: toMoney(prices?.subtotal_excluding_tax),
+    discounts: asArray(prices?.discounts).flatMap((entry) => {
+      const discount = asRecord(entry);
+      const amount = toMoney(discount?.amount);
+      return amount ? [{ label: asString(discount?.label) ?? '', amount }] : [];
+    }),
+    taxes: asArray(prices?.applied_taxes).flatMap((entry) => {
+      const amount = toMoney(asRecord(entry)?.amount);
+      return amount ? [amount] : [];
+    }),
+    selectedShipping: toMoney(asRecord(address?.selected_shipping_method)?.amount),
+    shippingEstimate: null,
+    grandTotal: toMoney(prices?.grand_total),
+    freeShippingThreshold: null,
+  };
+}
+
+/** Maps a `GetCartSummaryExtras` answer; the threshold arrives as a string or a number. */
+export function mapCartExtras(raw: unknown): CartExtras {
+  const data = asRecord(raw);
+  const prices = asRecord(asRecord(data?.cart)?.prices);
+  const threshold = Number(asRecord(data?.storeConfig)?.free_shipping_subtotal);
+  return {
+    shippingEstimate: toMoney(prices?.chupaprecios_shipping_estimate),
+    freeShippingThreshold: Number.isFinite(threshold) && threshold > 0 ? threshold : null,
+  };
+}
+
+function mapDetailsItem(raw: unknown, productUrlSuffix: string): CartDetailsItem | null {
+  const base = mapItem(raw, productUrlSuffix);
+  if (!base) return null;
+  const item = asRecord(raw);
+  const product = asRecord(item?.product);
+  const { thumbnailUrl, ...rest } = base;
+  return {
+    ...rest,
+    imageUrl: asString(asRecord(product?.small_image)?.url) ?? thumbnailUrl,
+    outOfStock: base.outOfStock || item?.out_of_stock === true,
+    isFromQuote: item?.is_from_quote === true,
+    rowTotal: toMoney({
+      currency: asRecord(asRecord(item?.prices)?.price)?.currency,
+      ...asRecord(asRecord(item?.prices)?.row_total),
+    }),
+    quoteExpiresAt: asString(item?.quote_expiration_date),
+    quotePriceExpired: item?.is_quote_price_expired === true,
+    priceChange: mapPriceChange(item?.cp_price_change),
+  };
+}
+
+function mapPriceChange(raw: unknown): CartPriceChange | null {
+  const change = asRecord(raw);
+  if (!change) return null;
+  return {
+    changed: change.changed === true,
+    previousPrice: asNumber(change.previous_price),
+    currentPrice: asNumber(change.current_price),
+    delta: asNumber(change.delta),
+    outOfStock: change.out_of_stock === true,
+  };
+}
+
+/** Maps `items_renewed` of the quote refresh; entries without an item uid are skipped. */
+export function mapRenewedItems(raw: unknown): readonly RenewedQuoteItem[] {
+  return asArray(raw).flatMap((entry) => {
+    const renewed = asRecord(entry);
+    const itemUid = asString(renewed?.cart_item_uid);
+    if (!renewed || !itemUid) return [];
+    return [
+      {
+        itemUid,
+        sku: asString(renewed.product_sku) ?? '',
+        name: asString(renewed.product_name) ?? asString(renewed.product_sku) ?? '',
+        previousPrice: asNumber(renewed.previous_price),
+        newPrice: asNumber(renewed.new_price),
+      },
+    ];
+  });
 }

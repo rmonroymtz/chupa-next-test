@@ -2,8 +2,10 @@ import type { Logger } from 'pino';
 import {
   CartGatewayError,
   type CartAuth,
+  type CartDetails,
   type CartGateway,
   type CartItemInput,
+  type RenewedQuoteItem,
   type CartUserError,
   type MiniCart,
 } from '@/modules/cart/application/ports';
@@ -38,6 +40,10 @@ export interface RemoveCartItemCommand extends CartReadCommand {
   readonly itemUid: string;
 }
 
+export interface UpdateCartItemCommand extends RemoveCartItemCommand {
+  readonly quantity: number;
+}
+
 export interface CartService {
   addToCart(command: AddToCartCommand): Promise<AddToCartResult>;
   getCartCount(command: CartReadCommand): Promise<CartReadResult<{ totalQuantity: number }>>;
@@ -48,6 +54,22 @@ export interface CartService {
    * as `invalid_cart` and never recreated: there is nothing to remove from.
    */
   removeCartItem(command: RemoveCartItemCommand): Promise<CartReadResult<{ cart: MiniCart }>>;
+  /** The `/cart` page read. A cart Magento rejects is `invalid_cart`, never recreated. */
+  getCartDetails(command: CartReadCommand): Promise<CartReadResult<{ cart: CartDetails }>>;
+  /** Sets an item's quantity and answers the updated cart. */
+  updateCartItemQuantity(
+    command: UpdateCartItemCommand,
+  ): Promise<CartReadResult<{ cart: CartDetails }>>;
+  /** Renews the expired quote prices; answers the renewed items and the cart read again. */
+  refreshExpiredQuotePrices(
+    command: CartReadCommand,
+  ): Promise<CartReadResult<{ cart: CartDetails; renewed: readonly RenewedQuoteItem[] }>>;
+  /** Dismisses the price-change notices; answers the cart read again. */
+  acknowledgePriceChanges(command: CartReadCommand): Promise<CartReadResult<{ cart: CartDetails }>>;
+  /** Removes an item from the `/cart` page and answers the updated cart. */
+  removeCartDetailsItem(
+    command: RemoveCartItemCommand,
+  ): Promise<CartReadResult<{ cart: CartDetails }>>;
 }
 
 export interface CartServiceDeps {
@@ -119,7 +141,7 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
   }
 
   async function read<T>(
-    operation: 'count' | 'mini_cart',
+    operation: 'count' | 'mini_cart' | 'cart_details',
     signedIn: boolean,
     run: () => Promise<T>,
   ): Promise<CartReadResult<T>> {
@@ -158,9 +180,100 @@ export function createCartService({ gateway, logger, metrics }: CartServiceDeps)
     }
   }
 
+  /**
+   * The shipping estimate follows the subtotal, so it is read after every
+   * change (as the legacy wrapper refetches it). It is best effort: without it
+   * the page shows the summary it has and no estimate.
+   */
+  async function withExtras(
+    cart: CartDetails,
+    cartId: string,
+    auth: CartAuth,
+  ): Promise<CartDetails> {
+    try {
+      const extras = await gateway.getCartExtras(cartId, auth);
+      return { ...cart, summary: { ...cart.summary, ...extras } };
+    } catch {
+      logger.warn({ signedIn: auth.signinToken !== null }, 'cart summary extras unavailable');
+      return cart;
+    }
+  }
+
+  async function mutateDetails<T extends object>(
+    metric:
+      | 'CartUpdateItem'
+      | 'CartRemoveItem'
+      | 'CartRefreshQuotePrices'
+      | 'CartAcknowledgePriceChanges',
+    message: string,
+    signedIn: boolean,
+    run: () => Promise<{ cart: CartDetails } & T>,
+  ): Promise<CartReadResult<{ cart: CartDetails } & T>> {
+    try {
+      const result = await run();
+      metrics.emitMetric({ name: metric, value: 1, dimensions: { Outcome: 'success' } });
+      logger.info({ outcome: 'success', signedIn }, message);
+      return { status: 'ok', ...result };
+    } catch (caught) {
+      const invalid = caught instanceof CartGatewayError && caught.kind === 'invalid_cart';
+      const outcome = invalid ? 'invalid_cart' : 'failure';
+      metrics.emitMetric({ name: metric, value: 1, dimensions: { Outcome: outcome } });
+      logger.warn({ outcome, signedIn }, `${message} failed`);
+      return { status: invalid ? 'invalid_cart' : 'failed' };
+    }
+  }
+
+  /** The cart as the page shows it: read again with its summary extras. */
+  async function readDetails(cartId: string, signinToken: string | null): Promise<CartDetails> {
+    const auth = { signinToken };
+    return withExtras(await gateway.getCartDetails(cartId, auth), cartId, auth);
+  }
+
   return {
     addToCart,
     removeCartItem,
+    getCartDetails: ({ cartId, signinToken }) =>
+      read('cart_details', signinToken !== null, async () => ({
+        cart: await withExtras(await gateway.getCartDetails(cartId, { signinToken }), cartId, {
+          signinToken,
+        }),
+      })),
+    updateCartItemQuantity: ({ cartId, itemUid, quantity, signinToken }) =>
+      mutateDetails('CartUpdateItem', 'update cart item', signinToken !== null, async () => ({
+        cart: await withExtras(
+          await gateway.updateCartItemQuantity(cartId, itemUid, quantity, { signinToken }),
+          cartId,
+          { signinToken },
+        ),
+      })),
+    removeCartDetailsItem: ({ cartId, itemUid, signinToken }) =>
+      mutateDetails('CartRemoveItem', 'remove cart item', signinToken !== null, async () => ({
+        cart: await withExtras(
+          await gateway.removeCartDetailsItem(cartId, itemUid, { signinToken }),
+          cartId,
+          { signinToken },
+        ),
+      })),
+    refreshExpiredQuotePrices: ({ cartId, signinToken }) =>
+      mutateDetails(
+        'CartRefreshQuotePrices',
+        'refresh quote prices',
+        signinToken !== null,
+        async () => {
+          const renewed = await gateway.refreshExpiredQuotePrices(cartId, { signinToken });
+          return { renewed, cart: await readDetails(cartId, signinToken) };
+        },
+      ),
+    acknowledgePriceChanges: ({ cartId, signinToken }) =>
+      mutateDetails(
+        'CartAcknowledgePriceChanges',
+        'acknowledge price changes',
+        signinToken !== null,
+        async () => {
+          await gateway.acknowledgeCartPriceChanges(cartId, { signinToken });
+          return { cart: await readDetails(cartId, signinToken) };
+        },
+      ),
     getCartCount: ({ cartId, signinToken }) =>
       read('count', signinToken !== null, async () => ({
         totalQuantity: await gateway.getCartCount(cartId, { signinToken }),

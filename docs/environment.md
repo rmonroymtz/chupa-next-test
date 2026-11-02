@@ -48,6 +48,11 @@ MAGENTO_RECOMMENDATIONS_TIMEOUT_MS=
 # It never blocks the response. Default: 10000
 COPY_MUTATION_TIMEOUT_MS=10000
 
+# Optional. `true` makes the /cart page read the backend `cp_price_change` data and show the
+# price-change and out-of-stock notices (legacy build flag CHUPAPRECIOS_CART_REFRESH_BACKEND).
+# Turn it on only when Magento has the field. `true` or `false`. Default: false
+CART_REFRESH_BACKEND=false
+
 # === CHAPI (internal scraper API) ============================================
 # REQUIRED. Base URL of CHAPI (http/https). Trailing slashes are stripped. No default.
 # Internal address: do not commit the real value.
@@ -120,6 +125,9 @@ METRICS_NAMESPACE=ChupaStorefront
 # /{store}-{sku}-search.html url whose sku CHAPI knows. Defaults are staging examples.
 # E2E_SEARCH_QUERY=taladro
 # E2E_SKU_SEARCH_PATH=/amazon-B00IJ0ALYS-search.html
+# Optional. Set to 1 (with E2E_BASE_URL) to also run the read-only `phase-4-smoke` project
+# (cart page and customer screens, a fresh browser: no cart, no sign-in).
+# E2E_PHASE4_SMOKE=
 # Optional. CI flag: when truthy, Playwright fails on test.only.
 # CI=
 # E2E_LOCAL_BASE_URL is set automatically by e2e/support/local-stack.ts; do not set it by hand.

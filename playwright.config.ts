@@ -13,10 +13,14 @@ import { defineConfig, devices } from '@playwright/test';
  * - `phase-3-smoke`: read-only search checks (`e2e/phase-3-smoke.spec.ts`), only
  *   with `E2E_BASE_URL` and the opt-in `E2E_PHASE3_SMOKE=1` (staging or a dev
  *   server; shopper searches call CHAPI).
+ * - `phase-4-smoke`: read-only cart page and customer screen checks
+ *   (`e2e/phase-4-smoke.spec.ts`), only with `E2E_BASE_URL` and the opt-in
+ *   `E2E_PHASE4_SMOKE=1` (a fresh browser: no cart, no sign-in).
  */
 const remoteBaseUrl = process.env.E2E_BASE_URL?.trim() || undefined;
 const phase2Smoke = process.env.E2E_PHASE2_SMOKE?.trim() === '1';
 const phase3Smoke = process.env.E2E_PHASE3_SMOKE?.trim() === '1';
+const phase4Smoke = process.env.E2E_PHASE4_SMOKE?.trim() === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -53,6 +57,15 @@ export default defineConfig({
               {
                 name: 'phase-3-smoke',
                 testMatch: 'phase-3-smoke.spec.ts',
+                use: { baseURL: remoteBaseUrl },
+              },
+            ]
+          : []),
+        ...(phase4Smoke
+          ? [
+              {
+                name: 'phase-4-smoke',
+                testMatch: 'phase-4-smoke.spec.ts',
                 use: { baseURL: remoteBaseUrl },
               },
             ]

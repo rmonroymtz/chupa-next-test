@@ -32,3 +32,5 @@ export const createAccountInputSchema = z.object({
 export const passwordResetInputSchema = z.object({ email, recaptchaToken });
 
 export const signOutInputSchema = z.object({ token: signinTokenSchema.nullable() });
+
+export const getCustomerInputSchema = z.object({ token: signinTokenSchema });

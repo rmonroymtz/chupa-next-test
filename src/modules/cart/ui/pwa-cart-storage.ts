@@ -26,7 +26,18 @@ export interface PwaCartStorage {
   clearSigninToken(): boolean;
   /** Forgets the cart id (sign-out, like peregrine `removeCart`). False when storage is unavailable. */
   clearCartId(): boolean;
+  /** Removes the checkout data peregrine clears on sign-out (addresses, methods). */
+  clearCheckoutData(): boolean;
 }
+
+/** Keys of `clearCheckoutDataFromStorage` (peregrine `store/actions/checkout/asyncActions.js`). */
+const CHECKOUT_KEYS = [
+  'billing_address',
+  'paymentMethod',
+  'shipping_address',
+  'shippingMethod',
+  'availableShippingMethods',
+] as const;
 
 /** Peregrine stores the sign-in token for one hour (`asyncActions.js` `setToken`). */
 export const SIGNIN_TOKEN_TTL_SECONDS = 3600;
@@ -62,11 +73,11 @@ export function createPwaCartStorage(
     }
   }
 
-  function remove(name: string): boolean {
+  function remove(...names: readonly string[]): boolean {
     try {
       const storage = getStorage();
       if (!storage) return false;
-      storage.removeItem(pwaStorageKey(name));
+      for (const name of names) storage.removeItem(pwaStorageKey(name));
       return true;
     } catch {
       return false;
@@ -80,6 +91,7 @@ export function createPwaCartStorage(
     writeSigninToken: (token) => write(SIGNIN_TOKEN_KEY, token, SIGNIN_TOKEN_TTL_SECONDS),
     clearSigninToken: () => remove(SIGNIN_TOKEN_KEY),
     clearCartId: () => remove(CART_ID_KEY),
+    clearCheckoutData: () => remove(...CHECKOUT_KEYS),
   };
 }
 

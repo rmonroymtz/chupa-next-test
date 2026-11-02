@@ -35,6 +35,80 @@ export interface MiniCart {
   readonly items: readonly MiniCartItem[];
 }
 
+/** One row of the `/cart` page (legacy `ProductListingFragment`). */
+export interface CartDetailsItem {
+  readonly uid: string;
+  readonly name: string;
+  readonly sku: string;
+  /** Product page path, e.g. `/amazon-B0X-lamp.html`. */
+  readonly url: string;
+  /** `small_image`, else `thumbnail`. */
+  readonly imageUrl: string | null;
+  readonly quantity: number;
+  /** Unit price as Magento returns it. */
+  readonly unitPrice: Money | null;
+  /** Selected variant options (`configurable_options`). */
+  readonly options: readonly { readonly label: string; readonly value: string }[];
+  /** Item `out_of_stock` flag or product stock status `OUT_OF_STOCK`. */
+  readonly outOfStock: boolean;
+  /** The item was added from a quote (legacy `is_from_quote`). */
+  readonly isFromQuote: boolean;
+  /** `prices.row_total`. */
+  readonly rowTotal: Money | null;
+  /** `quote_expiration_date` as Magento sends it (`YYYY-MM-DD HH:MM:SS`). */
+  readonly quoteExpiresAt: string | null;
+  /** `is_quote_price_expired`. */
+  readonly quotePriceExpired: boolean;
+  /** `cp_price_change`; null unless the backend switch (`CART_REFRESH_BACKEND`) is on. */
+  readonly priceChange: CartPriceChange | null;
+}
+
+export interface CartPriceChange {
+  readonly changed: boolean;
+  readonly previousPrice: number | null;
+  readonly currentPrice: number | null;
+  readonly delta: number | null;
+  readonly outOfStock: boolean;
+}
+
+/** One entry of `refreshExpiredQuoteCartItemPrices.items_renewed`. */
+export interface RenewedQuoteItem {
+  readonly itemUid: string;
+  readonly sku: string;
+  readonly name: string;
+  readonly previousPrice: number | null;
+  readonly newPrice: number | null;
+}
+
+/** Cart prices the `/cart` summary shows (legacy `PriceSummaryFragment` + the Chupaprecios wrapper). */
+export interface CartSummary {
+  /** `prices.subtotal_excluding_tax`. */
+  readonly subtotal: Money | null;
+  readonly discounts: readonly { readonly label: string; readonly amount: Money }[];
+  /** `prices.applied_taxes` amounts. */
+  readonly taxes: readonly Money[];
+  /** Selected shipping method amount; null until the shopper picked one (cart page: always). */
+  readonly selectedShipping: Money | null;
+  /** `chupaprecios_shipping_estimate`; filled by the service, null when unknown. */
+  readonly shippingEstimate: Money | null;
+  /** `prices.grand_total`, which leaves shipping out until a method is selected. */
+  readonly grandTotal: Money | null;
+  /** `storeConfig.free_shipping_subtotal`; filled by the service, null when unknown. */
+  readonly freeShippingThreshold: number | null;
+}
+
+export interface CartDetails {
+  readonly totalQuantity: number;
+  readonly items: readonly CartDetailsItem[];
+  readonly summary: CartSummary;
+}
+
+/** The two summary values that come from their own Magento query (legacy `GetShippingEstimate`, `FreeShippingMessage`). */
+export interface CartExtras {
+  readonly shippingEstimate: Money | null;
+  readonly freeShippingThreshold: number | null;
+}
+
 export type CartGatewayErrorKind = 'invalid_cart' | 'failure';
 
 /**
@@ -68,4 +142,21 @@ export interface CartGateway {
    * output has no `user_errors`.
    */
   removeItemFromCart(cartId: string, itemUid: string, auth: CartAuth): Promise<MiniCart>;
+  /** The `/cart` page read (legacy `GetCartDetails`). */
+  getCartDetails(cartId: string, auth: CartAuth): Promise<CartDetails>;
+  /** Shipping estimate and free shipping threshold; the estimate follows the cart subtotal. */
+  getCartExtras(cartId: string, auth: CartAuth): Promise<CartExtras>;
+  /** Sets one item's quantity (`updateCartItems`) and answers the updated cart. */
+  updateCartItemQuantity(
+    cartId: string,
+    itemUid: string,
+    quantity: number,
+    auth: CartAuth,
+  ): Promise<CartDetails>;
+  /** Renews the expired quote prices (`refreshExpiredQuoteCartItemPrices`); the cart is read again by the caller. */
+  refreshExpiredQuotePrices(cartId: string, auth: CartAuth): Promise<readonly RenewedQuoteItem[]>;
+  /** Dismisses the price-change notices (`acknowledgeCartPriceChanges`). */
+  acknowledgeCartPriceChanges(cartId: string, auth: CartAuth): Promise<void>;
+  /** Removes one item from the `/cart` page and answers the updated cart. */
+  removeCartDetailsItem(cartId: string, itemUid: string, auth: CartAuth): Promise<CartDetails>;
 }

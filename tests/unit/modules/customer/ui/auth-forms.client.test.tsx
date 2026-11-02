@@ -60,8 +60,8 @@ describe('SignInForm', () => {
     );
     actions.signInAction.mockResolvedValue(signedIn);
     render(<SignInForm {...props} />);
-    type(/Correo electrónico requerido/, ' a@b.mx ');
-    type(/Contraseña requerida/, ' p w ');
+    type('Correo electrónico', ' a@b.mx ');
+    type('Contraseña', ' p w ');
     await submit('Iniciar sesión');
 
     expect(actions.signInAction).toHaveBeenCalledWith({
@@ -81,8 +81,8 @@ describe('SignInForm', () => {
   it('shows the Magento credentials message and does not redirect', async () => {
     actions.signInAction.mockResolvedValue({ status: 'invalid_credentials' });
     render(<SignInForm {...props} />);
-    type(/Correo electrónico requerido/, 'a@b.mx');
-    type(/Contraseña requerida/, 'bad');
+    type('Correo electrónico', 'a@b.mx');
+    type('Contraseña', 'bad');
     await submit('Iniciar sesión');
     expect((await screen.findByRole('alert')).textContent).toContain('incorrecto');
     expect(assign).not.toHaveBeenCalled();
@@ -91,9 +91,11 @@ describe('SignInForm', () => {
 
   it('links to the other screens and toggles the password', () => {
     render(<SignInForm {...props} />);
-    expect(screen.getByText('Olvidé mi contraseña').getAttribute('href')).toBe('/forgot-password');
+    expect(screen.getByText('¿Olvidaste tu contraseña?').getAttribute('href')).toBe(
+      '/forgot-password',
+    );
     expect(screen.getByText('Crear cuenta').getAttribute('href')).toBe('/create-account');
-    const field = screen.getByLabelText(/Contraseña requerida/);
+    const field = screen.getByLabelText('Contraseña');
     expect(field.getAttribute('type')).toBe('password');
     fireEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
     expect(field.getAttribute('type')).toBe('text');

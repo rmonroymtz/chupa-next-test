@@ -95,6 +95,7 @@ describe('createPwaCartStorage', () => {
       expect(cartStorage.writeSigninToken('x')).toBe(false);
       expect(cartStorage.clearSigninToken()).toBe(false);
       expect(cartStorage.clearCartId()).toBe(false);
+      expect(cartStorage.clearCheckoutData()).toBe(false);
     }
   });
 
@@ -125,5 +126,25 @@ describe('createPwaCartStorage', () => {
     expect(cartStorage.clearCartId()).toBe(true);
     expect(map.size).toBe(0);
     expect(cartStorage.clearCartId()).toBe(true);
+  });
+
+  it('clears only the checkout keys peregrine clears on sign-out', () => {
+    const checkoutKeys = [
+      'availableShippingMethods',
+      'billing_address',
+      'paymentMethod',
+      'shipping_address',
+      'shippingMethod',
+    ].map((name) => `M2_VENIA_BROWSER_PERSISTENCE__${name}`);
+    const { map, storage } = memoryStorage({
+      [CART_KEY]: encodePersisted('pwaCart', NOW),
+      ...Object.fromEntries(checkoutKeys.map((key) => [key, 'x'])),
+    });
+    const cartStorage = createPwaCartStorage(
+      () => storage,
+      () => NOW,
+    );
+    expect(cartStorage.clearCheckoutData()).toBe(true);
+    expect([...map.keys()]).toEqual([CART_KEY]);
   });
 });

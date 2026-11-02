@@ -7,14 +7,23 @@ import {
 } from '@/modules/cart/application/ports';
 import {
   ADD_PRODUCT_TO_CART_MUTATION,
+  ACKNOWLEDGE_PRICE_CHANGES_MUTATION,
+  cartDetailsQuery,
+  cartDetailsRemoveItemMutation,
+  REFRESH_EXPIRED_QUOTE_PRICES_MUTATION,
+  CART_SUMMARY_EXTRAS_QUERY,
   CREATE_CART_MUTATION,
   ITEM_COUNT_QUERY,
   MINI_CART_QUERY,
   REMOVE_ITEM_MUTATION,
+  updateItemQuantityMutation,
 } from '@/modules/cart/infrastructure/cart.queries';
 import {
   isInvalidCartMessage,
+  mapCartDetails,
+  mapCartExtras,
   mapMiniCart,
+  mapRenewedItems,
 } from '@/modules/cart/infrastructure/magento-cart-mapper';
 import { DEFAULT_PRODUCT_URL_SUFFIX } from '@/modules/product/domain/product-url';
 import { MagentoRequestError, type MagentoClient } from '@/shared/graphql/client';
@@ -31,7 +40,19 @@ interface AddProductToCartData {
  * exactly as the PWA auth link sends it; it is never logged (the client logs
  * no headers).
  */
-export function createMagentoCartGateway(client: MagentoClient): CartGateway {
+export interface MagentoCartGatewayOptions {
+  /** Read `cp_price_change` (the `CART_REFRESH_BACKEND` switch). Off by default, like the legacy build flag. */
+  readonly priceChangeNotices?: boolean;
+}
+
+export function createMagentoCartGateway(
+  client: MagentoClient,
+  { priceChangeNotices = false }: MagentoCartGatewayOptions = {},
+): CartGateway {
+  const detailsQuery = cartDetailsQuery(priceChangeNotices);
+  const removeDetailsMutation = cartDetailsRemoveItemMutation(priceChangeNotices);
+  const updateQuantityMutation = updateItemQuantityMutation(priceChangeNotices);
+
   async function call<TData>(
     operationName: string,
     query: string,
@@ -118,6 +139,81 @@ export function createMagentoCartGateway(client: MagentoClient): CartGateway {
         throw new CartGatewayError('failure', 'Magento RemoveItemForMiniCart returned no cart');
       }
       return mapMiniCart(cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async getCartDetails(cartId, auth) {
+      const data = await call<{ cart: unknown } | null>(
+        'GetCartDetails',
+        detailsQuery,
+        { cartId },
+        auth,
+      );
+      if (!data?.cart)
+        throw new CartGatewayError('failure', 'Magento GetCartDetails returned no cart');
+      return mapCartDetails(data.cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async getCartExtras(cartId, auth) {
+      const data = await call<unknown>(
+        'GetCartSummaryExtras',
+        CART_SUMMARY_EXTRAS_QUERY,
+        { cartId },
+        auth,
+      );
+      return mapCartExtras(data);
+    },
+
+    async updateCartItemQuantity(cartId, itemUid, quantity, auth) {
+      const data = await call<{ updateCartItems: { cart: unknown } | null } | null>(
+        'updateItemQuantity',
+        updateQuantityMutation,
+        { cartId, itemId: itemUid, quantity },
+        auth,
+      );
+      const cart = data?.updateCartItems?.cart;
+      if (!cart)
+        throw new CartGatewayError('failure', 'Magento updateItemQuantity returned no cart');
+      return mapCartDetails(cart, DEFAULT_PRODUCT_URL_SUFFIX);
+    },
+
+    async refreshExpiredQuotePrices(cartId, auth) {
+      const data = await call<{
+        refreshExpiredQuoteCartItemPrices: { items_renewed: unknown } | null;
+      } | null>(
+        'RefreshExpiredQuoteCartItemPrices',
+        REFRESH_EXPIRED_QUOTE_PRICES_MUTATION,
+        { cart_id: cartId },
+        auth,
+      );
+      const result = data?.refreshExpiredQuoteCartItemPrices;
+      if (!result) {
+        throw new CartGatewayError(
+          'failure',
+          'Magento RefreshExpiredQuoteCartItemPrices returned no result',
+        );
+      }
+      return mapRenewedItems(result.items_renewed);
+    },
+
+    async acknowledgeCartPriceChanges(cartId, auth) {
+      await call<unknown>(
+        'AcknowledgeCartPriceChanges',
+        ACKNOWLEDGE_PRICE_CHANGES_MUTATION,
+        { cartId },
+        auth,
+      );
+    },
+
+    async removeCartDetailsItem(cartId, itemUid, auth) {
+      const data = await call<{ removeItemFromCart: { cart: unknown } | null } | null>(
+        'removeItem',
+        removeDetailsMutation,
+        { cartId, itemId: itemUid },
+        auth,
+      );
+      const cart = data?.removeItemFromCart?.cart;
+      if (!cart) throw new CartGatewayError('failure', 'Magento removeItem returned no cart');
+      return mapCartDetails(cart, DEFAULT_PRODUCT_URL_SUFFIX);
     },
   };
 }

@@ -29,7 +29,23 @@ describe('parseServerEnv', () => {
       LOG_LEVEL: 'info',
       METRICS_NAMESPACE: 'ChupaStorefront',
       ORGANIZATION_SAME_AS: [],
+      CART_REFRESH_BACKEND: false,
     });
+  });
+
+  it('reads the cart refresh backend switch as a boolean, off by default and when blank', () => {
+    expect(parseServerEnv({ ...required, CART_REFRESH_BACKEND: 'true' }).CART_REFRESH_BACKEND).toBe(
+      true,
+    );
+    expect(
+      parseServerEnv({ ...required, CART_REFRESH_BACKEND: 'false' }).CART_REFRESH_BACKEND,
+    ).toBe(false);
+    expect(parseServerEnv({ ...required, CART_REFRESH_BACKEND: '  ' }).CART_REFRESH_BACKEND).toBe(
+      false,
+    );
+    expect(() => parseServerEnv({ ...required, CART_REFRESH_BACKEND: 'yes' })).toThrow(
+      /CART_REFRESH_BACKEND/,
+    );
   });
 
   it('includes the major crawlers and link-preview bots in the default list', () => {
