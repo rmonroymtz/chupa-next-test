@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   MOCK_CUSTOMER_PASSWORD,
   MOCK_CUSTOMER_TOKEN,
+  MOCK_RESET_TOKEN,
 } from '../../tests/integration/support/mock-backends';
 
 /**
@@ -151,5 +152,62 @@ test.describe('profile (local stack)', () => {
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page).toHaveURL(/\/my-account\/account-information$/);
     await expect(page.getByText('nueva@example.mx')).toBeVisible();
+  });
+});
+
+test.describe('reset password link (local stack)', () => {
+  const resetUrl = (token?: string) =>
+    `${baseUrl()}/customer/account/createPassword${token ? `?token=${token}` : ''}`;
+
+  test('a url without a token shows the legacy error, noindex and no Referer', async ({ page }) => {
+    const response = await page.goto(resetUrl());
+    expect(response?.status()).toBe(200);
+    expect(response?.headers()['cache-control'] ?? '').toContain('no-store');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex, nofollow',
+    );
+    await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer');
+    await expect(
+      page.getByText('Uh oh, algo salió mal. Verifica el enlace o inténtalo de nuevo.'),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Solicitar un enlace nuevo' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
+
+  test('the emailed link saves the new password and shows the confirmation', async ({ page }) => {
+    await page.goto(resetUrl(MOCK_RESET_TOKEN));
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Restablecer contraseña' }),
+    ).toBeVisible();
+
+    await page.getByLabel('Correo electrónico').fill('ana.perez@example.mx');
+    await page.getByLabel('Nueva contraseña', { exact: true }).fill('Brand-new2!');
+    await page.getByRole('button', { name: 'Guardar contraseña' }).click();
+
+    await expect(
+      page.getByText(
+        'Tu nueva contraseña ha sido guardada. Por favor usa esta contraseña para iniciar sesión en tu Cuenta.',
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+  });
+
+  test('an expired link asks for a new one', async ({ page }) => {
+    await page.goto(resetUrl('expiredtoken000000000000'));
+    await page.getByLabel('Correo electrónico').fill('ana.perez@example.mx');
+    await page.getByLabel('Nueva contraseña', { exact: true }).fill('Brand-new2!');
+    await page.getByRole('button', { name: 'Guardar contraseña' }).click();
+
+    await expect(
+      page.getByText(
+        'El enlace para restablecer la contraseña no es válido o ya venció. Solicita uno nuevo.',
+      ),
+    ).toBeVisible();
   });
 });

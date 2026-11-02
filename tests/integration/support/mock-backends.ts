@@ -197,6 +197,8 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
         response = { status: randomScenario.status ?? 200, body: randomScenario.body ?? {} };
       } else if (CART_OPERATIONS.has(operation)) {
         response = { status: 200, body: answerCart(operation, variables, carts) };
+      } else if (operation === 'resetPassword') {
+        response = { status: 200, body: answerResetPassword(variables, customerState) };
       } else if (CUSTOMER_OPERATIONS.has(operation)) {
         response = {
           status: 200,
@@ -475,6 +477,24 @@ function answerCustomer(
     return { data: { changeCustomerPassword: { email: state.customer.email } } };
   }
   return { data: { customer: state.customer } };
+}
+
+/** Reset-password link token the mock Magento accepts; any other token is expired. */
+export const MOCK_RESET_TOKEN = 'mockresettoken0123456789';
+
+/** `resetPassword` is a guest operation: it needs the emailed link token, not a sign-in token. */
+function answerResetPassword(
+  variables: Record<string, unknown>,
+  state: MockCustomerState,
+): unknown {
+  if (variables.token !== MOCK_RESET_TOKEN) {
+    return {
+      errors: [{ message: 'The password token is expired. Reset and try again.' }],
+      data: null,
+    };
+  }
+  state.password = String(variables.newPassword);
+  return { data: { resetPassword: true } };
 }
 
 const CUSTOMER_OPERATIONS = new Set([
