@@ -90,8 +90,15 @@ export interface ProductPageServiceDeps {
   /** Origin used for canonical urls (`PUBLIC_BASE_URL`). */
   readonly publicBaseUrl: string;
   readonly suffix?: string;
-  readonly logger: PageLogger;
+  readonly logger: PageLogger & { warn(context: Record<string, unknown>, message: string): void };
   readonly metrics: MetricsEmitter;
+  /**
+   * Store home page identifier (`storeConfig.cms_home_page`). When set, `/` is
+   * decided from it instead of `route(url: "/")`, which Magento answers slowly.
+   * `null` or a failed read falls back to `route()` (logged), so `/` never
+   * depends on storeConfig alone.
+   */
+  readonly home?: { getHomeIdentifier(): Promise<string | null> };
 }
 
 export interface ProductPageService {
@@ -115,6 +122,14 @@ export function createProductPageService(deps: ProductPageServiceDeps): ProductP
     searchParams,
     isBot,
   }: ProductPageRequest): Promise<ProductPageDecision> {
+    if (pathname === HOME_PATHNAME && deps.home) {
+      const identifier = await deps.home.getHomeIdentifier().catch((error: unknown) => {
+        deps.logger.warn({ err: error }, 'home identifier unavailable');
+        return null;
+      });
+      // Same decision `route(url: "/")` answers for the configured home page.
+      if (identifier !== null) return { kind: 'cms', identifier, relativeUrl: identifier };
+    }
     // Magento resolves the site root itself: `route(url: "/")` is the configured home page.
     const routeUrl = pathname === HOME_PATHNAME ? HOME_PATHNAME : toRouteUrl(pathname);
     if (routeUrl === null) return { kind: 'not_found', case: null };

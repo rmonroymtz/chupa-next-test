@@ -1,7 +1,8 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToReadableStream, renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import home from '../../../fixtures/page-builder/venia-new-home.json';
 import type { ContentNode } from '@/modules/page-builder/domain/content-node';
+import type { ProductCard } from '@/modules/product/domain/product';
 import { parsePageBuilder } from '@/modules/page-builder/parser/parse-page-builder';
 import { renderPageBuilder } from '@/modules/page-builder/ui/render';
 
@@ -33,7 +34,7 @@ describe('venia-new-home (recorded home page)', () => {
     const html = renderToStaticMarkup(
       <>
         {renderPageBuilder(
-          { document: parsePageBuilder(CONTENT), productsFor: () => [] },
+          { document: parsePageBuilder(CONTENT), productsFor: async () => [] },
           { source: 'test', logger },
         )}
       </>,
@@ -43,5 +44,34 @@ describe('venia-new-home (recorded home page)', () => {
     expect(html.match(/aria-roledescription="diapositiva"/g)).toHaveLength(6);
     expect(html.match(/data-active="true"/g)).toHaveLength(1);
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('never renders its products carousel: the admin hides it (display:none), even with matches', async () => {
+    const card: ProductCard = {
+      uid: 'u1',
+      sku: 'B01',
+      name: 'Lámpara',
+      urlKey: 'lampara',
+      relativeUrl: 'lampara.html',
+      image: null,
+      price: null,
+      availability: 'in_stock',
+    };
+    const document = parsePageBuilder(CONTENT);
+    expect(document.nodes[1]?.children[0]?.box.hidden).toBe(true);
+    const stream = await renderToReadableStream(
+      <>
+        {renderPageBuilder(
+          { document, productsFor: async () => [card] },
+          { source: 'test', logger: { error: vi.fn() } },
+        )}
+      </>,
+    );
+    await stream.allReady;
+    const html = await new Response(stream).text();
+
+    expect(html.match(/aria-roledescription="diapositiva"/g)).toHaveLength(6);
+    expect(html).not.toContain('aria-label="Productos"');
+    expect(html).not.toContain('href="/lampara.html"');
   });
 });

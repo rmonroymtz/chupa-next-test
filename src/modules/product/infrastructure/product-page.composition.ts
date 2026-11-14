@@ -35,6 +35,8 @@ function getProductPageService(): ProductPageService {
       products: getMagentoProductRepository(),
       vendors: env.PRODUCT_VENDORS,
       publicBaseUrl: env.PUBLIC_BASE_URL,
+      // Per-request cached; the Page Builder content reuses the same read.
+      home: { getHomeIdentifier: async () => (await getStoreConfig()).cmsHomePage },
       ...defaultObservability('pdp'),
     });
   }

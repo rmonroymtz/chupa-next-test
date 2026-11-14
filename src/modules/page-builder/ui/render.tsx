@@ -1,4 +1,5 @@
 import { getImageProps } from 'next/image';
+import type { ProductCard } from '@/modules/product/domain/product';
 import { preload } from 'react-dom';
 import { Fragment, Suspense, type CSSProperties, type ReactNode } from 'react';
 import type { PageBuilderView } from '@/modules/page-builder/application/page-builder-loader';
@@ -539,12 +540,33 @@ function renderTabs(node: TabsNode, context: RenderContext): ReactNode {
 }
 
 function renderProducts(node: ProductsNode, context: RenderContext): ReactNode {
-  const cards = context.view.productsFor(node);
+  // Box props now: they register media rules in the page `<style>`, emitted before streaming.
+  const box = boxProps(node.box, context);
+  // The cards stream: a slow product query never delays the rest of the page or
+  // its row. Empty fallback, like the node boundary: while loading, with no match
+  // or on a render error, the node leaves no markup (legacy hides it).
+  return (
+    <Suspense fallback={null}>
+      <StreamedProducts node={node} box={box} cards={context.view.productsFor(node)} />
+    </Suspense>
+  );
+}
+
+async function StreamedProducts({
+  node,
+  box,
+  cards: pending,
+}: {
+  readonly node: ProductsNode;
+  readonly box: ReturnType<typeof boxProps>;
+  readonly cards: Promise<readonly ProductCard[]>;
+}) {
+  const cards = await pending;
   // Legacy hides the content type when Magento finds none of its products.
   if (cards.length === 0) return null;
   const list = <ProductCards cards={cards} appearance={node.appearance} />;
   return (
-    <div {...boxProps(node.box, context)}>
+    <div {...box}>
       {node.appearance === 'carousel' ? (
         // Keyboard-scrollable region (scroll snap, no carousel JavaScript).
         <div role="region" aria-label="Productos" tabIndex={0}>

@@ -22,7 +22,9 @@ const PRODUCT = (lookup.kind === 'product' ? lookup.product : null) as MagentoPr
 const BASE = 'https://chupaprecios.com.mx';
 const VENDORS = ['amazon', 'ebay', 'target', 'acme'];
 
-function setup(options: { failing?: string[] } = {}) {
+function setup(
+  options: { failing?: string[]; homeIdentifier?: () => Promise<string | null> } = {},
+) {
   const repository = new FakeMagentoProductRepository(
     { [EXISTING_URL]: PRODUCT },
     new Set(options.failing ?? []),
@@ -41,6 +43,7 @@ function setup(options: { failing?: string[] } = {}) {
     publicBaseUrl: BASE,
     logger: observability.logger,
     metrics: observability.metrics,
+    ...(options.homeIdentifier ? { home: { getHomeIdentifier: options.homeIdentifier } } : {}),
   });
   const resolve = (pathname: string, isBot: boolean, search = '') =>
     service.resolve({ pathname, searchParams: new URLSearchParams(search), isBot });
@@ -699,6 +702,59 @@ describe('product page service', () => {
         relativeUrl: 'venia-new-home',
       });
       expect(repository.calls).toEqual(['/']);
+    });
+
+    it('resolves the site root from the store home page identifier, without route()', async () => {
+      const { resolve, repository } = setup({ homeIdentifier: async () => 'venia-new-home' });
+
+      expect(await resolve('/', false)).toEqual({
+        kind: 'cms',
+        identifier: 'venia-new-home',
+        relativeUrl: 'venia-new-home',
+      });
+      expect(repository.calls).toEqual([]);
+    });
+
+    it('falls back to route() for the site root when the store has no home page identifier', async () => {
+      const { resolve, repository } = setup({ homeIdentifier: async () => null });
+
+      expect(await resolve('/', false)).toMatchObject({
+        kind: 'cms',
+        identifier: 'venia-new-home',
+      });
+      expect(repository.calls).toEqual(['/']);
+    });
+
+    it('falls back to route() for the site root when the home page identifier cannot be read, and logs it', async () => {
+      const { resolve, repository, observability } = setup({
+        homeIdentifier: () => Promise.reject(new Error('storeConfig down')),
+      });
+
+      expect(await resolve('/', false)).toMatchObject({
+        kind: 'cms',
+        identifier: 'venia-new-home',
+      });
+      expect(repository.calls).toEqual(['/']);
+      expect(observability.logsAt('warn')[0]).toMatchObject({ msg: 'home identifier unavailable' });
+    });
+
+    it('still rejects for the site root when route() fails too (5xx, never 404)', async () => {
+      const { resolve } = setup({
+        failing: ['/'],
+        homeIdentifier: () => Promise.reject(new Error('storeConfig down')),
+      });
+
+      await expect(resolve('/', false)).rejects.toBeInstanceOf(MagentoRequestError);
+    });
+
+    it('other urls still resolve through route() when the home identifier source is set', async () => {
+      const { resolve, repository } = setup({ homeIdentifier: async () => 'venia-new-home' });
+
+      expect(await resolve('/about-us', false)).toMatchObject({
+        kind: 'cms',
+        identifier: 'about-us',
+      });
+      expect(repository.calls).toEqual(['about-us']);
     });
 
     it('hands categories to the category page with the uid Magento resolved', async () => {

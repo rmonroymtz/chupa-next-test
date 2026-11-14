@@ -48,11 +48,80 @@ describe('PageBuilderLoader', () => {
       'cms:home',
     );
     const [grid, carousel] = view.document.nodes as ProductsNode[];
+    expect((await view.productsFor(grid!)).map((item) => item.uid)).toEqual(['a-1', 'b-2']);
+    expect((await view.productsFor(carousel!)).map((item) => item.uid)).toEqual(['b-2', 'c-3']);
     expect(products.findByUrlKeys).toHaveBeenCalledTimes(1);
     expect(products.findByUrlKeys).toHaveBeenCalledWith(['a-1', 'missing', 'b-2', 'c-3']);
     expect(storeConfig.get).toHaveBeenCalledTimes(1);
-    expect(view.productsFor(grid!).map((item) => item.uid)).toEqual(['a-1', 'b-2']);
-    expect(view.productsFor(carousel!).map((item) => item.uid)).toEqual(['b-2', 'c-3']);
+  });
+
+  it('resolves the view before the product query finishes, so the page can stream', async () => {
+    let release: (cards: ProductCard[]) => void = () => undefined;
+    const pending = new Promise<ProductCard[]>((resolve) => {
+      release = resolve;
+    });
+    const { loader } = setup({ products: { findByUrlKeys: vi.fn(() => pending) } });
+    // Resolves while the product query is still pending.
+    const view = await loader.load(productsHtml('grid', ['a-1']), 'cms:x');
+    const cards = view.productsFor(view.document.nodes[0] as ProductsNode);
+    release([card('a-1')]);
+    expect((await cards).map((item) => item.uid)).toEqual(['a-1']);
+  });
+
+  it('skips products the admin hides (display:none on the node or a row around it)', async () => {
+    const { loader, products, storeConfig } = setup();
+    const hidden = (html: string) =>
+      html.replace('data-element="main"', 'data-element="main" data-pb-style="H1"');
+    const view = await loader.load(
+      '<style>#html-body [data-pb-style=H1]{display:none}</style>' +
+        hidden(productsHtml('grid', ['a-1'])) +
+        hidden(
+          '<div data-content-type="row" data-element="main">' +
+            productsHtml('grid', ['b-2']) +
+            '</div>',
+        ) +
+        productsHtml('carousel', ['c-3']),
+      'cms:x',
+    );
+    const [first, row, last] = view.document.nodes;
+    expect(first?.box.hidden).toBe(true);
+    expect(row?.box.hidden).toBe(true);
+    expect((await view.productsFor(last as ProductsNode)).map((item) => item.uid)).toEqual(['c-3']);
+    expect(products.findByUrlKeys).toHaveBeenCalledWith(['c-3']);
+    expect(storeConfig.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('still loads products inside an admin-hidden tab item: the renderer draws every tab panel', async () => {
+    const { loader, products } = setup();
+    const view = await loader.load(
+      '<style>#html-body [data-pb-style=H1]{display:none}</style>' +
+        '<div data-content-type="tabs" data-element="main"><ul data-element="navigation"><li>A</li></ul><div data-element="content">' +
+        `<div data-content-type="tab-item" data-tab-name="A" data-element="main" data-pb-style="H1">${productsHtml('grid', ['a-1'])}</div>` +
+        '</div></div>',
+      'cms:x',
+    );
+    const item = view.document.nodes[0]?.children[0];
+    expect(item?.type).toBe('tab-item');
+    expect(item?.box.hidden).toBe(true);
+    expect(
+      (await view.productsFor(item!.children[0] as ProductsNode)).map((card) => card.uid),
+    ).toEqual(['a-1']);
+    expect(products.findByUrlKeys).toHaveBeenCalledWith(['a-1']);
+  });
+
+  it('reads nothing when every products node is hidden', async () => {
+    const { loader, products, storeConfig } = setup();
+    await loader.load(
+      '<style>#html-body [data-pb-style=H1]{display:none}</style>' +
+        productsHtml('grid', ['a-1']).replace(
+          'data-element="main"',
+          'data-element="main" data-pb-style="H1"',
+        ),
+      'cms:x',
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(products.findByUrlKeys).not.toHaveBeenCalled();
+    expect(storeConfig.get).not.toHaveBeenCalled();
   });
 
   it('a product query failure leaves the cards empty and is logged, never thrown', async () => {
@@ -60,7 +129,7 @@ describe('PageBuilderLoader', () => {
       products: { findByUrlKeys: vi.fn(async () => Promise.reject(new Error('down'))) },
     });
     const view = await loader.load(productsHtml('grid', ['a-1']), 'cms:x');
-    expect(view.productsFor(view.document.nodes[0] as ProductsNode)).toEqual([]);
+    expect(await view.productsFor(view.document.nodes[0] as ProductsNode)).toEqual([]);
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ source: 'cms:x' }),
       'page builder products failed',
@@ -69,7 +138,8 @@ describe('PageBuilderLoader', () => {
 
   it('uses the default .html suffix when storeConfig fails', async () => {
     const { loader, products } = setup({ storeConfigFails: true });
-    await loader.load(productsHtml('grid', ['a-1']), 'cms:x');
+    const view = await loader.load(productsHtml('grid', ['a-1']), 'cms:x');
+    await view.productsFor(view.document.nodes[0] as ProductsNode);
     expect(products.findByUrlKeys).toHaveBeenCalledWith(['a-1']);
   });
 
@@ -150,7 +220,7 @@ describe('PageBuilderLoader', () => {
       'cms:x',
     );
     expect(
-      view.productsFor(view.document.nodes[0] as ProductsNode).map((item) => item.uid),
+      (await view.productsFor(view.document.nodes[0] as ProductsNode)).map((item) => item.uid),
     ).toEqual(['b-2', 'a-1']);
   });
 });

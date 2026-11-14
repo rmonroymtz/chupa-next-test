@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToReadableStream, renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import blocks from '../../../fixtures/page-builder/cms-blocks.sliders.json';
 import aviso from '../../../fixtures/page-builder/cms-page.aviso-privacidad.json';
@@ -16,12 +16,31 @@ function render(html: string, products: readonly ProductCard[] = []) {
   const logger = { error: vi.fn() };
   const view: PageBuilderView = {
     document: parsePageBuilder(html),
-    productsFor: () => products,
+    productsFor: async () => products,
   };
   return {
     html: renderToStaticMarkup(<>{renderPageBuilder(view, { source: 'test', logger })}</>),
     logger,
   };
+}
+
+/** Renders with streaming; `pending` products never resolve, so their boundary keeps its fallback. */
+async function renderStreamed(html: string, products: readonly ProductCard[] | 'pending') {
+  const view: PageBuilderView = {
+    document: parsePageBuilder(html),
+    productsFor: () =>
+      products === 'pending'
+        ? new Promise<readonly ProductCard[]>(() => undefined)
+        : Promise.resolve(products),
+  };
+  const controller = new AbortController();
+  const stream = await renderToReadableStream(
+    <>{renderPageBuilder(view, { source: 'test', logger: { error: vi.fn() } })}</>,
+    { signal: controller.signal, onError: () => undefined },
+  );
+  if (products === 'pending') controller.abort();
+  else await stream.allReady;
+  return new Response(stream).text();
 }
 
 describe('renderPageBuilder', () => {
@@ -114,7 +133,7 @@ describe('renderPageBuilder', () => {
     expect(html).toContain('data-pb-style="T1"');
   });
 
-  it('products render cards with the PDP price function', () => {
+  it('products render cards with the PDP price function', async () => {
     const product: ProductCard = {
       uid: 'u1',
       sku: 'B0DISCOUNT',
@@ -129,7 +148,7 @@ describe('renderPageBuilder', () => {
       },
       availability: 'in_stock',
     };
-    const { html } = render(
+    const html = await renderStreamed(
       '<div data-content-type="products" data-appearance="carousel" data-element="main"></div>',
       [product],
     );
@@ -140,10 +159,27 @@ describe('renderPageBuilder', () => {
     expect(html).toContain('role="region" aria-label="Productos" tabindex="0"');
   });
 
-  it('products without any Magento match render nothing', () => {
-    const { html } = render('<div data-content-type="products" data-element="main"></div>');
+  it('products without any Magento match render nothing', async () => {
+    const html = await renderStreamed(
+      '<div data-content-type="products" data-element="main"></div>',
+      [],
+    );
     expect(html).not.toContain('<ul');
     expect(html).not.toContain('<a ');
+    expect(html).not.toContain('role="region"');
+  });
+
+  it('while the products load, the rest of their row renders and the products leave no markup', async () => {
+    const html = await renderStreamed(
+      '<div data-content-type="row" data-element="main">' +
+        '<div data-content-type="text" data-element="main"><p>junto a los productos</p></div>' +
+        '<div data-content-type="products" data-appearance="carousel" data-element="main"><ol><li class="product-item"><div class="product-item-details"><strong class="product-item-name"><a class="product-item-link" href="/a-1.html">x</a></strong></div></li></ol></div>' +
+        '</div>',
+      'pending',
+    );
+    expect(html).toContain('<p>junto a los productos</p>');
+    expect(html).not.toContain('<ul');
+    expect(html).not.toContain('role="region"');
   });
 
   it('a node that fails to render is left out and logged; the rest of the page renders', () => {
@@ -162,7 +198,7 @@ describe('renderPageBuilder', () => {
         {renderPageBuilder(
           {
             document: { isPageBuilder: true, nodes: [broken, healthy], warnings: [] },
-            productsFor: () => [] as ProductCard[],
+            productsFor: async () => [] as ProductCard[],
           },
           { source: 'cms:x', logger },
         )}
