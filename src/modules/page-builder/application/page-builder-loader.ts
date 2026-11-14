@@ -33,8 +33,11 @@ export interface PageBuilderLoaderDeps {
 /** Parsed content plus the data its content types need, ready to render. */
 export interface PageBuilderView {
   readonly document: PageBuilderDocument;
-  /** Cards for a `products` node, in admin order (empty when none or on failure). */
-  productsFor(node: ProductsNode): readonly ProductCard[];
+  /**
+   * Cards for a `products` node, in admin order (empty when none or on failure).
+   * Never rejects; resolves after the view so the products can stream.
+   */
+  productsFor(node: ProductsNode): Promise<readonly ProductCard[]>;
 }
 
 export interface PageBuilderLoader {
@@ -60,29 +63,46 @@ export function createPageBuilderLoader(deps: PageBuilderLoaderDeps): PageBuilde
       }
 
       const productNodes = collectProducts(document.nodes);
-      const cardsByNode = new Map<ProductsNode, readonly ProductCard[]>();
-      if (productNodes.length > 0) {
-        const suffix = (await storeSettings())?.productUrlSuffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
-        const keysByNode = new Map(
-          productNodes.map((node) => [node, productKeys(node, suffix, source, deps.logger)]),
-        );
-        const allKeys = [...new Set([...keysByNode.values()].flat())];
-        const cards =
-          allKeys.length === 0
-            ? []
-            : await deps.products.findByUrlKeys(allKeys).catch((error: unknown) => {
-                deps.logger.error({ source, err: error }, 'page builder products failed');
-                return [] as ProductCard[];
-              });
-        const byKey = new Map(cards.map((item) => [item.urlKey, item]));
-        for (const [node, keys] of keysByNode) {
-          cardsByNode.set(node, uniqueCards(keys.flatMap((key) => byKey.get(key) ?? [])));
-        }
-      }
+      // Started now but not awaited: the page streams while the products load.
+      const cardsByNode =
+        productNodes.length > 0
+          ? loadCards(productNodes, source, deps, storeSettings)
+          : Promise.resolve(new Map<ProductsNode, readonly ProductCard[]>());
 
-      return { document, productsFor: (node) => cardsByNode.get(node) ?? [] };
+      return {
+        document,
+        productsFor: async (node) => (await cardsByNode).get(node) ?? [],
+      };
     },
   };
+}
+
+/** Never rejects: a failure leaves the cards empty and is logged. */
+async function loadCards(
+  productNodes: readonly ProductsNode[],
+  source: string,
+  deps: PageBuilderLoaderDeps,
+  storeSettings: () => Promise<PageBuilderStoreSettings | null>,
+): Promise<Map<ProductsNode, readonly ProductCard[]>> {
+  const suffix = (await storeSettings())?.productUrlSuffix ?? DEFAULT_PRODUCT_URL_SUFFIX;
+  const keysByNode = new Map(
+    productNodes.map((node) => [node, productKeys(node, suffix, source, deps.logger)]),
+  );
+  const allKeys = [...new Set([...keysByNode.values()].flat())];
+  const cards =
+    allKeys.length === 0
+      ? []
+      : await deps.products.findByUrlKeys(allKeys).catch((error: unknown) => {
+          deps.logger.error({ source, err: error }, 'page builder products failed');
+          return [] as ProductCard[];
+        });
+  const byKey = new Map(cards.map((item) => [item.urlKey, item]));
+  return new Map(
+    [...keysByNode].map(([node, keys]) => [
+      node,
+      uniqueCards(keys.flatMap((key) => byKey.get(key) ?? [])),
+    ]),
+  );
 }
 
 const EMPTY_DOCUMENT: PageBuilderDocument = { isPageBuilder: false, nodes: [], warnings: [] };
@@ -145,9 +165,15 @@ function uniqueCards(cards: readonly ProductCard[]): ProductCard[] {
   return cards.filter((card) => !seen.has(card.uid) && Boolean(seen.add(card.uid)));
 }
 
+/**
+ * Products nodes that render, so hidden ones cost no query. Same rule as the
+ * renderer: a hidden node is dropped with its subtree, except a tab item, whose
+ * panel the tabs always draw.
+ */
 function collectProducts(nodes: readonly ContentNode[]): ProductsNode[] {
-  return nodes.flatMap((node) => [
-    ...(node.type === 'products' ? [node] : []),
-    ...collectProducts(node.children),
-  ]);
+  return nodes.flatMap((node) =>
+    node.box.hidden && node.type !== 'tab-item'
+      ? []
+      : [...(node.type === 'products' ? [node] : []), ...collectProducts(node.children)],
+  );
 }

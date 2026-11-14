@@ -76,7 +76,7 @@ describe('PageBuilderLoader: never rejects', () => {
     const view = await loader.load(PRODUCTS, 'cms:x');
     const node = view.document.nodes[0]!;
     expect(node.type).toBe('products');
-    expect(node.type === 'products' && view.productsFor(node)).toEqual([]);
+    expect(node.type === 'products' && (await view.productsFor(node))).toEqual([]);
     expect(products.findByUrlKeys).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ source: 'cms:x' }),

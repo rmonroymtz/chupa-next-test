@@ -36,7 +36,10 @@ const text = (value: string) =>
   `<div data-content-type="text" data-element="main"><p>${value}</p></div>`;
 
 async function renderStream(html: string) {
-  const view: PageBuilderView = { document: parsePageBuilder(html), productsFor: () => [card] };
+  const view: PageBuilderView = {
+    document: parsePageBuilder(html),
+    productsFor: async () => [card],
+  };
   const onError = vi.fn();
   const stream = await renderToReadableStream(
     <>{renderPageBuilder(view, { source: 'test', logger: { error: vi.fn() } })}</>,
@@ -52,6 +55,8 @@ describe('renderPageBuilder: per-node isolation during server rendering', () => 
     expect(html).toContain('<p>antes</p>');
     expect(html).toContain('<p>después</p>');
     expect(html).not.toContain('Lámpara');
+    // The failing products node leaves no markup (no empty list) in the server html.
+    expect(html).not.toContain('<ul');
     expect(onError).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'price exploded' }),
       expect.anything(),
