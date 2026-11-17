@@ -10,7 +10,7 @@ The legacy sign-in and create-account pages offer Google and Facebook buttons (A
 
 How the Next buttons work:
 
-- They come from Magento (`amSocialLoginButtonConfig`) and show only when `amsociallogin_general_enabled` is on and `amsociallogin_general_login_position` lists `popup`, as on the PWA. If Magento cannot answer, the screens show email and password only.
+- They come from Magento (`amSocialLoginButtonConfig`, read at most every 5 minutes; a page waits at most 1.5 s for it) and must be **https** urls (plain http only on a local host). They show only when `amsociallogin_general_enabled` is on and `amsociallogin_general_login_position` lists `popup`, as on the PWA. If Magento cannot answer, the screens show email and password only.
 - A click opens the Amasty login url in a popup (`…/amsociallogin/social/login/?type=google&isAjax=true&generateToken=true`), served by Magento. Magento posts the new customer token back to the page.
 - The page accepts that message only from the popup it opened and from the origin of the button url (the legacy PWA checked neither). The server then checks the token with Magento before it opens the session: the customer cart and the guest cart merge, as the password sign-in.
 - The popup is a Magento page (`/amsociallogin/*` on the store domain, from Magento's button config). It falls under the default rule (12), so it keeps reaching whatever serves it for the PWA today. Do not route it to Next.
