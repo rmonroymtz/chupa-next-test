@@ -18,6 +18,8 @@ import { Button } from '@/shared/ui/button';
 const FAILED = 'No pudimos iniciar sesión. Inténtalo de nuevo.';
 const STORAGE_FAILED =
   'No pudimos guardar tu sesión. Revisa que tu navegador permita almacenamiento.';
+/** How often an open popup is checked for being closed without an answer. */
+const POPUP_WATCH_MS = 500;
 const popupBlocked = (label: string) =>
   `Permite las ventanas emergentes de este sitio para continuar con ${label}.`;
 
@@ -40,15 +42,29 @@ export function SocialButtons({ buttons, redirectTo, createAccountHref }: Social
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const popup = useRef<{ window: Window; url: string; type: string } | null>(null);
+  const watcher = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** Stops listening to the current popup: after its answer, or once it closed without one. */
+  function forgetPopup(): void {
+    if (watcher.current) clearInterval(watcher.current);
+    watcher.current = null;
+    popup.current = null;
+  }
 
   useEffect(() => {
     async function onMessage(event: MessageEvent): Promise<void> {
       const opened = popup.current;
-      if (!opened || !isTrustedPopupMessage(event, opened.window, opened.url)) return;
+      if (!opened || event.source !== opened.window) return;
       const message = parsePopupMessage(event.data);
       if (!message) return;
       // One answer per popup: a second post from the same window is ignored.
-      popup.current = null;
+      forgetPopup();
+      if (!isTrustedPopupMessage(event, opened.window, opened.url)) {
+        // Our popup answered from another origin than its button url (e.g. a
+        // www redirect): the token is not used, but the shopper is told.
+        setError(FAILED);
+        return;
+      }
 
       if (message.kind === 'error') {
         if (message.redirectToCreateAccount && createAccountHref) {
@@ -83,20 +99,31 @@ export function SocialButtons({ buttons, redirectTo, createAccountHref }: Social
 
     const listener = (event: MessageEvent) => void onMessage(event);
     window.addEventListener('message', listener);
-    return () => window.removeEventListener('message', listener);
+    return () => {
+      window.removeEventListener('message', listener);
+      forgetPopup();
+    };
   }, [redirectTo, createAccountHref]);
 
   if (buttons.length === 0) return null;
 
   function openPopup(button: SocialLoginButton): void {
     setError(null);
+    forgetPopup();
     const opened = window.open(popupUrl(button.url), button.type, popupFeatures(window));
     if (!opened) {
-      popup.current = null;
       setError(popupBlocked(button.label));
       return;
     }
     popup.current = { window: opened, url: button.url, type: button.type };
+    // Amasty posts its answer and then closes the popup, so a closed popup is
+    // forgotten one tick later: its answer, already queued, arrives first.
+    let closedSeen = false;
+    watcher.current = setInterval(() => {
+      if (!opened.closed) return;
+      if (closedSeen) forgetPopup();
+      closedSeen = true;
+    }, POPUP_WATCH_MS);
   }
 
   return (

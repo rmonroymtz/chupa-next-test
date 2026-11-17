@@ -5,6 +5,7 @@ import {
   type SocialLoginButton,
   type SocialLoginGateway,
 } from '@/modules/customer/application/ports';
+import { isAllowedSocialLoginUrl } from '@/modules/customer/domain/social-popup';
 import {
   SOCIAL_LOGIN_ACCOUNT_DATA_QUERY,
   SOCIAL_LOGIN_CONFIG_QUERY,
@@ -14,22 +15,12 @@ import type { MagentoClient } from '@/shared/graphql/client';
 
 const asString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
-/** Only http(s) urls: the browser opens this url in a popup. */
-function isHttpUrl(value: string): boolean {
-  try {
-    const { protocol } = new URL(value);
-    return protocol === 'https:' || protocol === 'http:';
-  } catch {
-    return false;
-  }
-}
-
 function toButton(raw: unknown): SocialLoginButton | null {
   if (!raw || typeof raw !== 'object') return null;
   const record = raw as Record<string, unknown>;
   const type = asString(record.type);
   const url = asString(record.url);
-  if (type === '' || !isHttpUrl(url)) return null;
+  if (type === '' || !isAllowedSocialLoginUrl(url)) return null;
   return { type, label: asString(record.label) || type, url };
 }
 

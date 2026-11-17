@@ -85,7 +85,7 @@ describe('createMagentoSocialLoginGateway', () => {
     expect(captured[0]?.body.operationName).toBe('SocialLoginConfig');
   });
 
-  it('splits several positions and drops buttons without an http(s) url or a type', async () => {
+  it('splits several positions and drops buttons without an https url (http only on a local host) or a type', async () => {
     respondWith({
       data: {
         storeConfig: {
@@ -97,6 +97,7 @@ describe('createMagentoSocialLoginGateway', () => {
           { type: 'facebook', label: 'Facebook', url: 'not a url' },
           { type: '', label: 'X', url: 'https://m.test/x' },
           { type: 'twitter', label: 'Twitter', url: 'http://m.test/login?type=twitter' },
+          { type: 'local', label: 'Local', url: 'http://127.0.0.1:4010/login?type=local' },
         ],
       },
     });
@@ -104,7 +105,8 @@ describe('createMagentoSocialLoginGateway', () => {
     await expect(gateway.getConfig()).resolves.toEqual({
       enabled: true,
       positions: ['popup', 'checkout_cart'],
-      buttons: [{ type: 'twitter', label: 'Twitter', url: 'http://m.test/login?type=twitter' }],
+      // Plain http only for a local Magento: on a network it would make the trusted popup origin forgeable.
+      buttons: [{ type: 'local', label: 'Local', url: 'http://127.0.0.1:4010/login?type=local' }],
     });
   });
 

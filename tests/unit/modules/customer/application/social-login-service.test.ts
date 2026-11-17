@@ -22,6 +22,7 @@ function setup(
   overrides: Partial<CustomerGateway> = {},
   socialOverrides: Partial<SocialLoginGateway> = {},
   cartOverrides: Partial<CartGateway> = {},
+  options: { now?: () => number; configTtlMs?: number; configTimeoutMs?: number } = {},
 ) {
   const customerGateway = {
     getCustomer: vi.fn().mockResolvedValue(CUSTOMER),
@@ -46,6 +47,7 @@ function setup(
     socialLoginGateway,
     logger: observability.logger,
     metrics: observability.metrics,
+    ...options,
   });
   return { service, customerGateway, cartGateway, socialLoginGateway, ...observability };
 }
@@ -78,6 +80,55 @@ describe('social login service buttons', () => {
     await expect(unreadable.service.getButtons()).resolves.toEqual([]);
     const throwing = setup({}, { getConfig: vi.fn().mockRejectedValue(new Error('boom')) });
     await expect(throwing.service.getButtons()).resolves.toEqual([]);
+  });
+});
+
+describe('social login service config cache', () => {
+  const ENABLED = { enabled: true, positions: ['popup'], buttons: [GOOGLE] };
+
+  it('reads Magento once per ttl, then again once it expires', async () => {
+    let clock = 0;
+    const getConfig = vi.fn().mockResolvedValue(ENABLED);
+    const { service } = setup({}, { getConfig }, {}, { now: () => clock, configTtlMs: 1000 });
+    await service.getButtons();
+    clock = 999;
+    await expect(service.getButtons()).resolves.toEqual([GOOGLE]);
+    expect(getConfig).toHaveBeenCalledTimes(1);
+    clock = 1001;
+    await service.getButtons();
+    expect(getConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares one Magento read between concurrent renders', async () => {
+    const getConfig = vi.fn().mockResolvedValue(ENABLED);
+    const { service } = setup({}, { getConfig });
+    await Promise.all([service.getButtons(), service.getButtons(), service.getButtons()]);
+    expect(getConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the last good config when a later read fails', async () => {
+    let clock = 0;
+    const getConfig = vi.fn().mockResolvedValueOnce(ENABLED).mockResolvedValue(null);
+    const { service } = setup({}, { getConfig }, {}, { now: () => clock, configTtlMs: 1000 });
+    await service.getButtons();
+    clock = 5000;
+    await expect(service.getButtons()).resolves.toEqual([GOOGLE]);
+    expect(getConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not hold the page for a slow Magento, and the late answer serves the next render', async () => {
+    let finish: (config: typeof ENABLED) => void = () => undefined;
+    const getConfig = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const { service } = setup({}, { getConfig }, {}, { configTimeoutMs: 10 });
+    await expect(service.getButtons()).resolves.toEqual([]);
+    finish(ENABLED);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await expect(service.getButtons()).resolves.toEqual([GOOGLE]);
+    expect(getConfig).toHaveBeenCalledTimes(1);
   });
 });
 

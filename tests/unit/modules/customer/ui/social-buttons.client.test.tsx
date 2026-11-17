@@ -162,6 +162,34 @@ describe('SocialButtons', () => {
     expect(screen.getByRole('alert').textContent).toBe('x');
   });
 
+  it('says the sign-in failed when the popup answers from another origin, without using the token', async () => {
+    render(<SocialButtons buttons={[GOOGLE]} {...props} />);
+    openGooglePopup();
+    await post({ result: 1, token: 'social.jwt' }, { origin: 'https://www.m.test' });
+    expect(screen.getByRole('alert').textContent).toBe(
+      'No pudimos iniciar sesión. Inténtalo de nuevo.',
+    );
+    expect(actions.completeSocialSignInAction).not.toHaveBeenCalled();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  });
+
+  it('forgets a popup closed without an answer, quietly', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<SocialButtons buttons={[GOOGLE]} {...props} />);
+      openGooglePopup();
+      Object.defineProperty(popup, 'closed', { value: true, configurable: true });
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+      await post({ result: 0, messages: ['late'] });
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(actions.completeSocialSignInAction).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('asks to allow pop-ups when the browser blocks the popup', () => {
     open.mockReturnValue(null);
     render(<SocialButtons buttons={[GOOGLE]} {...props} />);

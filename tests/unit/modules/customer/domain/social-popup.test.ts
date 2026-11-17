@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isAllowedSocialLoginUrl,
   isTrustedPopupMessage,
   parsePopupMessage,
   popupFeatures,
@@ -52,7 +53,15 @@ describe('parsePopupMessage', () => {
   });
 
   it('ignores anything else', () => {
-    for (const data of [null, 'text', 42, {}, { result: 1 }, { result: 1, token: '' }, { result: 2 }]) {
+    for (const data of [
+      null,
+      'text',
+      42,
+      {},
+      { result: 1 },
+      { result: 1, token: '' },
+      { result: 2 },
+    ]) {
       expect(parsePopupMessage(data)).toBeNull();
     }
   });
@@ -62,17 +71,41 @@ describe('isTrustedPopupMessage', () => {
   const popup = {} as Window;
 
   it('trusts only the opened popup on the origin of the button url', () => {
-    expect(isTrustedPopupMessage({ source: popup, origin: 'https://m.test' }, popup, URL)).toBe(true);
+    expect(isTrustedPopupMessage({ source: popup, origin: 'https://m.test' }, popup, URL)).toBe(
+      true,
+    );
   });
 
   it('rejects another window, another origin or no popup', () => {
-    expect(isTrustedPopupMessage({ source: {} as Window, origin: 'https://m.test' }, popup, URL)).toBe(
-      false,
-    );
+    expect(
+      isTrustedPopupMessage({ source: {} as Window, origin: 'https://m.test' }, popup, URL),
+    ).toBe(false);
     expect(isTrustedPopupMessage({ source: popup, origin: 'https://evil.test' }, popup, URL)).toBe(
       false,
     );
-    expect(isTrustedPopupMessage({ source: popup, origin: 'https://m.test' }, null, URL)).toBe(false);
-    expect(isTrustedPopupMessage({ source: null, origin: 'https://m.test' }, null, URL)).toBe(false);
+    expect(isTrustedPopupMessage({ source: popup, origin: 'https://m.test' }, null, URL)).toBe(
+      false,
+    );
+    expect(isTrustedPopupMessage({ source: null, origin: 'https://m.test' }, null, URL)).toBe(
+      false,
+    );
+  });
+});
+
+describe('isAllowedSocialLoginUrl', () => {
+  it('allows https, and http only on a local host', () => {
+    expect(isAllowedSocialLoginUrl('https://m.test/login')).toBe(true);
+    expect(isAllowedSocialLoginUrl('http://localhost:3000/login')).toBe(true);
+    expect(isAllowedSocialLoginUrl('http://127.0.0.1:4010/login')).toBe(true);
+    expect(isAllowedSocialLoginUrl('http://m.test/login')).toBe(false);
+    expect(isAllowedSocialLoginUrl('javascript:alert(1)')).toBe(false);
+    expect(isAllowedSocialLoginUrl('not a url')).toBe(false);
+  });
+
+  it('never trusts a popup on a plain http origin outside a local host', () => {
+    const popup = {} as Window;
+    expect(
+      isTrustedPopupMessage({ source: popup, origin: 'http://m.test' }, popup, 'http://m.test/x'),
+    ).toBe(false);
   });
 });

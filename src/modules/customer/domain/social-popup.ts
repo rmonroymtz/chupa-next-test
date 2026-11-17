@@ -5,6 +5,22 @@
  */
 
 const POPUP_WIDTH = 500;
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * Social login urls the page may open and trust: https, or plain http only on
+ * a local host (development and the mock Magento). On a network, an http
+ * origin could be impersonated to post an attacker's token.
+ */
+export function isAllowedSocialLoginUrl(value: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(value);
+    return protocol === 'https:' || (protocol === 'http:' && LOCAL_HOSTS.has(hostname));
+  } catch {
+    return false;
+  }
+}
+
 const POPUP_HEIGHT = 420;
 
 /** Asks Amasty for the ajax answer that posts a new customer token to the opener. */
@@ -72,7 +88,7 @@ export function isTrustedPopupMessage(
   popup: Window | null,
   buttonUrl: string,
 ): boolean {
-  if (!popup || event.source !== popup) return false;
+  if (!popup || event.source !== popup || !isAllowedSocialLoginUrl(buttonUrl)) return false;
   try {
     return event.origin === new URL(buttonUrl).origin;
   } catch {

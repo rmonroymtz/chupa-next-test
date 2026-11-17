@@ -10,6 +10,7 @@ import {
   type CustomerGateway,
   type LinkedSocialAccount,
   type SocialLoginButton,
+  type SocialLoginConfig,
   type SocialLoginGateway,
 } from '@/modules/customer/application/ports';
 import type { MetricsEmitter } from '@/shared/observability/metrics';
@@ -45,7 +46,16 @@ export interface SocialLoginServiceDeps {
   readonly socialLoginGateway: SocialLoginGateway;
   readonly logger: Logger;
   readonly metrics: MetricsEmitter;
+  /** Clock for the config cache; `Date.now` by default. */
+  readonly now?: () => number;
+  /** How long a config read is reused; 5 minutes by default. */
+  readonly configTtlMs?: number;
+  /** How long a page waits for Magento's config before rendering without buttons; 1.5 s by default. */
+  readonly configTimeoutMs?: number;
 }
+
+const DEFAULT_CONFIG_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_CONFIG_TIMEOUT_MS = 1500;
 
 /**
  * Amasty social login use cases. The browser sends the token the popup
@@ -58,20 +68,56 @@ export function createSocialLoginService({
   socialLoginGateway,
   logger,
   metrics,
+  now = Date.now,
+  configTtlMs = DEFAULT_CONFIG_TTL_MS,
+  configTimeoutMs = DEFAULT_CONFIG_TIMEOUT_MS,
 }: SocialLoginServiceDeps): SocialLoginService {
   const kindOf = (caught: unknown) =>
     caught instanceof CustomerGatewayError ? caught.kind : 'failure';
 
+  // The Amasty config is store-wide and changes rarely: one read per ttl for the
+  // whole process, shared by concurrent renders. A failed read keeps the last
+  // good config; a slow one does not hold the sign-in page past `configTimeoutMs`.
+  let cached: { config: SocialLoginConfig; readAt: number } | null = null;
+  let inFlight: Promise<SocialLoginConfig | null> | null = null;
+
+  function refreshConfig(): Promise<SocialLoginConfig | null> {
+    inFlight ??= socialLoginGateway
+      .getConfig()
+      .then((config) => {
+        if (config) cached = { config, readAt: now() };
+        else logger.warn('social login config read failed');
+        return config ?? cached?.config ?? null;
+      })
+      .catch(() => {
+        logger.warn('social login config read failed');
+        return cached?.config ?? null;
+      })
+      .finally(() => {
+        inFlight = null;
+      });
+    return inFlight;
+  }
+
+  async function readConfig(): Promise<SocialLoginConfig | null> {
+    if (cached && now() - cached.readAt < configTtlMs) return cached.config;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), configTimeoutMs);
+    });
+    try {
+      const config = await Promise.race([refreshConfig(), timeout]);
+      return config ?? cached?.config ?? null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   return {
     async getButtons() {
-      try {
-        const config = await socialLoginGateway.getConfig();
-        if (!config?.enabled || !config.positions.includes(SIGN_IN_POSITION)) return [];
-        return config.buttons;
-      } catch {
-        logger.warn('social login config read failed');
-        return [];
-      }
+      const config = await readConfig();
+      if (!config?.enabled || !config.positions.includes(SIGN_IN_POSITION)) return [];
+      return config.buttons;
     },
 
     async completeSignIn({ token, guestCartId }) {
