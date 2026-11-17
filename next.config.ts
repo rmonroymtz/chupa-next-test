@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
   // Behind a proxy, Next accepts an action when the browser Origin host equals
   // X-Forwarded-Host (else Host); these hosts are accepted in addition.
   experimental: {
+    // Lets coding agents run security-only Next.js upgrades.
+    agentUpgrade: 'security',
     serverActions: { allowedOrigins: serverActionsAllowedOrigins },
   },
 };
