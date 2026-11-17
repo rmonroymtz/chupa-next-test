@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { passwordRequirements, validateEmail } from '@/modules/customer/domain/auth-forms';
 import { createAccountAction, signInAction } from '@/modules/customer/ui/customer-actions';
@@ -30,6 +30,8 @@ const MIN_PASSWORD = 8;
 interface CreateAccountFormProps {
   readonly redirectTo: string;
   readonly signInHref: string;
+  /** Social sign-in, between the submit button and the sign-in link, as on the sign-in form. */
+  readonly social?: ReactNode;
 }
 
 type FieldErrors = Partial<Record<'firstName' | 'lastName' | 'email' | 'password', string>>;
@@ -57,7 +59,7 @@ function validate(values: {
   return errors;
 }
 
-export function CreateAccountForm({ redirectTo, signInHref }: CreateAccountFormProps) {
+export function CreateAccountForm({ redirectTo, signInHref, social }: CreateAccountFormProps) {
   const getCreateToken = useRecaptcha('CUSTOMER_CREATE');
   const getSignInToken = useRecaptcha('CUSTOMER_LOGIN');
   const [values, setValues] = useState({ firstName: '', lastName: '', email: '', password: '' });
@@ -207,6 +209,7 @@ export function CreateAccountForm({ redirectTo, signInHref }: CreateAccountFormP
       <Button type="submit" size="lg" loading={submitting}>
         Crear cuenta
       </Button>
+      {social}
       <p className="flex items-center gap-2 text-sm">
         <strong>¿Ya tienes cuenta?</strong>
         <a href={signInHref} className="text-ds-link underline">

@@ -46,6 +46,17 @@ describe('SignInForm', () => {
     forgotPasswordHref: '/forgot-password',
   };
 
+  it('places the social sign-in between the submit button and the create-account link', () => {
+    render(<SignInForm {...props} social={<div>social-slot</div>} />);
+    const submit = screen.getByRole('button', { name: 'Iniciar sesión' });
+    const slot = screen.getByText('social-slot');
+    const createAccount = screen.getByText('Crear cuenta');
+    expect(submit.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      slot.compareDocumentPosition(createAccount) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('requires both fields before reaching the server', async () => {
     render(<SignInForm {...props} />);
     await submit('Iniciar sesión');

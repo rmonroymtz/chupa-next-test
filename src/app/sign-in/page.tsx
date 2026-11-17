@@ -29,11 +29,13 @@ export default async function SignInRoute({ searchParams }: RouteProps) {
         redirectTo={redirectTo}
         createAccountHref={authHref('/create-account', origin)}
         forgotPasswordHref={authHref('/forgot-password', origin)}
-      />
-      <SocialButtons
-        buttons={socialButtons}
-        redirectTo={redirectTo}
-        createAccountHref={authHref('/create-account', origin)}
+        social={
+          <SocialButtons
+            buttons={socialButtons}
+            redirectTo={redirectTo}
+            createAccountHref={authHref('/create-account', origin)}
+          />
+        }
       />
     </AuthPage>
   );

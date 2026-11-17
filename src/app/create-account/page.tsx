@@ -28,8 +28,8 @@ export default async function CreateAccountRoute({ searchParams }: RouteProps) {
         // The PWA sends a new customer to their previous page, else the order history.
         redirectTo={redirectTo}
         signInHref={authHref('/sign-in', origin)}
+        social={<SocialButtons buttons={socialButtons} redirectTo={redirectTo} />}
       />
-      <SocialButtons buttons={socialButtons} redirectTo={redirectTo} />
     </AuthPage>
   );
 }
