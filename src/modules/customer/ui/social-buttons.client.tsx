@@ -77,24 +77,21 @@ export function SocialButtons({ buttons, redirectTo, createAccountHref }: Social
       }
 
       setBusy(opened.type);
+      const fail = (copy: string) => {
+        setError(copy);
+        setBusy(null);
+      };
       try {
         const result = await completeSocialSignInAction({
           token: message.token,
           guestCartId: browserCartStorage.readCartId(),
         });
-        if (result.status !== 'signed_in') {
-          setError(FAILED);
-          return;
-        }
-        if (!startSession(result)) {
-          setError(STORAGE_FAILED);
-          return;
-        }
+        if (result.status !== 'signed_in') return fail(FAILED);
+        if (!startSession(result)) return fail(STORAGE_FAILED);
+        // Stays busy: the tiles must not start a second sign-in while the next page loads.
         window.location.assign(redirectTo);
       } catch {
-        setError(FAILED);
-      } finally {
-        setBusy(null);
+        fail(FAILED);
       }
     }
 

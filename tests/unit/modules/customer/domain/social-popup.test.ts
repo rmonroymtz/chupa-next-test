@@ -53,16 +53,18 @@ describe('parsePopupMessage', () => {
   });
 
   it('ignores anything else', () => {
-    for (const data of [
-      null,
-      'text',
-      42,
-      {},
-      { result: 1 },
-      { result: 1, token: '' },
-      { result: 2 },
-    ]) {
+    for (const data of [null, 'text', 42, {}, { result: 2 }]) {
       expect(parsePopupMessage(data)).toBeNull();
+    }
+  });
+
+  it('reads a success without a token as a failed sign-in, so the shopper is told', () => {
+    for (const data of [{ result: 1 }, { result: 1, token: '' }]) {
+      expect(parsePopupMessage(data)).toEqual({
+        kind: 'error',
+        message: null,
+        redirectToCreateAccount: false,
+      });
     }
   });
 });

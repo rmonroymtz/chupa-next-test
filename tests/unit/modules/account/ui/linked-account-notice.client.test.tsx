@@ -62,6 +62,21 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('linked social accounts notice', () => {
+  it('offers the password change after the time budget when Magento does not answer', async () => {
+    vi.useFakeTimers();
+    try {
+      social.getLinkedSocialAccountsAction.mockReturnValue(new Promise(() => undefined));
+      await renderForm();
+      expect(screen.queryByRole('button', { name: 'Cambiar contraseña' })).toBeNull();
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(screen.getByRole('button', { name: 'Cambiar contraseña' })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('replaces the password change for a customer with linked networks', async () => {
     social.getLinkedSocialAccountsAction.mockResolvedValue({
       status: 'ok',

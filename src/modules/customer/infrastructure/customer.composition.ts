@@ -27,7 +27,10 @@ export function getCustomerService(): CustomerService {
 
 let socialLoginService: SocialLoginService | undefined;
 
-/** Process-wide Amasty social login service. Nothing is cached. */
+/**
+ * Process-wide Amasty social login service. It caches the store-wide Amasty config
+ * (5 min, stale served while refreshing); sign-ins and linked accounts always reach Magento.
+ */
 export function getSocialLoginService(): SocialLoginService {
   socialLoginService ??= createSocialLoginService({
     customerGateway: createMagentoCustomerGateway(getMagentoClient()),

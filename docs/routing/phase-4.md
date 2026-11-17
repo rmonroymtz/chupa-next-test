@@ -54,7 +54,7 @@ First match wins. This is the [phase 3 table](phase-3.md#rules-in-order) with fo
 | 7-11 | Magento paths, products and CMS, `*.html`, `/`, home CMS page         | as phase 3 | as phase 3 | Unchanged.                                                      |
 | 12a  | `/cart` (exact) **new**                                               | Next       | all        | `POST` too: the cart page uses Server Actions.                  |
 | 12b  | `/sign-in` (exact) **new**                                            | Next       | all        | Google and Facebook buttons: see [Social login](#social-login). |
-| 12c  | `/create-account` (exact) **new**                                     | Next       | all        | Same gate.                                                      |
+| 12c  | `/create-account` (exact) **new**                                     | Next       | all        | Google and Facebook buttons: see [Social login](#social-login). |
 | 12d  | `/forgot-password` (exact) **new**                                    | Next       | all        |                                                                 |
 | 12   | everything else                                                       | PWA        | as today   | Checkout, account, PWA assets.                                  |
 
