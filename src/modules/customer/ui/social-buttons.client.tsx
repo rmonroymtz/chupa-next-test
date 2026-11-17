@@ -143,12 +143,21 @@ export function SocialButtons({ buttons, redirectTo, createAccountHref }: Social
             type="button"
             // The tile shows the network name only; the accessible name keeps the legacy wording.
             aria-label={`Continuar con ${button.label}`}
-            aria-busy={busy === button.type}
+            aria-busy={busy === button.type || undefined}
             disabled={busy !== null}
             onClick={() => openPopup(button)}
             className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-ds-border bg-ds-surface py-[11px] text-sm leading-5 font-semibold text-ds-text hover:bg-ds-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <BrandMark type={button.type} />
+            {busy === button.type ? (
+              // The DS Button spinner glyph, in place of the mark while this network signs in.
+              <Icon
+                name="loader"
+                size={18}
+                className="shrink-0 animate-spin motion-reduce:animate-[spin_2s_linear_infinite]"
+              />
+            ) : (
+              <BrandMark type={button.type} />
+            )}
             <span className="truncate">{button.label}</span>
           </button>
         ))}
