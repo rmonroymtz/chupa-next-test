@@ -79,7 +79,7 @@ Numbers refer to the specs and open points in `odd/tasks/phase-5-account.md`.
 - [ ] **Run the account pages against the real Magento** (reads done on 2026-11-11: custom customer fields and address list). Still to check, what only ran against the mock: the three profile mutations and their error texts, the real shape of `amasty_checkout_manage_checkout_fields`, `getSepomexData`, `addressComponents` and `includedRegionCodes` on the real Google API.
 - [ ] **Password change and the token.** Check whether Magento revokes the token on a password change (the next page load would go to sign in).
 - [ ] **Edge change** ([phase 5 routing](routing/phase-5.md)): add the rules, decide the alias hop, exclude the urls from prerender, run its checklist.
-- [ ] **Social login on Next** (phase 4 decision of 2026-11-17): until it is built and `/sign-in` moves to Next, the `from` of the guard is ignored.
+- [ ] **Social login on Next** (branch `feat/social-login`): merge it with phase 4 so `/sign-in` moves to Next and the `from` of the guard is honored.
 - [ ] **Manual checks by a person:** profile edit with a real account, address add, edit and delete, the reset-password email link, the dashboard, the support page.
 - [ ] **Native review** if you want it: run `gentle-ai sync --agent claude-code`, then the review of the branch.
 - [ ] **Delivery:** the branch is not pushed. The phase 4 stack showed that GitHub retargets stacked PRs to the first branch when the others are merged: plan the slices (they are one commit range per task) before opening PRs.
@@ -87,17 +87,17 @@ Numbers refer to the specs and open points in `odd/tasks/phase-5-account.md`.
 
 ## Known limitations and follow-ups
 
-| Item                                | Notes                                                                                                                                                                                            |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| No real 404 for a bad address id    | Under the account layout the status is already 200 when `notFound()` runs; the page shows "No encontramos esta dirección.". The pages are private and `noindex`.                                 |
-| Default address delete              | Blocked in the UI and by Magento only; the service adds no check of its own.                                                                                                                     |
-| Postal code and id bounds           | The server accepts a postal code of any 12 characters and an address id without an upper bound (Magento rejects it). Street lines beyond the configured count are cut when an address is loaded. |
-| Partial profile save                | After a partial failure the shell keeps the old profile; a retry sends the already saved steps again (idempotent).                                                                               |
-| Magento phone formats               | A stored phone is shown with digits only; saving normalizes it.                                                                                                                                  |
-| Chat identity                       | `window.ChupaChat.identify`/`clear` are not called from Next.                                                                                                                                    |
-| Billing section and social accounts | The "DIRECCIONES DE FACTURACIÓN" section of the address book and the "Cuenta vinculada" block of the profile edit are not built.                                                                 |
-| Google API                          | The key is a browser key from Magento's Amasty config: changing it there also changes the PWA checkout.                                                                                          |
-| `.env.example`                      | Still lacks `CART_REFRESH_BACKEND`, `E2E_PHASE4_SMOKE` and `E2E_PHASE5_SMOKE` (the agent cannot edit that file); they are documented in [`docs/environment.md`](environment.md).                 |
+| Item                             | Notes                                                                                                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| No real 404 for a bad address id | Under the account layout the status is already 200 when `notFound()` runs; the page shows "No encontramos esta dirección.". The pages are private and `noindex`.                                 |
+| Default address delete           | Blocked in the UI and by Magento only; the service adds no check of its own.                                                                                                                     |
+| Postal code and id bounds        | The server accepts a postal code of any 12 characters and an address id without an upper bound (Magento rejects it). Street lines beyond the configured count are cut when an address is loaded. |
+| Partial profile save             | After a partial failure the shell keeps the old profile; a retry sends the already saved steps again (idempotent).                                                                               |
+| Magento phone formats            | A stored phone is shown with digits only; saving normalizes it.                                                                                                                                  |
+| Chat identity                    | `window.ChupaChat.identify`/`clear` are not called from Next.                                                                                                                                    |
+| Billing section                  | The "DIRECCIONES DE FACTURACIÓN" section of the address book is not built. The "Cuenta vinculada con" notice of the profile edit is built on branch `feat/social-login`.                         |
+| Google API                       | The key is a browser key from Magento's Amasty config: changing it there also changes the PWA checkout.                                                                                          |
+| `.env.example`                   | Still lacks `CART_REFRESH_BACKEND`, `E2E_PHASE4_SMOKE` and `E2E_PHASE5_SMOKE` (the agent cannot edit that file); they are documented in [`docs/environment.md`](environment.md).                 |
 
 ## Next step
 

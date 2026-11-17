@@ -13,13 +13,14 @@ Objective: port the legacy Amasty social login (Google, Facebook) to the Next `/
 
 ## Tasks
 
-- [ ] T1 (S2, S3) Server side: gateway `getSocialLoginConfig` and `getLinkedSocialAccounts`, service `completeSocialSignIn` sharing the post-token steps of `signIn`, `getSocialLoginConfig`, `getLinkedSocialAccounts`, input schemas, Server Actions. Risk: item 2 (auth). Route: inline.
-- [ ] T2 (S1-S4) `SocialButtons` client island on `/sign-in` and `/create-account`, popup and message domain. Risk: item 2 (accepting a sign-in token from another window). Route: inline.
-- [ ] T3 (S5) Linked accounts notice on the profile edit. Risk: none. Route: inline.
-- [ ] T4 (S6) Mock Magento, local e2e, routing doc and reports. Risk: none. Route: inline.
+- [x] T1 (S2, S3) Server side: `SocialLoginGateway` port and Magento adapter (`getConfig`, `getLinkedAccounts`), `createSocialLoginService` (`getButtons`, `completeSignIn` checks the token with `getCustomer` then reuses `openCustomerSession`, extracted from `signIn`; `getLinkedAccounts`; `SocialSignIn` metric), `socialSignInInputSchema`, `completeSocialSignInAction`, `getLinkedSocialAccountsAction`. Risk: item 2 (auth). Route: inline. RED observed (3 suites failed to load), 135 customer tests green. Commit `236c01e`.
+- [x] T2 (S1-S4) `social-popup` domain (`popupUrl`, `popupFeatures`, `parsePopupMessage`, `isTrustedPopupMessage`), `SocialButtons` island on `/sign-in` and `/create-account` (one answer per popup, blocked-popup message). Risk: item 2 (accepting a sign-in token from another window). Route: inline. RED observed for the domain and the island; 1614 unit. Commit `88201e0`.
+- [x] T3 (S5) `useLinkedSocialAccounts` and `LinkedAccountNotice` in the Seguridad section; "Cambiar contraseña" hidden until the list is known (legacy). Risk: none. Route: inline. RED observed (3 failed); the existing profile tests now wait for the button. 1618 unit. Commit `db2cb30`.
+- [x] T4 (S6) Mock Magento (`SocialLoginConfig`, `SocialLoginAccountData`, `GetCustomerAfterSignIn`, a popup page that posts the mock token), `e2e/local/social-login.spec.ts`, phase 4 routing "Social login" section, phase 4 and 5 reports. Risk: none. Route: inline. Local e2e 30 passed (2 new), integration 102.
 
 ## Log
 
 - L1 (2026-11-17) user: "Se pasan a nextjs con Google y Facebook" (decision on phase 4 O2, recorded in `odd/tasks/phase-4-customer-cart.md` L14).
 - L2 (2026-11-17) legacy read (`chupaprecios-pwa` `src/@amasty/social-login`): buttons from `amSocialLoginButtonConfig`; `window.open(url + '&isAjax=true&generateToken=true', type, popup params)`; `useSignInEvent` listens to `message` on `window` without an origin check and, on `result === 1`, sets the token, creates the customer cart and merges the guest cart. Staging `storeConfig`: enabled, position `popup`, `redirect_type` 2.
 - L3 (2026-11-17) user, on the "Cuenta vinculada con" notice: "Si incluyelo".
+- L4 (2026-11-17) T1-T4 done. The e2e build stopped on a Next.js `SecurityFatalError` (16.4.3 flagged by a security advisory); a direct `next build` passed, and the local e2e ran on that build (`PDP_IT_SKIP_BUILD=1`). Not run: the real Google and Facebook popups against staging. Next step: independent verification (Risk item 2), then the user decides on PRs and the phase 4 edge change.

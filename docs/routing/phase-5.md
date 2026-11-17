@@ -70,7 +70,7 @@ The rules are exact, so `/my-account/order-history` and any other `/my-account/.
 
 ### The sign-in `from`
 
-A guest on an account page is sent to `/sign-in?from=<page>`. The Next sign-in returns the shopper to that page. The PWA sign-in stores the same value in its router state but nothing reads it, so with `/sign-in` still on the PWA (option B of the [phase 4 decision](phase-4.md#decide-before-go-live-social-login)) the shopper lands on the PWA default page after signing in and has to open the account page again.
+A guest on an account page is sent to `/sign-in?from=<page>`. The Next sign-in returns the shopper to that page. The PWA sign-in stores the same value in its router state but nothing reads it, so while `/sign-in` is still on the PWA (until the [phase 4 rules](phase-4.md#social-login) go live) the shopper lands on the PWA default page after signing in and has to open the account page again.
 
 ## CloudFront example
 
@@ -132,7 +132,6 @@ PWA Studio still serves every one of these urls, so rollback is a routing change
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Orders, quotes, saved cards, billing, invoices   | Still PWA pages, linked from the dashboard with full page loads.                                                                                                 |
 | "DIRECCIONES DE FACTURACIÓN" in the address book | The legacy section with the RFC and CFDI data belongs to the billing phase and is not on the Next address book.                                                  |
-| Social accounts on the profile edit              | The legacy "Cuenta vinculada con …" block (Amasty social login) is not built; it depends on the social login decision of phase 4.                                |
 | Chat identity                                    | `window.ChupaChat` is loaded by GTM and the support buttons open it, but Next does not call `identify`/`clear`: the chat starts anonymous until a PWA page runs. |
 
 ## Checklist

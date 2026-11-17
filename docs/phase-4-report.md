@@ -4,18 +4,18 @@ Phase 4 makes the Next.js storefront own **the customer session** (its own sign-
 
 ## At a glance
 
-| Area                                                                         | Status                        |
-| ---------------------------------------------------------------------------- | ----------------------------- |
-| Session storage in the PWA format (token, cart id, checkout data)            | Done (T1)                     |
-| Customer module: gateway, service, Server Actions, reCAPTCHA                 | Done (T2, T3a)                |
-| Sign-in, create-account, forgot-password screens, restyled to the new design | Done (T3b)                    |
-| Header account menu and sign-out                                             | Done (T4)                     |
-| Cart page: list, quantity, remove, empty state                               | Done (T5)                     |
-| Price summary, shipping estimate, free shipping message, checkout link       | Done (T6a)                    |
-| Quote badge, expired-quote banner and modal, price-change notices            | Done (T6b)                    |
-| Edge routing doc, report, env docs, e2e (local flow and remote smoke)        | Done (T7)                     |
-| Social login (Google, Facebook) on the Next screens                          | **Not built** (decision open) |
-| Edge change and real-environment checks                                      | Pending (see below)           |
+| Area                                                                         | Status                                         |
+| ---------------------------------------------------------------------------- | ---------------------------------------------- |
+| Session storage in the PWA format (token, cart id, checkout data)            | Done (T1)                                      |
+| Customer module: gateway, service, Server Actions, reCAPTCHA                 | Done (T2, T3a)                                 |
+| Sign-in, create-account, forgot-password screens, restyled to the new design | Done (T3b)                                     |
+| Header account menu and sign-out                                             | Done (T4)                                      |
+| Cart page: list, quantity, remove, empty state                               | Done (T5)                                      |
+| Price summary, shipping estimate, free shipping message, checkout link       | Done (T6a)                                     |
+| Quote badge, expired-quote banner and modal, price-change notices            | Done (T6b)                                     |
+| Edge routing doc, report, env docs, e2e (local flow and remote smoke)        | Done (T7)                                      |
+| Social login (Google, Facebook) on the Next screens                          | Built (2026-11-17, branch `feat/social-login`) |
+| Edge change and real-environment checks                                      | Pending (see below)                            |
 
 ## What was built
 
@@ -48,18 +48,18 @@ Numbers refer to the specs and open points in `odd/tasks/phase-4-customer-cart.m
 
 ## Differences from the legacy PWA
 
-| Area                 | Legacy PWA                                                                     | Next                                                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Sign-in redirect     | `history.state.from`                                                           | `?from=` query, validated same-site path, never an auth screen.                                                                         |
-| Sign-in screen       | Social login, password requirements block                                      | Email and password only; no password requirements block; no "Recordarme" (the ttl is fixed at 1 h); no B2B banner (target url unknown). |
-| Quantity             | Stepper that removes the item at 0                                             | Never below 1; "Eliminar" is the only removal.                                                                                          |
-| Price column         | Unit price shown twice                                                         | Once.                                                                                                                                   |
-| Item image           | Configurable variant image                                                     | `small_image`, else `thumbnail`.                                                                                                        |
-| Summary              | Gift cards, gift options, per-discount expander, "FREE", "Proceed to Checkout" | None of the first three; "Gratis" and "Proceder al pago".                                                                               |
-| Quotes               | "Descargar cotización" with phone capture and guest prompt; toasts             | Not on the Next cart (stays on PWA pages); the renewal result is an inline status line.                                                 |
-| Quote badge button   | "Actualizar precio" on an expired badge (only where `onRefresh` is passed)     | Not built: the cart does not pass it either; the banner opens the modal.                                                                |
-| Wishlist, edit modal | On each cart row                                                               | Not built. No GTM events from the cart page.                                                                                            |
-| Header account       | Account menu with the legacy items                                             | The same items, read from the session in the PWA storage once Magento answers.                                                          |
+| Area                 | Legacy PWA                                                                     | Next                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Sign-in redirect     | `history.state.from`                                                           | `?from=` query, validated same-site path, never an auth screen.                                                |
+| Sign-in screen       | Password requirements block                                                    | No password requirements block; no "Recordarme" (the ttl is fixed at 1 h); no B2B banner (target url unknown). |
+| Quantity             | Stepper that removes the item at 0                                             | Never below 1; "Eliminar" is the only removal.                                                                 |
+| Price column         | Unit price shown twice                                                         | Once.                                                                                                          |
+| Item image           | Configurable variant image                                                     | `small_image`, else `thumbnail`.                                                                               |
+| Summary              | Gift cards, gift options, per-discount expander, "FREE", "Proceed to Checkout" | None of the first three; "Gratis" and "Proceder al pago".                                                      |
+| Quotes               | "Descargar cotización" with phone capture and guest prompt; toasts             | Not on the Next cart (stays on PWA pages); the renewal result is an inline status line.                        |
+| Quote badge button   | "Actualizar precio" on an expired badge (only where `onRefresh` is passed)     | Not built: the cart does not pass it either; the banner opens the modal.                                       |
+| Wishlist, edit modal | On each cart row                                                               | Not built. No GTM events from the cart page.                                                                   |
+| Header account       | Account menu with the legacy items                                             | The same items, read from the session in the PWA storage once Magento answers.                                 |
 
 ## Verification
 
@@ -89,7 +89,7 @@ Numbers refer to the specs and open points in `odd/tasks/phase-4-customer-cart.m
 
 ## Pending before go-live
 
-- [ ] **Social login on Next** (decided on 2026-11-17, see [phase 4 routing](routing/phase-4.md#decide-before-go-live-social-login)): port the Google and Facebook buttons to `/sign-in` and `/create-account`, then route all four urls. Not built yet.
+- [ ] **Social login against the real Magento** (built on branch `feat/social-login`, see [phase 4 routing](routing/phase-4.md#social-login)): sign in with Google and with Facebook on staging behind the edge; only the mock popup has run.
 - [ ] **Edge change** ([phase 4 routing](routing/phase-4.md)): add the rules, exclude the urls from prerender, run its checklist.
 - [ ] **Staging run of `/cart`**: the quote fields, `refreshExpiredQuoteCartItemPrices`, `chupaprecios_shipping_estimate` and `free_shipping_subtotal` come from the legacy documents and have only run against the mock.
 - [ ] **`CART_REFRESH_BACKEND=true`** in the production task definition (the PWA flag is on there); confirm `cp_price_change` on staging before turning it on there.
@@ -101,7 +101,6 @@ Numbers refer to the specs and open points in `odd/tasks/phase-4-customer-cart.m
 
 | Item                                 | Notes                                                                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Social login                         | Not built; needs a decision on porting the Amasty flow or keeping `/sign-in` on PWA.                                |
 | No cart page GTM events              | The legacy `CART_PAGE_VIEW`, `CART_REMOVE_ITEM` and quote CTA events are not sent from Next.                        |
 | The order total ignores hidden items | As in the PWA, hidden out-of-stock items leave the Subtotal but not Magento's `grand_total`.                        |
 | Quote date format                    | The badge shows the date part of `quote_expiration_date` as Magento sends it (`YYYY-MM-DD`), like the legacy badge. |

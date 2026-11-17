@@ -4,18 +4,16 @@ Phase 4 sends **the cart page (`/cart`) and the three customer screens (`/sign-i
 
 This document is for whoever operates the edge (CloudFront or nginx). The configs are **examples to adapt**, not drop-in files.
 
-## Decide before go-live: social login
+## Social login
 
-The legacy sign-in and create-account pages offer Google and Facebook buttons (Amasty social login). **The Next screens have none**: they only have email and password. Pick one before applying the rules:
+The legacy sign-in and create-account pages offer Google and Facebook buttons (Amasty social login). An earlier version of this guide offered two options: route all four urls without the buttons (A), or keep sign-in and create-account on the PWA (B). **Decision (2026-11-17): the buttons were ported to the Next screens, so all four rules go live together.**
 
-| Option                     | Edge change                                                   | Effect                                                                                                     |
-| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| A. Everything now          | All four rules                                                | Shoppers lose the social buttons on these urls.                                                            |
-| B. Cart and recovery first | Only `/cart` and `/forgot-password` (rules 12a and 12d below) | Sign-in and create-account stay on PWA with social login; the Next sign-in is not reachable from the edge. |
+How the Next buttons work:
 
-Option B is the conservative one. The Next header already links its account action to `/sign-in`, so under B that link lands on PWA (full page load).
-
-**Decision (2026-11-17): neither A nor B as written.** The Google and Facebook buttons are ported to the Next screens first; then all four rules go live together (A, with social login). Until that is built, `/sign-in` and `/create-account` stay on the PWA.
+- They come from Magento (`amSocialLoginButtonConfig`) and show only when `amsociallogin_general_enabled` is on and `amsociallogin_general_login_position` lists `popup`, as on the PWA. If Magento cannot answer, the screens show email and password only.
+- A click opens the Amasty login url in a popup (`…/amsociallogin/social/login/?type=google&isAjax=true&generateToken=true`), served by Magento. Magento posts the new customer token back to the page.
+- The page accepts that message only from the popup it opened and from the origin of the button url (the legacy PWA checked neither). The server then checks the token with Magento before it opens the session: the customer cart and the guest cart merge, as the password sign-in.
+- The popup is a Magento page (`/amsociallogin/*` on the store domain, from Magento's button config). It falls under the default rule (12), so it keeps reaching whatever serves it for the PWA today. Do not route it to Next.
 
 ## Quick path
 
@@ -49,16 +47,16 @@ Every url answers `Cache-Control: no-store`.
 
 First match wins. This is the [phase 3 table](phase-3.md#rules-in-order) with four rows added above rule 12.
 
-| #    | Request                                                               | Origin     | Methods    | Note                                                                       |
-| ---- | --------------------------------------------------------------------- | ---------- | ---------- | -------------------------------------------------------------------------- |
-| 1-3  | `/_next/static/*`, `/_next/image*`, `/images/layout/*`, `/robots.txt` | Next       | as phase 1 | Unchanged.                                                                 |
-| 4    | `/healthz`                                                            | not public |            | Unchanged.                                                                 |
-| 7-11 | Magento paths, products and CMS, `*.html`, `/`, home CMS page         | as phase 3 | as phase 3 | Unchanged.                                                                 |
-| 12a  | `/cart` (exact) **new**                                               | Next       | all        | `POST` too: the cart page uses Server Actions.                             |
-| 12b  | `/sign-in` (exact) **new**                                            | Next       | all        | Gated by the [social login decision](#decide-before-go-live-social-login). |
-| 12c  | `/create-account` (exact) **new**                                     | Next       | all        | Same gate.                                                                 |
-| 12d  | `/forgot-password` (exact) **new**                                    | Next       | all        |                                                                            |
-| 12   | everything else                                                       | PWA        | as today   | Checkout, account, PWA assets.                                             |
+| #    | Request                                                               | Origin     | Methods    | Note                                                            |
+| ---- | --------------------------------------------------------------------- | ---------- | ---------- | --------------------------------------------------------------- |
+| 1-3  | `/_next/static/*`, `/_next/image*`, `/images/layout/*`, `/robots.txt` | Next       | as phase 1 | Unchanged.                                                      |
+| 4    | `/healthz`                                                            | not public |            | Unchanged.                                                      |
+| 7-11 | Magento paths, products and CMS, `*.html`, `/`, home CMS page         | as phase 3 | as phase 3 | Unchanged.                                                      |
+| 12a  | `/cart` (exact) **new**                                               | Next       | all        | `POST` too: the cart page uses Server Actions.                  |
+| 12b  | `/sign-in` (exact) **new**                                            | Next       | all        | Google and Facebook buttons: see [Social login](#social-login). |
+| 12c  | `/create-account` (exact) **new**                                     | Next       | all        | Same gate.                                                      |
+| 12d  | `/forgot-password` (exact) **new**                                    | Next       | all        |                                                                 |
+| 12   | everything else                                                       | PWA        | as today   | Checkout, account, PWA assets.                                  |
 
 Rules 12a-12d are exact matches, so `/cart/anything` and `/sign-in/foo` stay on PWA. Forward every query string untouched (`from`) and the headers of [phase 1](phase-1.md#headers-next-needs); **`X-Forwarded-Host` matters most here**, because every form submit is a Server Action `POST` to the page url and Next rejects it when the `Origin` host differs from the forwarded host.
 
@@ -90,8 +88,8 @@ Check the behavior quota: phase 3 freed two, phase 4 uses four.
 ```nginx
     # Phase 4: exact locations, above the final `location /` (PWA).
     location = /cart              { proxy_buffering off; proxy_pass http://storefront_next; }
-    location = /sign-in           { proxy_buffering off; proxy_pass http://storefront_next; }   # gated: social login
-    location = /create-account    { proxy_buffering off; proxy_pass http://storefront_next; }   # gated: social login
+    location = /sign-in           { proxy_buffering off; proxy_pass http://storefront_next; }
+    location = /create-account    { proxy_buffering off; proxy_pass http://storefront_next; }
     location = /forgot-password   { proxy_buffering off; proxy_pass http://storefront_next; }
 ```
 
@@ -121,7 +119,6 @@ PWA Studio still serves all four urls, so rollback is a routing change only: del
 
 | Item                                | Notes                                                                                                                    |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Social login                        | Not on the Next screens (see the decision above).                                                                        |
 | Checkout, `/my-account/*`           | Stay on PWA. The account menu links there with full page loads.                                                          |
 | "Descargar cotización" on the cart  | The legacy phone capture and guest sign-in prompt are not on the Next cart; the shopper downloads quotes from PWA pages. |
 | Gift cards, coupon and gift options | Not on the Next cart summary.                                                                                            |
@@ -150,6 +147,7 @@ code /cart/x            # PWA (exact rules)
 - [ ] Sign in with a guest cart: the guest items are in the customer cart.
 - [ ] `/sign-in?from=/order-history` returns there after signing in; `?from=https://other.example` does not.
 - [ ] Create account signs in; forgot password sends the email.
+- [ ] "Continuar con Google" and "Continuar con Facebook" show on `/sign-in` and `/create-account`; each opens the Magento popup and, after accepting, the shopper is signed in on Next and on a PWA page, and lands on `from` (or `/my-account`).
 - [ ] A form submit succeeds through the edge (Server Action `POST` with the right `X-Forwarded-Host`).
 - [ ] Production only: with `CART_REFRESH_BACKEND=true`, a cart with a changed price shows the notice and "Entendido".
 - [ ] Prerender no longer receives these urls.
