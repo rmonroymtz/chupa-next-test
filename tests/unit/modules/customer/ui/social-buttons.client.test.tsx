@@ -242,6 +242,44 @@ describe('SocialButtons', () => {
     expect(google.disabled || facebook.disabled).toBe(false);
   });
 
+  it('shows the storage error and stays when the browser cannot keep the session', async () => {
+    actions.completeSocialSignInAction.mockResolvedValue({
+      status: 'signed_in',
+      token: 'social.jwt',
+      cartId: 'customer-cart',
+      customer: null,
+    });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    try {
+      render(<SocialButtons buttons={[GOOGLE]} {...props} />);
+      openGooglePopup();
+      await post({ result: 1, token: 'social.jwt' });
+      expect(screen.getByRole('alert').textContent).toBe(
+        'No pudimos guardar tu sesión. Revisa que tu navegador permita almacenamiento.',
+      );
+      expect(assign).not.toHaveBeenCalled();
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('keeps the tiles disabled after a successful sign-in while the next page loads', async () => {
+    actions.completeSocialSignInAction.mockResolvedValue({
+      status: 'signed_in',
+      token: 'social.jwt',
+      cartId: 'customer-cart',
+      customer: null,
+    });
+    render(<SocialButtons buttons={[GOOGLE, FACEBOOK]} {...props} />);
+    openGooglePopup();
+    await post({ result: 1, token: 'social.jwt' });
+    expect(assign).toHaveBeenCalledWith('/order-history');
+    const tiles = screen.getAllByRole('button') as HTMLButtonElement[];
+    expect(tiles.every((tile) => tile.disabled)).toBe(true);
+  });
+
   it('asks to allow pop-ups when the browser blocks the popup', () => {
     open.mockReturnValue(null);
     render(<SocialButtons buttons={[GOOGLE]} {...props} />);
