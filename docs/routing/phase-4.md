@@ -15,6 +15,8 @@ The legacy sign-in and create-account pages offer Google and Facebook buttons (A
 
 Option B is the conservative one. The Next header already links its account action to `/sign-in`, so under B that link lands on PWA (full page load).
 
+**Decision (2026-11-17): neither A nor B as written.** The Google and Facebook buttons are ported to the Next screens first; then all four rules go live together (A, with social login). Until that is built, `/sign-in` and `/create-account` stay on the PWA.
+
 ## Quick path
 
 1. Make sure the [phase 3 rules](phase-3.md#rules-in-order) are live.

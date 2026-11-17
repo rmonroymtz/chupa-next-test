@@ -31,7 +31,7 @@ Branch: `feat/phase-5-account` (from `main`). Delivery: `ask-on-risk`, stacked P
 
 - O1 RESOLVED (user, L3): replicate the address form in full (Amasty `storeConfig` field list, Google autocomplete, SEPOMEX) using the **new** Google Places API (`AutocompleteSuggestion.fetchAutocompleteSuggestions` + `Place.fetchFields`, session tokens), not the legacy `AutocompleteService` the PWA uses through `react-google-autocomplete` 2.7.3. Check in T4 that the `storeConfig` key has Places API (New) enabled and that `addressComponents` is returned.
 - O2 RESOLVED: `window.ChupaChat` is injected by the GTM container (PWA `@chupaprecios/google-tag-manager` `useChupaChat`), which Next also loads with `GTM_ID`. The buttons call it guarded. Not replicated: the PWA identifies the signed-in user to the widget (`identify`) and clears it on sign-out (`clear`); Next does not, so the chat starts anonymous until a PWA page runs.
-- O3 Social login accounts block on the profile edit page (`amSocialLoginAccountData`, "Cuenta vinculada con …"): depends on the phase 4 social login decision. Not built in T2.
+- O3 Social login accounts block on the profile edit page (`amSocialLoginAccountData`, "Cuenta vinculada con …"): depends on the phase 4 social login decision. Not built in T2. Phase 4 decided on 2026-11-17 to port social login to Next (phase 4 L14), so this block is in scope of that work.
 - O4 `social_profile_photo` and `phone_number` are custom Magento customer fields the legacy queries; confirm they exist on the target Magento before relying on them (T1, T2).
 
 ## Tasks

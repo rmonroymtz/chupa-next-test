@@ -79,7 +79,7 @@ Numbers refer to the specs and open points in `odd/tasks/phase-5-account.md`.
 - [ ] **Run the account pages against the real Magento** (reads done on 2026-11-11: custom customer fields and address list). Still to check, what only ran against the mock: the three profile mutations and their error texts, the real shape of `amasty_checkout_manage_checkout_fields`, `getSepomexData`, `addressComponents` and `includedRegionCodes` on the real Google API.
 - [ ] **Password change and the token.** Check whether Magento revokes the token on a password change (the next page load would go to sign in).
 - [ ] **Edge change** ([phase 5 routing](routing/phase-5.md)): add the rules, decide the alias hop, exclude the urls from prerender, run its checklist.
-- [ ] **Social login decision of phase 4** (open point O2 there): with `/sign-in` on the PWA the `from` of the guard is ignored.
+- [ ] **Social login on Next** (phase 4 decision of 2026-11-17): until it is built and `/sign-in` moves to Next, the `from` of the guard is ignored.
 - [ ] **Manual checks by a person:** profile edit with a real account, address add, edit and delete, the reset-password email link, the dashboard, the support page.
 - [ ] **Native review** if you want it: run `gentle-ai sync --agent claude-code`, then the review of the branch.
 - [ ] **Delivery:** the branch is not pushed. The phase 4 stack showed that GitHub retargets stacked PRs to the first branch when the others are merged: plan the slices (they are one commit range per task) before opening PRs.

@@ -89,7 +89,7 @@ Numbers refer to the specs and open points in `odd/tasks/phase-4-customer-cart.m
 
 ## Pending before go-live
 
-- [ ] **Decide social login** (see [phase 4 routing](routing/phase-4.md#decide-before-go-live-social-login)): option A routes all four urls, option B only `/cart` and `/forgot-password`.
+- [ ] **Social login on Next** (decided on 2026-11-17, see [phase 4 routing](routing/phase-4.md#decide-before-go-live-social-login)): port the Google and Facebook buttons to `/sign-in` and `/create-account`, then route all four urls. Not built yet.
 - [ ] **Edge change** ([phase 4 routing](routing/phase-4.md)): add the rules, exclude the urls from prerender, run its checklist.
 - [ ] **Staging run of `/cart`**: the quote fields, `refreshExpiredQuoteCartItemPrices`, `chupaprecios_shipping_estimate` and `free_shipping_subtotal` come from the legacy documents and have only run against the mock.
 - [ ] **`CART_REFRESH_BACKEND=true`** in the production task definition (the PWA flag is on there); confirm `cp_price_change` on staging before turning it on there.
