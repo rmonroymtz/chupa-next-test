@@ -99,11 +99,11 @@ export function SocialButtons({ buttons, redirectTo, createAccountHref }: Social
 
     const listener = (event: MessageEvent) => void onMessage(event);
     window.addEventListener('message', listener);
-    return () => {
-      window.removeEventListener('message', listener);
-      forgetPopup();
-    };
+    return () => window.removeEventListener('message', listener);
   }, [redirectTo, createAccountHref]);
+
+  // Only unmounting forgets the popup: a new listener for changed props keeps it.
+  useEffect(() => () => forgetPopup(), []);
 
   if (buttons.length === 0) return null;
 

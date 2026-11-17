@@ -116,6 +116,25 @@ describe('social login service config cache', () => {
     expect(getConfig).toHaveBeenCalledTimes(2);
   });
 
+  it('serves an expired config at once and refreshes it in the background', async () => {
+    let clock = 0;
+    const getConfig = vi
+      .fn()
+      .mockResolvedValueOnce(ENABLED)
+      .mockReturnValue(new Promise(() => undefined));
+    const { service } = setup(
+      {},
+      { getConfig },
+      {},
+      { now: () => clock, configTtlMs: 1000, configTimeoutMs: 60_000 },
+    );
+    await service.getButtons();
+    clock = 5000;
+    // A hanging refresh would hold this render for the whole time budget.
+    await expect(service.getButtons()).resolves.toEqual([GOOGLE]);
+    expect(getConfig).toHaveBeenCalledTimes(2);
+  });
+
   it('does not hold the page for a slow Magento, and the late answer serves the next render', async () => {
     let finish: (config: typeof ENABLED) => void = () => undefined;
     const getConfig = vi.fn().mockReturnValue(

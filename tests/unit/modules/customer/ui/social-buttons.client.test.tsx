@@ -190,6 +190,30 @@ describe('SocialButtons', () => {
     }
   });
 
+  it('still takes an answer that arrives right after the popup closed', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<SocialButtons buttons={[GOOGLE]} {...props} />);
+      openGooglePopup();
+      Object.defineProperty(popup, 'closed', { value: true, configurable: true });
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      await post({ result: 0, messages: ['Respuesta tardía'] });
+      expect(screen.getByRole('alert').textContent).toBe('Respuesta tardía');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps listening to an open popup when the page props change', async () => {
+    const view = render(<SocialButtons buttons={[GOOGLE]} {...props} />);
+    openGooglePopup();
+    view.rerender(<SocialButtons buttons={[GOOGLE]} {...props} redirectTo="/quotes" />);
+    await post({ result: 0, messages: ['Después del cambio'] });
+    expect(screen.getByRole('alert').textContent).toBe('Después del cambio');
+  });
+
   it('asks to allow pop-ups when the browser blocks the popup', () => {
     open.mockReturnValue(null);
     render(<SocialButtons buttons={[GOOGLE]} {...props} />);

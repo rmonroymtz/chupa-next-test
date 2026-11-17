@@ -76,8 +76,9 @@ export function createSocialLoginService({
     caught instanceof CustomerGatewayError ? caught.kind : 'failure';
 
   // The Amasty config is store-wide and changes rarely: one read per ttl for the
-  // whole process, shared by concurrent renders. A failed read keeps the last
-  // good config; a slow one does not hold the sign-in page past `configTimeoutMs`.
+  // whole process, shared by concurrent renders. Once a config is known, an
+  // expired one is served while a background read refreshes it, and a failed
+  // read keeps it. Only the first read waits, at most `configTimeoutMs`.
   let cached: { config: SocialLoginConfig; readAt: number } | null = null;
   let inFlight: Promise<SocialLoginConfig | null> | null = null;
 
@@ -100,14 +101,18 @@ export function createSocialLoginService({
   }
 
   async function readConfig(): Promise<SocialLoginConfig | null> {
-    if (cached && now() - cached.readAt < configTtlMs) return cached.config;
+    if (cached) {
+      // Expired: serve it now and refresh in the background, so no render waits on Magento.
+      if (now() - cached.readAt >= configTtlMs) void refreshConfig();
+      return cached.config;
+    }
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<null>((resolve) => {
       timer = setTimeout(() => resolve(null), configTimeoutMs);
     });
     try {
-      const config = await Promise.race([refreshConfig(), timeout]);
-      return config ?? cached?.config ?? null;
+      // No config yet: wait for the first read, at most the time budget.
+      return await Promise.race([refreshConfig(), timeout]);
     } finally {
       clearTimeout(timer);
     }
