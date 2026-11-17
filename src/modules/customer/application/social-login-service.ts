@@ -52,10 +52,13 @@ export interface SocialLoginServiceDeps {
   readonly configTtlMs?: number;
   /** How long a page waits for Magento's config before rendering without buttons; 1.5 s by default. */
   readonly configTimeoutMs?: number;
+  /** After a failed read with no config known, how long pages render without buttons before trying again; 30 s by default. */
+  readonly configRetryMs?: number;
 }
 
 const DEFAULT_CONFIG_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_CONFIG_TIMEOUT_MS = 1500;
+const DEFAULT_CONFIG_RETRY_MS = 30 * 1000;
 
 /**
  * Amasty social login use cases. The browser sends the token the popup
@@ -71,6 +74,7 @@ export function createSocialLoginService({
   now = Date.now,
   configTtlMs = DEFAULT_CONFIG_TTL_MS,
   configTimeoutMs = DEFAULT_CONFIG_TIMEOUT_MS,
+  configRetryMs = DEFAULT_CONFIG_RETRY_MS,
 }: SocialLoginServiceDeps): SocialLoginService {
   const kindOf = (caught: unknown) =>
     caught instanceof CustomerGatewayError ? caught.kind : 'failure';
@@ -78,22 +82,28 @@ export function createSocialLoginService({
   // The Amasty config is store-wide and changes rarely: one read per ttl for the
   // whole process, shared by concurrent renders. Once a config is known, an
   // expired one is served while a background read refreshes it, and a failed
-  // read keeps it. Only the first read waits, at most `configTimeoutMs`.
+  // read keeps it. Only the first read waits, at most `configTimeoutMs`; if it
+  // fails, pages render without buttons at once until `configRetryMs` passes.
   let cached: { config: SocialLoginConfig; readAt: number } | null = null;
+  let failedAt: number | null = null;
   let inFlight: Promise<SocialLoginConfig | null> | null = null;
+
+  function readFailed(): SocialLoginConfig | null {
+    logger.warn('social login config read failed');
+    if (!cached) failedAt = now();
+    return cached?.config ?? null;
+  }
 
   function refreshConfig(): Promise<SocialLoginConfig | null> {
     inFlight ??= socialLoginGateway
       .getConfig()
       .then((config) => {
-        if (config) cached = { config, readAt: now() };
-        else logger.warn('social login config read failed');
-        return config ?? cached?.config ?? null;
+        if (!config) return readFailed();
+        cached = { config, readAt: now() };
+        failedAt = null;
+        return config;
       })
-      .catch(() => {
-        logger.warn('social login config read failed');
-        return cached?.config ?? null;
-      })
+      .catch(readFailed)
       .finally(() => {
         inFlight = null;
       });
@@ -106,6 +116,7 @@ export function createSocialLoginService({
       if (now() - cached.readAt >= configTtlMs) void refreshConfig();
       return cached.config;
     }
+    if (failedAt !== null && now() - failedAt < configRetryMs) return null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<null>((resolve) => {
       timer = setTimeout(() => resolve(null), configTimeoutMs);

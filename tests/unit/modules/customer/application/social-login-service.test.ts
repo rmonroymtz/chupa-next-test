@@ -22,7 +22,12 @@ function setup(
   overrides: Partial<CustomerGateway> = {},
   socialOverrides: Partial<SocialLoginGateway> = {},
   cartOverrides: Partial<CartGateway> = {},
-  options: { now?: () => number; configTtlMs?: number; configTimeoutMs?: number } = {},
+  options: {
+    now?: () => number;
+    configTtlMs?: number;
+    configTimeoutMs?: number;
+    configRetryMs?: number;
+  } = {},
 ) {
   const customerGateway = {
     getCustomer: vi.fn().mockResolvedValue(CUSTOMER),
@@ -112,6 +117,24 @@ describe('social login service config cache', () => {
     const { service } = setup({}, { getConfig }, {}, { now: () => clock, configTtlMs: 1000 });
     await service.getButtons();
     clock = 5000;
+    await expect(service.getButtons()).resolves.toEqual([GOOGLE]);
+    expect(getConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it('after a failed first read, renders without buttons at once until the retry delay passes', async () => {
+    let clock = 0;
+    const getConfig = vi.fn().mockResolvedValueOnce(null).mockResolvedValue(ENABLED);
+    const { service } = setup(
+      {},
+      { getConfig },
+      {},
+      { now: () => clock, configRetryMs: 30_000, configTimeoutMs: 60_000 },
+    );
+    await expect(service.getButtons()).resolves.toEqual([]);
+    clock = 29_999;
+    await expect(service.getButtons()).resolves.toEqual([]);
+    expect(getConfig).toHaveBeenCalledTimes(1);
+    clock = 30_000;
     await expect(service.getButtons()).resolves.toEqual([GOOGLE]);
     expect(getConfig).toHaveBeenCalledTimes(2);
   });

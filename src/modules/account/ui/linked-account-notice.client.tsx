@@ -8,9 +8,13 @@ import { getLinkedSocialAccountsAction } from '@/modules/customer/ui/social-logi
 import { useRecaptcha } from '@/modules/customer/ui/use-recaptcha';
 import { Button } from '@/shared/ui/button';
 
+/** How long the profile edit waits for the linked networks before offering the password change. */
+const LINKED_ACCOUNTS_WAIT_MS = 3000;
+
 /**
  * Networks linked to the customer (Amasty `amSocialLoginAccountData`).
- * `loading` until Magento answers; a failed read counts as none.
+ * `loading` until Magento answers, at most {@link LINKED_ACCOUNTS_WAIT_MS};
+ * a failed or late read counts as none.
  */
 export function useLinkedSocialAccounts(token: string): {
   readonly loading: boolean;
@@ -23,6 +27,10 @@ export function useLinkedSocialAccounts(token: string): {
 
   useEffect(() => {
     let active = true;
+    const giveUp = setTimeout(() => {
+      if (active)
+        setState((current) => (current.loading ? { loading: false, accounts: [] } : current));
+    }, LINKED_ACCOUNTS_WAIT_MS);
     getLinkedSocialAccountsAction({ token })
       .then((result) => {
         if (active) {
@@ -31,9 +39,11 @@ export function useLinkedSocialAccounts(token: string): {
       })
       .catch(() => {
         if (active) setState({ loading: false, accounts: [] });
-      });
+      })
+      .finally(() => clearTimeout(giveUp));
     return () => {
       active = false;
+      clearTimeout(giveUp);
     };
   }, [token]);
 

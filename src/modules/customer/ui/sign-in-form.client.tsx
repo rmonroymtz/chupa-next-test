@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { signInAction } from '@/modules/customer/ui/customer-actions';
 import { FormError } from '@/modules/customer/ui/form-error';
@@ -23,9 +23,16 @@ interface SignInFormProps {
   readonly redirectTo: string;
   readonly createAccountHref: string;
   readonly forgotPasswordHref: string;
+  /** Social sign-in, between the submit button and the create-account link (Figma 1957:436). */
+  readonly social?: ReactNode;
 }
 
-export function SignInForm({ redirectTo, createAccountHref, forgotPasswordHref }: SignInFormProps) {
+export function SignInForm({
+  redirectTo,
+  createAccountHref,
+  forgotPasswordHref,
+  social,
+}: SignInFormProps) {
   const getToken = useRecaptcha('CUSTOMER_LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -117,6 +124,7 @@ export function SignInForm({ redirectTo, createAccountHref, forgotPasswordHref }
         <Icon name="arrow-right" size={18} />
         {submitting ? 'Iniciando sesión' : 'Iniciar sesión'}
       </Button>
+      {social}
       <p className="text-center text-sm text-ds-text-secondary">
         ¿No tienes cuenta?{' '}
         <a href={createAccountHref} className="font-semibold text-ds-link hover:underline">

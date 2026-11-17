@@ -114,7 +114,10 @@ export interface CustomerGateway {
   revokeToken(token: string): Promise<boolean>;
 }
 
-/** An Amasty social login button (`amSocialLoginButtonConfig`): `url` is an http(s) url on the store. */
+/**
+ * An Amasty social login button (`amSocialLoginButtonConfig`). `url` is an https url on
+ * the store (plain http only on a local host, see `isAllowedSocialLoginUrl`).
+ */
 export interface SocialLoginButton {
   readonly type: string;
   readonly label: string;

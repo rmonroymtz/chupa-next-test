@@ -5,6 +5,7 @@
  */
 
 const POPUP_WIDTH = 500;
+const POPUP_HEIGHT = 420;
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /**
@@ -20,8 +21,6 @@ export function isAllowedSocialLoginUrl(value: string): boolean {
     return false;
   }
 }
-
-const POPUP_HEIGHT = 420;
 
 /** Asks Amasty for the ajax answer that posts a new customer token to the opener. */
 export function popupUrl(buttonUrl: string): string {
@@ -63,7 +62,9 @@ export function parsePopupMessage(data: unknown): PopupMessage | null {
   if (!data || typeof data !== 'object') return null;
   const { result, token, messages, redirect_data: redirect } = data as Record<string, unknown>;
   if (result === 1) {
-    return typeof token === 'string' && token !== '' ? { kind: 'signed_in', token } : null;
+    if (typeof token === 'string' && token !== '') return { kind: 'signed_in', token };
+    // A success without a token cannot sign in: told as a failed sign-in, not ignored.
+    return { kind: 'error', message: null, redirectToCreateAccount: false };
   }
   if (result !== 0) return null;
   const first = Array.isArray(messages) ? messages[0] : undefined;

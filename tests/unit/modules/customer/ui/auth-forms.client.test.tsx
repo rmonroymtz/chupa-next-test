@@ -46,6 +46,17 @@ describe('SignInForm', () => {
     forgotPasswordHref: '/forgot-password',
   };
 
+  it('places the social sign-in between the submit button and the create-account link', () => {
+    render(<SignInForm {...props} social={<div>social-slot</div>} />);
+    const submit = screen.getByRole('button', { name: 'Iniciar sesión' });
+    const slot = screen.getByText('social-slot');
+    const createAccount = screen.getByText('Crear cuenta');
+    expect(submit.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      slot.compareDocumentPosition(createAccount) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('requires both fields before reaching the server', async () => {
     render(<SignInForm {...props} />);
     await submit('Iniciar sesión');
@@ -109,6 +120,21 @@ describe('CreateAccountForm', () => {
     type('Correo electrónico *', 'a@b.mx');
     type('Contraseña *', 'Pw1!aaaa');
   }
+
+  it('places the social sign-in between the submit button and the sign-in link', () => {
+    render(
+      <CreateAccountForm
+        redirectTo="/order-history"
+        signInHref="/sign-in"
+        social={<div>social-slot</div>}
+      />,
+    );
+    const submit = screen.getByRole('button', { name: 'Crear cuenta' });
+    const slot = screen.getByText('social-slot');
+    const signIn = screen.getByText('Iniciar sesión');
+    expect(submit.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(slot.compareDocumentPosition(signIn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 
   it('validates names, email and password length', async () => {
     render(<CreateAccountForm redirectTo="/order-history" signInHref="/sign-in" />);
