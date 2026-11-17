@@ -48,7 +48,7 @@ beforeEach(() => {
   popup = frame.contentWindow as Window;
   open.mockReset().mockReturnValue(popup);
   Object.defineProperty(window, 'location', {
-    value: { assign, origin: 'https://shop.test' },
+    value: { assign, origin: 'https://shop.test', href: 'https://shop.test/sign-in' },
     configurable: true,
   });
   Object.defineProperty(window, 'open', { value: open, configurable: true });
@@ -68,7 +68,9 @@ describe('SocialButtons', () => {
 
   it('shows the separator and one button per network', () => {
     render(<SocialButtons buttons={[GOOGLE, FACEBOOK]} {...props} />);
-    expect(screen.getByText('o')).toBeTruthy();
+    expect(screen.getByText('o continúa con')).toBeTruthy();
+    // The tiles show the network name; the accessible name keeps "Continuar con …".
+    expect(screen.getByRole('button', { name: 'Continuar con Google' }).textContent).toBe('Google');
     expect(screen.getByRole('button', { name: 'Continuar con Google' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Continuar con Facebook' })).toBeTruthy();
   });
