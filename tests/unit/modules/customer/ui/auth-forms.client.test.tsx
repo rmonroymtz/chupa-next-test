@@ -121,6 +121,21 @@ describe('CreateAccountForm', () => {
     type('Contraseña *', 'Pw1!aaaa');
   }
 
+  it('places the social sign-in between the submit button and the sign-in link', () => {
+    render(
+      <CreateAccountForm
+        redirectTo="/order-history"
+        signInHref="/sign-in"
+        social={<div>social-slot</div>}
+      />,
+    );
+    const submit = screen.getByRole('button', { name: 'Crear cuenta' });
+    const slot = screen.getByText('social-slot');
+    const signIn = screen.getByText('Iniciar sesión');
+    expect(submit.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(slot.compareDocumentPosition(signIn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('validates names, email and password length', async () => {
     render(<CreateAccountForm redirectTo="/order-history" signInHref="/sign-in" />);
     type('Correo electrónico *', 'nope');

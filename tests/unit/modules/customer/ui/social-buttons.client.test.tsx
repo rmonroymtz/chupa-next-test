@@ -48,6 +48,7 @@ beforeEach(() => {
   popup = frame.contentWindow as Window;
   open.mockReset().mockReturnValue(popup);
   Object.defineProperty(window, 'location', {
+    // `href` too: next/image (the Google mark) reads it to resolve the image url.
     value: { assign, origin: 'https://shop.test', href: 'https://shop.test/sign-in' },
     configurable: true,
   });
@@ -71,7 +72,6 @@ describe('SocialButtons', () => {
     expect(screen.getByText('o continúa con')).toBeTruthy();
     // The tiles show the network name; the accessible name keeps "Continuar con …".
     expect(screen.getByRole('button', { name: 'Continuar con Google' }).textContent).toBe('Google');
-    expect(screen.getByRole('button', { name: 'Continuar con Google' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Continuar con Facebook' })).toBeTruthy();
   });
 
@@ -214,6 +214,32 @@ describe('SocialButtons', () => {
     view.rerender(<SocialButtons buttons={[GOOGLE]} {...props} redirectTo="/quotes" />);
     await post({ result: 0, messages: ['Después del cambio'] });
     expect(screen.getByRole('alert').textContent).toBe('Después del cambio');
+  });
+
+  it('marks the network in progress and disables every tile while the server checks the token', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    actions.completeSocialSignInAction.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    render(<SocialButtons buttons={[GOOGLE, FACEBOOK]} {...props} />);
+    openGooglePopup();
+    await post({ result: 1, token: 'social.jwt' });
+    const google = screen.getByRole('button', {
+      name: 'Continuar con Google',
+    }) as HTMLButtonElement;
+    const facebook = screen.getByRole('button', {
+      name: 'Continuar con Facebook',
+    }) as HTMLButtonElement;
+    expect(google.getAttribute('aria-busy')).toBe('true');
+    expect(facebook.getAttribute('aria-busy')).toBeNull();
+    expect(google.disabled && facebook.disabled).toBe(true);
+    await act(async () => {
+      finish({ status: 'failed' });
+    });
+    expect(google.getAttribute('aria-busy')).toBeNull();
+    expect(google.disabled || facebook.disabled).toBe(false);
   });
 
   it('asks to allow pop-ups when the browser blocks the popup', () => {
