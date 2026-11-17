@@ -10,6 +10,10 @@ import {
 } from '@/modules/account/domain/profile-form';
 import { useAccountProfile } from '@/modules/account/ui/account-profile';
 import { redirectBrowser } from '@/modules/account/ui/browser-redirect';
+import {
+  LinkedAccountNotice,
+  useLinkedSocialAccounts,
+} from '@/modules/account/ui/linked-account-notice.client';
 import { browserCartStorage } from '@/modules/cart/ui/pwa-cart-storage';
 import { authHref } from '@/modules/customer/domain/auth-forms';
 import { updateProfileAction } from '@/modules/customer/ui/customer-actions';
@@ -31,6 +35,7 @@ const EDIT_PATH = '/my-account/edit-account-information';
  */
 export function EditAccountInformationForm() {
   const { profile, token } = useAccountProfile();
+  const linked = useLinkedSocialAccounts(token);
   const getToken = useRecaptcha('CUSTOMER_EDIT');
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
@@ -196,15 +201,20 @@ export function EditAccountInformationForm() {
               </button>
             </div>
           </>
+        ) : linked.accounts.length > 0 ? (
+          <LinkedAccountNotice accounts={linked.accounts} email={profile.email} />
         ) : (
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <span className="text-sm text-ds-text-secondary">Contraseña</span>
               <span className="tracking-widest text-ds-text">••••••••</span>
             </div>
-            <Button type="button" variant="secondary" onClick={() => setChangingPassword(true)}>
-              Cambiar contraseña
-            </Button>
+            {/* Hidden until the linked networks are known, as the legacy page. */}
+            {linked.loading ? null : (
+              <Button type="button" variant="secondary" onClick={() => setChangingPassword(true)}>
+                Cambiar contraseña
+              </Button>
+            )}
           </div>
         )}
       </section>
