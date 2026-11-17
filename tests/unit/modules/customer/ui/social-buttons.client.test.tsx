@@ -75,6 +75,14 @@ describe('SocialButtons', () => {
     expect(screen.getByRole('button', { name: 'Continuar con Facebook' })).toBeTruthy();
   });
 
+  it('shows the Google and Facebook marks from the design', () => {
+    render(<SocialButtons buttons={[GOOGLE, FACEBOOK]} {...props} />);
+    const mark = (name: string) =>
+      screen.getByRole('button', { name }).querySelector('img')?.getAttribute('src') ?? '';
+    expect(mark('Continuar con Google')).toContain('google.svg');
+    expect(mark('Continuar con Facebook')).toContain('facebook.svg');
+  });
+
   it('opens the Amasty popup asking for a new token', () => {
     render(<SocialButtons buttons={[GOOGLE]} {...props} />);
     openGooglePopup();
