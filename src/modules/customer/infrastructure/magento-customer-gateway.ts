@@ -29,7 +29,8 @@ const WRONG_PASSWORD_MESSAGE = "The password doesn't match this account";
 const WEAK_PASSWORD_MESSAGE = 'Minimum of different classes of characters in password';
 const NOT_AUTHORIZED_MESSAGES = ["The current customer isn't authorized", 'not authorized'];
 
-function classify(caught: unknown): CustomerGatewayErrorKind {
+/** Maps a Magento error to the customer error kinds; shared with the social login adapter. */
+export function classify(caught: unknown): CustomerGatewayErrorKind {
   if (!(caught instanceof MagentoRequestError) || caught.kind !== 'graphql') return 'failure';
   if (caught.graphqlMessages.some((message) => message.includes(INVALID_CREDENTIALS_MESSAGE))) {
     return 'invalid_credentials';

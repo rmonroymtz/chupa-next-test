@@ -113,3 +113,31 @@ export interface CustomerGateway {
   /** `revokeCustomerToken`: whether Magento revoked it. */
   revokeToken(token: string): Promise<boolean>;
 }
+
+/** An Amasty social login button (`amSocialLoginButtonConfig`): `url` is an http(s) url on the store. */
+export interface SocialLoginButton {
+  readonly type: string;
+  readonly label: string;
+  readonly url: string;
+}
+
+/** Amasty social login `storeConfig`: `positions` lists where buttons show (`popup` is the sign-in form). */
+export interface SocialLoginConfig {
+  readonly enabled: boolean;
+  readonly positions: readonly string[];
+  readonly buttons: readonly SocialLoginButton[];
+}
+
+/** A social network linked to the customer (`amSocialLoginAccountData`). */
+export interface LinkedSocialAccount {
+  readonly type: string;
+  readonly name: string;
+}
+
+/** Magento Amasty social login reads. */
+export interface SocialLoginGateway {
+  /** Null when Magento cannot answer or lacks the Amasty module: no buttons are shown. */
+  getConfig(): Promise<SocialLoginConfig | null>;
+  /** Rejects with a {@link CustomerGatewayError} (`not_authorized` for a rejected token). */
+  getLinkedAccounts(token: string): Promise<readonly LinkedSocialAccount[]>;
+}

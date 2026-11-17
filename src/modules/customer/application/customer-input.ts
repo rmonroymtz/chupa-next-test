@@ -68,3 +68,9 @@ export const updateProfileInputSchema = z
   .refine((value) => value.phone !== undefined || value.identity || value.password, {
     message: 'Nothing to update',
   });
+
+/** The token the Amasty popup posted to the page, and the guest cart to merge. */
+export const socialSignInInputSchema = z.object({
+  token: signinTokenSchema,
+  guestCartId: cartIdSchema.nullable(),
+});

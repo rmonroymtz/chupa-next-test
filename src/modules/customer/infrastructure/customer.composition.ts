@@ -4,7 +4,12 @@ import {
   createCustomerService,
   type CustomerService,
 } from '@/modules/customer/application/customer-service';
+import {
+  createSocialLoginService,
+  type SocialLoginService,
+} from '@/modules/customer/application/social-login-service';
 import { createMagentoCustomerGateway } from '@/modules/customer/infrastructure/magento-customer-gateway';
+import { createMagentoSocialLoginGateway } from '@/modules/customer/infrastructure/magento-social-login-gateway';
 import { getMagentoClient } from '@/shared/graphql/client';
 import { defaultObservability } from '@/shared/http/observability';
 
@@ -18,4 +23,17 @@ export function getCustomerService(): CustomerService {
     ...defaultObservability('customer'),
   });
   return service;
+}
+
+let socialLoginService: SocialLoginService | undefined;
+
+/** Process-wide Amasty social login service. Nothing is cached. */
+export function getSocialLoginService(): SocialLoginService {
+  socialLoginService ??= createSocialLoginService({
+    customerGateway: createMagentoCustomerGateway(getMagentoClient()),
+    cartGateway: createMagentoCartGateway(getMagentoClient()),
+    socialLoginGateway: createMagentoSocialLoginGateway(getMagentoClient()),
+    ...defaultObservability('customer'),
+  });
+  return socialLoginService;
 }
