@@ -163,13 +163,15 @@ export function SocialButtons({ buttons, redirectTo, createAccountHref }: Social
   );
 }
 
-/** Google mark from the Figma design; Facebook from the icon catalog; other networks show the label only. */
+/** Network marks from the Figma design (`public/images/layout`, served by Next at the edge). */
+const BRAND_MARKS: Readonly<Record<string, string>> = {
+  google: '/images/layout/google.svg',
+  facebook: '/images/layout/facebook.svg',
+};
+
+/** Other networks show the label only. */
 function BrandMark({ type }: { readonly type: string }) {
-  if (type === 'google') {
-    return (
-      <Image src="/images/layout/google.svg" alt="" width={18} height={18} className="shrink-0" />
-    );
-  }
-  if (type === 'facebook') return <Icon name="facebook" size={18} className="shrink-0" />;
-  return null;
+  const src = BRAND_MARKS[type];
+  if (!src) return null;
+  return <Image src={src} alt="" width={18} height={18} className="shrink-0" />;
 }
