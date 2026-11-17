@@ -141,3 +141,28 @@ export const RECAPTCHA_CONFIG_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+/** Amasty social login (legacy `socialLogin.ggl.js`): settings and buttons in one request. */
+export const SOCIAL_LOGIN_CONFIG_QUERY = /* GraphQL */ `
+  query SocialLoginConfig {
+    storeConfig {
+      store_code
+      amsociallogin_general_enabled
+      amsociallogin_general_login_position
+    }
+    amSocialLoginButtonConfig {
+      type
+      label
+      url
+    }
+  }
+`;
+
+export const SOCIAL_LOGIN_ACCOUNT_DATA_QUERY = /* GraphQL */ `
+  query SocialLoginAccountData {
+    amSocialLoginAccountData {
+      type
+      name
+    }
+  }
+`;

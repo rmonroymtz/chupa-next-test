@@ -92,17 +92,22 @@ const routes: Record<string, Record<string, unknown> | 'outage' | undefined> = {
   [HOME]: cmsRoute(HOME),
 };
 
-/** Runs `run` with Magento answering `answer` for `route(url: "/")`, then restores the home route. */
+/**
+ * Runs `run` on the fallback path for `/`: storeConfig without `cms_home_page`,
+ * so `/` is decided by `route(url: "/")`, which answers `answer`. Restores both.
+ */
 async function withRootRoute<T>(
   answer: Record<string, unknown> | 'outage' | undefined,
   run: () => Promise<T>,
 ): Promise<T> {
   const home = routes['/'];
   routes['/'] = answer;
+  backends.setStoreConfig({ ...storeConfig.data.storeConfig, cms_home_page: null });
   try {
     return await run();
   } finally {
     routes['/'] = home;
+    backends.setStoreConfig({ ...storeConfig.data.storeConfig, cms_home_page: HOME });
   }
 }
 
@@ -268,11 +273,13 @@ describe('CMS pages', () => {
     expect(robots(page.html)).toBe('index, follow');
     expect(markup).toContain('Antes del nodo roto</h2>');
     expect(markup).toContain('<p>Después del nodo roto</p>');
-    // The failing top-level node is not in the server HTML: its Suspense
-    // boundary switched to client rendering (`<!--$!-->`), where the node
-    // error boundary drops it.
-    expect(markup).not.toContain('Fila del nodo roto');
-    expect(markup).toContain('<!--$!-->');
+    // Only the failing products node is left out of the server HTML: its cards
+    // stream in their own Suspense boundary, which React then switches to client
+    // rendering (the `$RX` instruction), where the node error boundary drops it.
+    // The rest of its row still renders.
+    expect(markup).toContain('Fila del nodo roto</h3>');
+    expect(markup).not.toContain('amazon-B0BROKEN01-broken-product');
+    expect(page.html).toContain('$RX(');
     expect(backends.callsTo('magento', 'ProductsByUrlKeys')).toHaveLength(1);
   });
 
@@ -314,7 +321,7 @@ describe('CMS pages', () => {
 });
 
 describe('home', () => {
-  it('/ is resolved by Magento: home CMS page, canonical /, site JSON-LD once', async () => {
+  it('/ is the storeConfig home CMS page, without a route lookup: canonical /, site JSON-LD once', async () => {
     const page = await get('/');
 
     expect(page.status).toBe(200);
@@ -331,6 +338,16 @@ describe('home', () => {
     expect(markup).toContain('aria-roledescription="carrusel"');
     expect(markup.match(/aria-roledescription="diapositiva"/g)).toHaveLength(6);
     expect(jsonLdTypes(page.html).sort()).toEqual(['Organization', 'WebSite']);
+    // `cms_home_page` decides `/`; Magento's slow `route(url: "/")` is not asked.
+    expect(backends.callsTo('magento', 'ProductByRoute')).toHaveLength(0);
+    expect(backends.callsTo('magento', 'CmsPage')).toHaveLength(1);
+  });
+
+  it('without cms_home_page, / falls back to Magento resolving the root', async () => {
+    const page = await withRootRoute(cmsRoute(HOME), () => get('/'));
+
+    expect(page.status).toBe(200);
+    expect(canonical(page.html)).toBe(PUBLIC_BASE_URL);
     expect(
       backends.callsTo('magento', 'ProductByRoute').map((call) => call.body.variables),
     ).toEqual([{ url: '/' }]);

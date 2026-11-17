@@ -122,6 +122,41 @@ export interface CustomerServiceDeps {
 }
 
 /**
+ * The steps after Magento issued a token (peregrine `useSignIn`): a new
+ * customer cart, then the guest cart merged into it. Neither failure ends the
+ * sign-in: the token is valid. `degraded` reports that one of them failed
+ * (guest items may be lost). Shared by the password and the social sign-in.
+ */
+export async function openCustomerSession(
+  {
+    customerGateway,
+    cartGateway,
+    logger,
+  }: Pick<CustomerServiceDeps, 'customerGateway' | 'cartGateway' | 'logger'>,
+  token: string,
+  guestCartId: string | null,
+): Promise<{ readonly cartId: string | null; readonly degraded: boolean }> {
+  let degraded = false;
+  let cartId: string | null = null;
+  try {
+    cartId = await cartGateway.createEmptyCart({ signinToken: token });
+  } catch {
+    degraded = true;
+    logger.warn('customer cart creation failed after sign-in');
+  }
+
+  if (cartId && guestCartId) {
+    try {
+      await customerGateway.mergeCarts(guestCartId, cartId, token);
+    } catch {
+      degraded = true;
+      logger.warn('guest cart merge failed after sign-in');
+    }
+  }
+  return { cartId, degraded };
+}
+
+/**
  * Customer use cases behind the Server Actions. Emails, passwords, tokens and
  * cart ids are never logged. Sign-in follows peregrine `useSignIn`: token,
  * a new customer cart, merge of the guest cart. Unlike peregrine, a failed
@@ -152,23 +187,11 @@ export function createCustomerService({
       return { status: kind === 'invalid_credentials' ? 'invalid_credentials' : 'failed' };
     }
 
-    let degraded = false;
-    let cartId: string | null = null;
-    try {
-      cartId = await cartGateway.createEmptyCart({ signinToken: token });
-    } catch {
-      degraded = true;
-      logger.warn('customer cart creation failed after sign-in');
-    }
-
-    if (cartId && guestCartId) {
-      try {
-        await customerGateway.mergeCarts(guestCartId, cartId, token);
-      } catch {
-        degraded = true;
-        logger.warn('guest cart merge failed after sign-in');
-      }
-    }
+    const { cartId, degraded } = await openCustomerSession(
+      { customerGateway, cartGateway, logger },
+      token,
+      guestCartId,
+    );
 
     let customer: Customer | null = null;
     try {

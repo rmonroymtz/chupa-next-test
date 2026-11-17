@@ -128,6 +128,10 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
   let customerState = initialCustomerState();
 
   const magento = createServer((req, res) => {
+    if (req.method === 'GET' && req.url?.startsWith(MOCK_SOCIAL_LOGIN_PATH)) {
+      answerSocialLoginPopup(res);
+      return;
+    }
     void handle(req, res, nextSeq, async (body) => {
       const operation = String(body.operationName ?? '');
       const call = record('magento', operation, body, res, req.headers.authorization);
@@ -236,6 +240,50 @@ export async function startMockBackends(config: MockBackendsConfig): Promise<Moc
               },
             },
           },
+        };
+      } else if (operation === 'SocialLoginConfig') {
+        // Amasty social login on for the sign-in forms; the button opens this mock's popup page.
+        const login = `http://${req.headers.host ?? '127.0.0.1'}${MOCK_SOCIAL_LOGIN_PATH}`;
+        response = {
+          status: 200,
+          body: {
+            data: {
+              storeConfig: {
+                store_code: 'default',
+                amsociallogin_general_enabled: true,
+                amsociallogin_general_login_position: 'popup',
+              },
+              amSocialLoginButtonConfig: [
+                { type: 'google', label: 'Google', url: `${login}?type=google` },
+                { type: 'facebook', label: 'Facebook', url: `${login}?type=facebook` },
+              ],
+            },
+          },
+        };
+      } else if (operation === 'GetCustomerAfterSignIn') {
+        response = {
+          status: 200,
+          body:
+            req.headers.authorization === `Bearer ${MOCK_CUSTOMER_TOKEN}`
+              ? {
+                  data: {
+                    customer: {
+                      email: customerState.customer.email,
+                      firstname: customerState.customer.firstname,
+                      lastname: customerState.customer.lastname,
+                      is_subscribed: false,
+                    },
+                  },
+                }
+              : NOT_AUTHORIZED,
+        };
+      } else if (operation === 'SocialLoginAccountData') {
+        response = {
+          status: 200,
+          body:
+            req.headers.authorization === `Bearer ${MOCK_CUSTOMER_TOKEN}`
+              ? { data: { amSocialLoginAccountData: [] } }
+              : NOT_AUTHORIZED,
         };
       } else if (operation === 'resetPassword') {
         response = { status: 200, body: answerResetPassword(variables, customerState) };
@@ -542,6 +590,20 @@ function answerCustomer(
     return { data: { changeCustomerPassword: { email: state.customer.email } } };
   }
   return { data: { customer: state.customer } };
+}
+
+export const MOCK_SOCIAL_LOGIN_PATH = '/amsociallogin/social/login/';
+
+/**
+ * The Amasty login popup after the shopper accepted the network: it posts the
+ * mock customer token to the opener, from this mock's origin, and closes.
+ */
+function answerSocialLoginPopup(res: ServerResponse): void {
+  const message = JSON.stringify({ result: 1, token: MOCK_CUSTOMER_TOKEN, messages: [] });
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(
+    `<!doctype html><title>Social login</title><script>window.opener.postMessage(${message}, '*');window.close();</script>`,
+  );
 }
 
 /** Reset-password link token the mock Magento accepts; any other token is expired. */

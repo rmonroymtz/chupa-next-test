@@ -8,6 +8,8 @@ import type { CustomerProfile } from '@/modules/customer/application/ports';
 
 const actions = vi.hoisted(() => ({ updateProfileAction: vi.fn() }));
 vi.mock('@/modules/customer/ui/customer-actions', () => actions);
+const social = vi.hoisted(() => ({ getLinkedSocialAccountsAction: vi.fn() }));
+vi.mock('@/modules/customer/ui/social-login-actions', () => social);
 
 const recaptcha = vi.hoisted(() => ({ form: '', token: 'rc-token' }));
 vi.mock('@/modules/customer/ui/use-recaptcha', () => ({
@@ -45,6 +47,9 @@ const save = () => fireEvent.click(screen.getByRole('button', { name: 'Guardar c
 
 beforeEach(() => {
   actions.updateProfileAction.mockReset();
+  social.getLinkedSocialAccountsAction
+    .mockReset()
+    .mockResolvedValue({ status: 'ok', accounts: [] });
   redirect.mockReset();
   window.localStorage.clear();
 });
@@ -116,7 +121,7 @@ describe('EditAccountInformationForm', () => {
     actions.updateProfileAction.mockResolvedValue({ status: 'saved' });
     renderForm();
     expect(screen.getByText('••••••••')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
     type('Correo electrónico', 'nueva@example.mx');
     type('Contraseña actual', 'Current1!');
     save();
@@ -138,7 +143,7 @@ describe('EditAccountInformationForm', () => {
     actions.updateProfileAction.mockResolvedValue({ status: 'saved' });
     renderForm();
     expect(recaptcha.form).toBe('CUSTOMER_EDIT');
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
     type('Contraseña actual', 'Current1!');
     type('Nueva contraseña', 'Brand-new2!');
     save();
@@ -153,7 +158,7 @@ describe('EditAccountInformationForm', () => {
 
   it('shows the password rules before sending', async () => {
     renderForm();
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
     type('Contraseña actual', 'Current1!');
     type('Nueva contraseña', 'abc');
     save();
@@ -169,9 +174,9 @@ describe('EditAccountInformationForm', () => {
     expect(actions.updateProfileAction).not.toHaveBeenCalled();
   });
 
-  it('toggles the password visibility and cancels the password change', () => {
+  it('toggles the password visibility and cancels the password change', async () => {
     renderForm();
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
     expect(field('Contraseña actual').type).toBe('password');
     fireEvent.click(screen.getByRole('button', { name: 'Ver contraseña' }));
     expect(field('Contraseña actual').type).toBe('text');
@@ -182,7 +187,7 @@ describe('EditAccountInformationForm', () => {
     type('Contraseña actual', 'something');
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar cambio de contraseña' }));
     expect(screen.getByText('••••••••')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
     expect(field('Contraseña actual').value).toBe('');
   });
 
