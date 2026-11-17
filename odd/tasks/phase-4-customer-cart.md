@@ -26,7 +26,7 @@ Branch: `feat/phase-4-customer-cart` (from `main`). Delivery: `ask-on-risk`. Run
 ## Open points (resolve before the task that needs them)
 
 - O1 RESOLVED: reCAPTCHA is driven by Magento `recaptchaV3Config` (`website_key`, `badge_position`, `language_code`, `forms`: `CUSTOMER_LOGIN`, `CUSTOMER_CREATE`, `CUSTOMER_FORGOT_PASSWORD`); token goes in the `X-ReCaptcha` header, one token per Magento call. No env var needed; when the config is null or the form is not listed, no token is sent.
-- O2 Amasty social login writes the token by its own route: DECIDED (L14, 2026-11-17): port the Google and Facebook buttons to the Next screens, then route all four urls (option C). Build pending. The Next `/sign-in` has no social buttons; decide before the edge change (T7) whether to port them or keep `/sign-in` on the PWA until then.
+- O2 Amasty social login writes the token by its own route: DECIDED (L14, 2026-11-17): port the Google and Facebook buttons to the Next screens, then route all four urls (option C). Built on branch `feat/social-login` (see `odd/tasks/social-login.md`).
 - O3 RESOLVED: `requestPasswordResetEmail(email)` (venia-ui `ForgotPassword/forgotPassword.gql.js`).
 - O4 RESOLVED: runtime env `CART_REFRESH_BACKEND` (`true`/`false`, default `false` like the legacy flag); with it off the cart query never asks for `cp_price_change`, so the price-change and normal out-of-stock notices stay off.
 - O5 Expired or rejected token (Magento 401 before the 1 h ttl): needs a not-authorized path in the gateway (T2).

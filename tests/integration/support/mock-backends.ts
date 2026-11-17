@@ -592,7 +592,6 @@ function answerCustomer(
   return { data: { customer: state.customer } };
 }
 
-/** Reset-password link token the mock Magento accepts; any other token is expired. */
 export const MOCK_SOCIAL_LOGIN_PATH = '/amsociallogin/social/login/';
 
 /**
@@ -607,6 +606,7 @@ function answerSocialLoginPopup(res: ServerResponse): void {
   );
 }
 
+/** Reset-password link token the mock Magento accepts; any other token is expired. */
 export const MOCK_RESET_TOKEN = 'mockresettoken0123456789';
 
 /** `resetPassword` is a guest operation: it needs the emailed link token, not a sign-in token. */
