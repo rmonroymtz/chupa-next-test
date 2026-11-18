@@ -155,3 +155,78 @@
     line-height: var(--text-body-sm--line-height);
   }
 }
+
+/*
+ * From 1160 (the header `desktop:` switch), Figma "Header" 3460:4925: the store
+ * pills become tabs sitting on the search input. The chosen tab shares the
+ * input's orange border and covers the input's top border under it, so tab and
+ * input read as one shape; the submit moves to an orange square on the right.
+ */
+@media (min-width: 72.5rem) {
+  .stores {
+    margin-inline: 0;
+    gap: 2px;
+    padding: 0;
+    overflow: visible;
+    border-radius: 0;
+    background-color: transparent;
+  }
+
+  .store {
+    z-index: 1;
+    height: 37px;
+    min-width: 77px;
+    margin-bottom: -1px;
+    padding: 0 14px;
+    border-radius: 5px 5px 0 0;
+    background-color: transparent;
+  }
+
+  .store:hover {
+    border-color: transparent;
+    background-color: var(--color-ds-surface-subtle);
+  }
+
+  .store:has(input:checked) {
+    border-color: var(--color-ds-search-accent);
+    border-bottom-color: var(--color-ds-surface);
+    background-color: var(--color-ds-surface);
+    box-shadow: none;
+  }
+
+  .store:has(input:focus-visible) {
+    outline-offset: -4px;
+  }
+
+  .field {
+    height: 41px;
+    gap: 8px;
+    padding: 2px 2px 2px 10px;
+    border-color: var(--color-ds-search-accent);
+    border-radius: 0 5px 5px 5px;
+    background-color: var(--color-ds-surface);
+  }
+
+  /* The border is already the accent: focus adds a ring of the same color. */
+  .field:focus-within {
+    border-color: var(--color-ds-search-accent);
+    box-shadow: 0 0 0 1px var(--color-ds-search-accent);
+  }
+
+  .submit {
+    order: 2;
+    width: 42px;
+    height: 35px;
+    border-radius: 3px;
+    background-color: var(--color-ds-search-accent);
+    color: var(--color-ds-surface);
+  }
+
+  .submit:focus-visible {
+    outline-offset: 2px;
+  }
+
+  .input {
+    order: 1;
+  }
+}

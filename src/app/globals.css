@@ -66,6 +66,9 @@
   --color-ds-amber: #fdaa40;
   --color-ds-orange: #f96304;
   --color-ds-teal: #0c7bb2;
+  /* Header search accent of the 2026 redesign (Figma "Header" 3460:4925): the
+     search border, the chosen store tab and the search button, desktop only. */
+  --color-ds-search-accent: #ffa70f;
 
   /* ── Semantic roles ───────────────────────────────────────────────────── */
 

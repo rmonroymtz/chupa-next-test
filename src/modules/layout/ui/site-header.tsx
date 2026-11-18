@@ -9,59 +9,68 @@ import { CurrentStoreSelector } from './store-selector.client';
 interface SiteHeaderProps {
   /** Menu button + navigation drawer (left of the logo, below 1160). */
   readonly mobileNavigation: ReactNode;
-  /** "Categorías" dropdown (right of the logo, from 1160). */
+  /** Category bar under the main row (from 1160), with the "Categorías" dropdown first. */
   readonly desktopNavigation: ReactNode;
 }
 
+/*
+ * One grid, two layouts, so nothing renders twice (one search form, one store
+ * selector joined to it by id):
+ * - below 1160 (DS header, FIGMA-MAKE-HEADER-AUDIT §4-5): menu button, centered
+ *   logo and the actions on the first row, the store pills on the second, the
+ *   search pill on the third;
+ * - from 1160 (Figma "Header" 3460:4925): the logo, the search block and the
+ *   actions on one row, the store tabs sitting on top of the search input.
+ */
+const GRID_CLASS = [
+  'grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3',
+  "[grid-template-areas:'nav_logo_actions'_'stores_stores_stores'_'search_search_search']",
+  'desktop:grid-cols-[auto_minmax(0,790px)_auto] desktop:justify-between desktop:gap-x-10 desktop:gap-y-0 desktop:py-6',
+  "desktop:[grid-template-areas:'._stores_.'_'logo_search_actions']",
+].join(' ');
+
 /**
- * DS header (FIGMA-MAKE-HEADER-AUDIT §4-5, colors and type mapped to the DS
- * tokens). Row 1: menu button (below 1160), logo, "Categorías" (from 1160),
- * store pills and the "Mi cuenta" / cart actions; below 1160 the pills wrap to
- * their own line under the logo row. Row 2: the full-width search pill. One
- * search form, never duplicated; the pills join it through its id. No
- * horizontal category bar: like the PWA, categories open from "Categorías".
- *
- * Links go to pages PWA Studio still serves: plain anchors (see
+ * Site header. Links go to pages PWA Studio still serves: plain anchors (see
  * `legacy-routes.ts`).
  *
  * The logo is eager (above the fold) but not `priority`/`preload`: on product
  * and CMS pages the LCP element is the product image or the hero banner, and a
  * high-priority logo would compete with it. Width and height attributes keep
- * its box reserved before it loads. It is sized by width (102/125/136): the DS
- * wordmark is a wide lockup, so the audit's 24px height would make it ~2x wider.
+ * its box reserved before it loads. It is sized by width (102/125/136, 177 from
+ * 1160 as in the Figma header): the DS wordmark is a wide lockup.
  */
 export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-ds-border bg-ds-surface text-ds-text">
-      <div className="header-padded flex flex-col gap-3 py-3 desktop:gap-4 desktop:py-5">
-        <div className="flex flex-wrap items-center gap-3 desktop:flex-nowrap desktop:gap-5">
-          {mobileNavigation}
-          <a
-            href={LEGACY_ROUTES.home}
-            className="flex min-w-0 flex-1 justify-center rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:flex-none desktop:justify-start"
-          >
-            <Image
-              src="/images/layout/logo.svg"
-              alt="Chupaprecios"
-              width={394}
-              height={37}
-              loading="eager"
-              className="h-auto w-[102px] md:w-[125px] desktop:w-[136px]"
-            />
-          </a>
-          {desktopNavigation}
-          <div className="order-last min-w-0 basis-full desktop:order-none desktop:ml-auto desktop:basis-auto">
-            <CurrentStoreSelector />
-          </div>
-          {/* PWA `.actions`: 20px between the actions. Below 1160 the 40px boxes around the
-              20px icons already put 20px between the icons. */}
-          <div className="flex items-center desktop:ml-auto desktop:gap-5">
-            <AccountAction signInHref={LEGACY_ROUTES.signIn} />
-            <CartTriggerSlot />
-          </div>
+      <div className={`header-padded ${GRID_CLASS}`}>
+        <div className="[grid-area:nav] desktop:hidden">{mobileNavigation}</div>
+        <a
+          href={LEGACY_ROUTES.home}
+          className="flex min-w-0 justify-center justify-self-center rounded-xs [grid-area:logo] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-focus desktop:justify-self-start"
+        >
+          <Image
+            src="/images/layout/logo.svg"
+            alt="Chupaprecios"
+            width={394}
+            height={37}
+            loading="eager"
+            className="h-auto w-[102px] md:w-[125px] desktop:w-[177px]"
+          />
+        </a>
+        <div className="min-w-0 [grid-area:stores] desktop:self-end">
+          <CurrentStoreSelector />
         </div>
-        <SearchForm />
+        <div className="min-w-0 [grid-area:search]">
+          <SearchForm />
+        </div>
+        {/* PWA `.actions`: 20px between the actions. Below 1160 the 40px boxes around the
+            20px icons already put 20px between the icons. */}
+        <div className="flex items-center [grid-area:actions] desktop:gap-5">
+          <AccountAction signInHref={LEGACY_ROUTES.signIn} />
+          <CartTriggerSlot />
+        </div>
       </div>
+      {desktopNavigation}
     </header>
   );
 }

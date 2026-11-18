@@ -1,19 +1,13 @@
 import 'server-only';
 import { Suspense } from 'react';
 import { getCategoryMenu } from '@/modules/layout/infrastructure/category-menu.composition';
-import { CategoriesDropdownPlaceholder } from './categories-dropdown';
-import { CategoriesDropdown } from './categories-dropdown.client';
+import { CategoryBar, CategoryBarPlaceholder } from './category-bar';
 import { NavDrawerPlaceholder } from './nav-drawer';
 import { NavDrawer } from './nav-drawer.client';
 import { SiteHeader } from './site-header';
 
-async function CategoriesDropdownContainer() {
-  const items = await getCategoryMenu();
-  return items.length > 0 ? (
-    <CategoriesDropdown items={items} />
-  ) : (
-    <CategoriesDropdownPlaceholder />
-  );
+async function CategoryBarContainer() {
+  return <CategoryBar items={await getCategoryMenu()} />;
 }
 
 async function NavDrawerContainer() {
@@ -35,8 +29,8 @@ export function SiteHeaderContainer() {
         </Suspense>
       }
       desktopNavigation={
-        <Suspense fallback={<CategoriesDropdownPlaceholder />}>
-          <CategoriesDropdownContainer />
+        <Suspense fallback={<CategoryBarPlaceholder />}>
+          <CategoryBarContainer />
         </Suspense>
       }
     />
