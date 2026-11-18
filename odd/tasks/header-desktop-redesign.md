@@ -15,6 +15,7 @@ Objective: bring the desktop header (from 1160 px, the `desktop:` variant) to th
 - [x] T2 (S2) Store-colored tabs, field border and search button (`.searchScope:has(...)` on the header grid sets `--search-accent`; Acme uses a dark icon). Risk: none. Route: inline. RED observed (1 failed). Unit 1652, integration 103, local e2e 30; screenshots of the five stores at 1440. Commit `2e017f0`.
 - [x] T3 (S2) Figma active-tab colors (L7) in the `--color-marketplace-*` tokens; Acme drops the dark icon. Risk: none (tokens used only by the desktop search tabs). Route: inline. RED observed (1 failed). Unit 1654.
 - [x] T4 (S2) Focused desktop search field keeps its 1px border, no 1px accent ring (L8). Risk: none. Route: inline. RED observed (1 failed). Unit 1655.
+- [x] T5 (S2) Store switch fades the tab, field border and search button together (0.2s ease-out), none under reduced motion (L10). Risk: none. Route: inline. RED observed (1 failed). Unit 1656.
 
 ## Log
 
@@ -27,3 +28,4 @@ Objective: bring the desktop header (from 1160 px, the `desktop:` variant) to th
 - L7 (2026-11-18) user: "te comparto los colores que debe tener la barra activa nueva" (Figma CSS export). Store mapped by tab and logo width (no names in the export): 149 px `#FF0000` ChupaChoice, 90 px `#FFA70F` Amazon, 71 px `#0968F6` eBay, 98 px `#CA3432` Target, 184 px `#000000` Acme. Confirmed by the user (L9). The ChupaChoice button border `#FFA70F` in the export is taken as a leftover; the button uses `#FF0000`.
 - L8 (2026-11-18) user: "Se ve muy grueso el input cuando se seleciona para escribir la palabra de busqueda". The desktop `.field:focus-within` added a 1px `box-shadow` ring over the 1px border (2px line); the ring is removed. The border is already the store color before focus, so focus is shown only by the caret. Mobile focus unchanged.
 - L9 (2026-11-18) user: "sí, están bien los colores". The L7 store-to-color mapping is confirmed.
+- L10 (2026-11-18) user: "Puedes suavizar la transición entre pestañas, animandolas". The tabs already faded their border (0.2s) but the field border, the ChupaChoice corner and the button color snapped; all now transition together. Not checked in a browser yet.

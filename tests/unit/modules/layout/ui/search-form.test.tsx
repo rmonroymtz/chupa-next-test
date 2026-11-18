@@ -134,6 +134,24 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
     expect(rule).toContain('box-shadow: none');
   });
 
+  it('from 1160 the tab, the field and the button fade to the new store color together, unless motion is reduced', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'),
+      'utf8',
+    );
+    const desktop = css.slice(css.indexOf('@media (min-width: 72.5rem)'));
+    const block = (selector: string, source: string) =>
+      new RegExp(`${selector}\\s*\\{([^}]*)\\}`).exec(source)?.[1] ?? '';
+    expect(block('\\.store', desktop)).toMatch(/transition:[^;]*border-color 0\.2s/);
+    expect(block('\\.field', desktop)).toMatch(/transition:[^;]*border-color 0\.2s/);
+    expect(block('\\.submit', desktop)).toMatch(/transition:[^;]*background-color 0\.2s/);
+    const reduced = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reduced).toMatch(/\.store,\s*\.field,\s*\.submit\s*\{\s*transition: none;/);
+    expect(css.lastIndexOf('@media (prefers-reduced-motion: reduce)')).toBeGreaterThan(
+      css.indexOf('@media (min-width: 72.5rem)'),
+    );
+  });
+
   it('from 1160 the Acme Tools logo takes its Figma size (148x15), not the 50x5 PWA box', () => {
     render(<CurrentStoreSelector />);
     const acme = screen.getByRole('radio', { name: 'Acme' }).closest('label');

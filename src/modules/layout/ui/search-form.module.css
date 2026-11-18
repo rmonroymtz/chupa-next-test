@@ -212,6 +212,9 @@
     padding: 0 14px;
     border-radius: 5px 5px 0 0;
     background-color: transparent;
+    transition:
+      border-color 0.2s ease-out,
+      background-color 0.2s ease-out;
   }
 
   /*
@@ -246,6 +249,9 @@
     border-color: var(--search-accent);
     border-radius: 5px;
     background-color: var(--color-ds-surface);
+    transition:
+      border-color 0.2s ease-out,
+      border-radius 0.2s ease-out;
   }
 
   /* Square corner only under the first tab, where the chosen tab joins the field. */
@@ -269,6 +275,7 @@
     border-radius: 3px;
     background-color: var(--search-accent);
     color: var(--search-accent-ink);
+    transition: background-color 0.2s ease-out;
   }
 
   .submit:focus-visible {
@@ -277,5 +284,17 @@
 
   .input {
     order: 1;
+  }
+}
+
+/*
+ * Switching stores fades the tab, the field border and the button to the new
+ * color together; after the desktop rules so it wins over their transitions.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .store,
+  .field,
+  .submit {
+    transition: none;
   }
 }
