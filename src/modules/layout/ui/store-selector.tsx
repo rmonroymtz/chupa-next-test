@@ -28,7 +28,7 @@ export function StoreSelector({ store }: Pick<SearchBarState, 'store'>) {
   return (
     <div role="radiogroup" aria-label="Tienda donde buscar" className={styles.stores}>
       {SEARCH_STORES.map((entry) => (
-        <label key={entry.id} className={styles.store}>
+        <label key={entry.id} data-store={entry.id} className={styles.store}>
           <input
             type="radio"
             form={SEARCH_FORM_ID}

@@ -155,3 +155,146 @@
     line-height: var(--text-body-sm--line-height);
   }
 }
+
+/*
+ * Color of the chosen store (Figma "Header" active tabs; the behavior follows
+ * the PWA `SearchBar/searchBar.js` `STORE_CONFIGS`): set on the header grid, which holds both the
+ * store radios and the search form, so the color follows the radios without
+ * JavaScript. Used from 1160 only. `--search-accent-ink` is the icon on the
+ * search button: white on every store color.
+ */
+.searchScope {
+  --search-accent: var(--color-marketplace-chupachoice);
+  --search-accent-ink: var(--color-ds-surface);
+}
+
+.searchScope:has(input[name='store'][value='chupachoice']:checked) {
+  --search-accent: var(--color-marketplace-chupachoice);
+}
+
+.searchScope:has(input[name='store'][value='amazon']:checked) {
+  --search-accent: var(--color-marketplace-amazon);
+}
+
+.searchScope:has(input[name='store'][value='ebay']:checked) {
+  --search-accent: var(--color-marketplace-ebay);
+}
+
+.searchScope:has(input[name='store'][value='target']:checked) {
+  --search-accent: var(--color-marketplace-target);
+}
+
+.searchScope:has(input[name='store'][value='acme']:checked) {
+  --search-accent: var(--color-marketplace-acme);
+}
+
+/*
+ * From 1160 (the header `desktop:` switch), Figma "Header" 3460:4925: the store
+ * pills become tabs sitting on the search input. The chosen tab shares the
+ * input's border in the store's brand color and covers the input's top border under it, so tab and
+ * input read as one shape; the submit moves to a square of that color on the right.
+ */
+@media (min-width: 72.5rem) {
+  .stores {
+    margin-inline: 0;
+    gap: 2px;
+    padding: 0;
+    overflow: visible;
+    border-radius: 0;
+    background-color: transparent;
+  }
+
+  .store {
+    z-index: 1;
+    height: 37px;
+    min-width: 77px;
+    margin-bottom: -1px;
+    padding: 0 14px;
+    border-radius: 5px 5px 0 0;
+    background-color: transparent;
+    transition:
+      border-color 0.2s ease-out,
+      background-color 0.2s ease-out;
+  }
+
+  /*
+   * Acme Tools at its Figma size: the Next asset is cropped to its artwork
+   * (148x15), so the 50x5 box the PWA needs for its padded SVG is too small here.
+   */
+  .store[data-store='acme'] img {
+    width: 148px;
+    height: 15px;
+  }
+
+  /* No hover state on the tabs: only the chosen store is marked. */
+  .store:hover {
+    border-color: transparent;
+  }
+
+  .store:has(input:checked) {
+    border-color: var(--search-accent);
+    border-bottom-color: var(--color-ds-surface);
+    background-color: var(--color-ds-surface);
+    box-shadow: none;
+  }
+
+  .store:has(input:focus-visible) {
+    outline-offset: -4px;
+  }
+
+  .field {
+    height: 41px;
+    gap: 8px;
+    padding: 2px 2px 2px 10px;
+    border-color: var(--search-accent);
+    border-radius: 5px;
+    background-color: var(--color-ds-surface);
+    transition:
+      border-color 0.2s ease-out,
+      border-radius 0.2s ease-out;
+  }
+
+  /* Square corner only under the first tab, where the chosen tab joins the field. */
+  .searchScope:has(input[name='store'][value='chupachoice']:checked) .field {
+    border-top-left-radius: 0;
+  }
+
+  /*
+   * The border is already the accent: focus keeps the 1px Figma border with no
+   * extra ring (a 2px line read too heavy); the text caret marks the focus.
+   */
+  .field:focus-within {
+    border-color: var(--search-accent);
+    box-shadow: none;
+  }
+
+  .submit {
+    order: 2;
+    width: 42px;
+    height: 35px;
+    border-radius: 3px;
+    background-color: var(--search-accent);
+    color: var(--search-accent-ink);
+    transition: background-color 0.2s ease-out;
+  }
+
+  .submit:focus-visible {
+    outline-offset: 2px;
+  }
+
+  .input {
+    order: 1;
+  }
+}
+
+/*
+ * Switching stores fades the tab, the field border and the button to the new
+ * color together; after the desktop rules so it wins over their transitions.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .store,
+  .field,
+  .submit {
+    transition: none;
+  }
+}

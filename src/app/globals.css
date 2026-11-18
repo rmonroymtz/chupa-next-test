@@ -116,13 +116,16 @@
   --color-ds-info: #0064d2;
   --color-ds-info-bg: #eff6ff;
 
-  /* Third-party store colors (not part of the DS: each store's own brand). */
+  /*
+   * Store colors (not part of the DS): the active search tab colors of the
+   * Figma "Header" redesign (3460:4925).
+   */
   --color-marketplace-home-depot: #f96302;
-  --color-marketplace-amazon: #ff9901;
-  --color-marketplace-ebay: #8ab94a;
-  --color-marketplace-target: #cc0000;
-  --color-marketplace-acme: #ffcb05;
-  --color-marketplace-chupachoice: var(--color-ds-accent);
+  --color-marketplace-amazon: #ffa70f;
+  --color-marketplace-ebay: #0968f6;
+  --color-marketplace-target: #ca3432;
+  --color-marketplace-acme: #000000;
+  --color-marketplace-chupachoice: #ff0000;
 
   /* ── Typography ───────────────────────────────────────────────────────── */
 

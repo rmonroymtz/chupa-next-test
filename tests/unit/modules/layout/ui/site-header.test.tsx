@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MenuItem } from '@/modules/layout/domain/category-menu';
-import { CategoriesDropdown } from '@/modules/layout/ui/categories-dropdown.client';
+import { CategoryBar } from '@/modules/layout/ui/category-bar';
 import { NavDrawer } from '@/modules/layout/ui/nav-drawer.client';
 import { SiteHeader } from '@/modules/layout/ui/site-header';
 
@@ -33,7 +33,7 @@ function renderHeader(items: readonly MenuItem[] = MENU) {
   return render(
     <SiteHeader
       mobileNavigation={<NavDrawer items={items} />}
-      desktopNavigation={<CategoriesDropdown items={items} />}
+      desktopNavigation={<CategoryBar items={items} />}
     />,
   );
 }
@@ -164,23 +164,33 @@ describe('SiteHeader', () => {
     expect(svg).not.toContain('fill="#000"');
   });
 
-  it('row 1: menu button, logo, the Categorías dropdown, then the store pills', () => {
+  it('main row: menu button, logo, store tabs, search, then the actions; the category bar follows', () => {
     renderHeader();
     const banner = screen.getByRole('banner');
     const [drawerButton, dropdownButton] = within(banner).getAllByRole('button', {
       name: 'Categorías',
     });
     const logo = within(banner).getByRole('link', { name: 'Chupaprecios' });
-    const pills = within(banner).getByRole('radiogroup', { name: 'Tienda donde buscar' });
+    const tabs = within(banner).getByRole('radiogroup', { name: 'Tienda donde buscar' });
+    const search = within(banner).getByRole('search');
+    const account = within(banner).getByRole('link', { name: 'Mi cuenta' });
+    const bar = within(banner).getByRole('navigation', { name: 'Categorías principales' });
     const follows = (a: Element, b: Element) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
     expect(drawerButton!.getAttribute('aria-haspopup')).toBe('dialog');
     expect(dropdownButton!.hasAttribute('aria-controls')).toBe(true);
-    expect(follows(drawerButton!, logo)).toBe(true);
-    expect(follows(logo, dropdownButton!)).toBe(true);
-    expect(follows(dropdownButton!, pills)).toBe(true);
-    // Below 1160 the drawer, from 1160 the dropdown.
+    for (const [a, b] of [
+      [drawerButton!, logo],
+      [logo, tabs],
+      [tabs, search],
+      [search, account],
+      [account, dropdownButton!],
+      [dropdownButton!, bar],
+    ] as const) {
+      expect(follows(a, b)).toBe(true);
+    }
+    // Below 1160 the drawer, from 1160 the category bar with the dropdown first.
     expect(drawerButton!.closest('.desktop\\:hidden')).not.toBeNull();
     expect(dropdownButton!.closest('.hidden.desktop\\:block')).not.toBeNull();
   });
