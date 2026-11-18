@@ -123,6 +123,17 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
     expect(css.match(/--search-accent-ink:/g)?.length).toBe(1);
   });
 
+  it('from 1160 the focused search field keeps its 1px border, with no extra ring', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'),
+      'utf8',
+    );
+    const desktop = css.slice(css.indexOf('@media (min-width: 72.5rem)'));
+    const rule = /\.field:focus-within\s*\{([^}]*)\}/.exec(desktop)?.[1] ?? '';
+    expect(rule).toContain('border-color: var(--search-accent)');
+    expect(rule).toContain('box-shadow: none');
+  });
+
   it('from 1160 the Acme Tools logo takes its Figma size (148x15), not the 50x5 PWA box', () => {
     render(<CurrentStoreSelector />);
     const acme = screen.getByRole('radio', { name: 'Acme' }).closest('label');

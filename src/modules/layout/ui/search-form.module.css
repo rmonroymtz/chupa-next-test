@@ -253,10 +253,13 @@
     border-top-left-radius: 0;
   }
 
-  /* The border is already the accent: focus adds a ring of the same color. */
+  /*
+   * The border is already the accent: focus keeps the 1px Figma border with no
+   * extra ring (a 2px line read too heavy); the text caret marks the focus.
+   */
   .field:focus-within {
     border-color: var(--search-accent);
-    box-shadow: 0 0 0 1px var(--search-accent);
+    box-shadow: none;
   }
 
   .submit {
