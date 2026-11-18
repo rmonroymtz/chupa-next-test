@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SEARCH_STORES } from '@/modules/layout/domain/search';
 import { SearchForm } from '@/modules/layout/ui/search-form';
 import { CurrentStoreSelector } from '@/modules/layout/ui/store-selector.client';
 
@@ -83,5 +84,23 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
     expect(rule).toContain('background-color: var(--color-ds-surface)');
     expect(rule).not.toContain('outline:');
     expect(css).not.toMatch(/\.field:has\(\.input:focus-visible\)/);
+  });
+
+  it('from 1160 the chosen store paints the tabs and the search field in its brand color (PWA `STORE_CONFIGS`)', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'),
+      'utf8',
+    );
+    // One rule per store, so a store added to SEARCH_STORES without a color fails here.
+    for (const { id } of SEARCH_STORES) {
+      const rule = new RegExp(
+        `\\.searchScope:has\\(input\\[name='store'\\]\\[value='${id}'\\]:checked\\)\\s*\\{([^}]*)\\}`,
+      ).exec(css)?.[1];
+      expect(rule, id).toContain(`--search-accent: var(--color-marketplace-${id})`);
+    }
+    // The tab, the field border and the submit all read that one variable.
+    const desktop = css.slice(css.indexOf('@media (min-width: 72.5rem)'));
+    expect(desktop.match(/var\(--search-accent\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    expect(css).not.toContain('--color-ds-search-accent');
   });
 });

@@ -4,6 +4,7 @@ import { AccountAction } from '@/modules/customer/ui/account-action.client';
 import { LEGACY_ROUTES } from '@/modules/layout/domain/legacy-routes';
 import { CartTriggerSlot } from './cart-trigger-slot';
 import { SearchForm } from './search-form';
+import searchStyles from './search-form.module.css';
 import { CurrentStoreSelector } from './store-selector.client';
 
 interface SiteHeaderProps {
@@ -42,7 +43,8 @@ const GRID_CLASS = [
 export function SiteHeader({ mobileNavigation, desktopNavigation }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-ds-border bg-ds-surface text-ds-text">
-      <div className={`header-padded ${GRID_CLASS}`}>
+      {/* `searchScope`: the chosen store's brand color for the tabs and the search field. */}
+      <div className={`header-padded ${GRID_CLASS} ${searchStyles.searchScope}`}>
         <div className="[grid-area:nav] desktop:hidden">{mobileNavigation}</div>
         <a
           href={LEGACY_ROUTES.home}

@@ -157,10 +157,43 @@
 }
 
 /*
+ * Brand color of the chosen store (PWA `SearchBar/searchBar.js` `STORE_CONFIGS`
+ * and `searchField.module.css`): set on the header grid, which holds both the
+ * store radios and the search form, so the color follows the radios without
+ * JavaScript. Used from 1160 only. `--search-accent-ink` is the icon on the
+ * search button: white, dark on the light Acme yellow.
+ */
+.searchScope {
+  --search-accent: var(--color-marketplace-chupachoice);
+  --search-accent-ink: var(--color-ds-surface);
+}
+
+.searchScope:has(input[name='store'][value='chupachoice']:checked) {
+  --search-accent: var(--color-marketplace-chupachoice);
+}
+
+.searchScope:has(input[name='store'][value='amazon']:checked) {
+  --search-accent: var(--color-marketplace-amazon);
+}
+
+.searchScope:has(input[name='store'][value='ebay']:checked) {
+  --search-accent: var(--color-marketplace-ebay);
+}
+
+.searchScope:has(input[name='store'][value='target']:checked) {
+  --search-accent: var(--color-marketplace-target);
+}
+
+.searchScope:has(input[name='store'][value='acme']:checked) {
+  --search-accent: var(--color-marketplace-acme);
+  --search-accent-ink: var(--color-ds-text);
+}
+
+/*
  * From 1160 (the header `desktop:` switch), Figma "Header" 3460:4925: the store
  * pills become tabs sitting on the search input. The chosen tab shares the
- * input's orange border and covers the input's top border under it, so tab and
- * input read as one shape; the submit moves to an orange square on the right.
+ * input's border in the store's brand color and covers the input's top border under it, so tab and
+ * input read as one shape; the submit moves to a square of that color on the right.
  */
 @media (min-width: 72.5rem) {
   .stores {
@@ -188,7 +221,7 @@
   }
 
   .store:has(input:checked) {
-    border-color: var(--color-ds-search-accent);
+    border-color: var(--search-accent);
     border-bottom-color: var(--color-ds-surface);
     background-color: var(--color-ds-surface);
     box-shadow: none;
@@ -202,15 +235,20 @@
     height: 41px;
     gap: 8px;
     padding: 2px 2px 2px 10px;
-    border-color: var(--color-ds-search-accent);
-    border-radius: 0 5px 5px 5px;
+    border-color: var(--search-accent);
+    border-radius: 5px;
     background-color: var(--color-ds-surface);
+  }
+
+  /* Square corner only under the first tab, where the chosen tab joins the field. */
+  .searchScope:has(input[name='store'][value='chupachoice']:checked) .field {
+    border-top-left-radius: 0;
   }
 
   /* The border is already the accent: focus adds a ring of the same color. */
   .field:focus-within {
-    border-color: var(--color-ds-search-accent);
-    box-shadow: 0 0 0 1px var(--color-ds-search-accent);
+    border-color: var(--search-accent);
+    box-shadow: 0 0 0 1px var(--search-accent);
   }
 
   .submit {
@@ -218,8 +256,8 @@
     width: 42px;
     height: 35px;
     border-radius: 3px;
-    background-color: var(--color-ds-search-accent);
-    color: var(--color-ds-surface);
+    background-color: var(--search-accent);
+    color: var(--search-accent-ink);
   }
 
   .submit:focus-visible {
