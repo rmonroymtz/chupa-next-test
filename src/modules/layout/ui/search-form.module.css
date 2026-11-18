@@ -157,11 +157,11 @@
 }
 
 /*
- * Brand color of the chosen store (PWA `SearchBar/searchBar.js` `STORE_CONFIGS`
- * and `searchField.module.css`): set on the header grid, which holds both the
+ * Color of the chosen store (Figma "Header" active tabs; the behavior follows
+ * the PWA `SearchBar/searchBar.js` `STORE_CONFIGS`): set on the header grid, which holds both the
  * store radios and the search form, so the color follows the radios without
  * JavaScript. Used from 1160 only. `--search-accent-ink` is the icon on the
- * search button: white, dark on the light Acme yellow.
+ * search button: white on every store color.
  */
 .searchScope {
   --search-accent: var(--color-marketplace-chupachoice);
@@ -186,7 +186,6 @@
 
 .searchScope:has(input[name='store'][value='acme']:checked) {
   --search-accent: var(--color-marketplace-acme);
-  --search-accent-ink: var(--color-ds-text);
 }
 
 /*

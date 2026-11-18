@@ -104,6 +104,25 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
     expect(css).not.toContain('--color-ds-search-accent');
   });
 
+  it('the store colors are the Figma active-tab colors, with a white search icon on every store', () => {
+    const tokens = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8');
+    const expected = {
+      chupachoice: '#ff0000',
+      amazon: '#ffa70f',
+      ebay: '#0968f6',
+      target: '#ca3432',
+      acme: '#000000',
+    };
+    for (const [id, color] of Object.entries(expected)) {
+      expect(tokens.toLowerCase(), id).toContain(`--color-marketplace-${id}: ${color};`);
+    }
+    const css = readFileSync(
+      join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'),
+      'utf8',
+    );
+    expect(css.match(/--search-accent-ink:/g)?.length).toBe(1);
+  });
+
   it('from 1160 the Acme Tools logo takes its Figma size (148x15), not the 50x5 PWA box', () => {
     render(<CurrentStoreSelector />);
     const acme = screen.getByRole('radio', { name: 'Acme' }).closest('label');
