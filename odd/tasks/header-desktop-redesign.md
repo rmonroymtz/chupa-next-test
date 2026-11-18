@@ -11,9 +11,10 @@ Objective: bring the desktop header (from 1160 px, the `desktop:` variant) to th
 
 ## Tasks
 
-- [ ] T1 (S1, S2, S3) Header grid, store tabs and search field styles, category bar, tests and docs. Risk: none (layout only; the search GET parameters and the store radios do not change). Route: inline (one surface, shared files).
+- [x] T1 (S1, S2, S3) Header grid, store tabs and search field styles, category bar, tests and docs. Risk: none (layout only; the search GET parameters and the store radios do not change). Route: inline (one surface, shared files). Done: one grid with two `grid-template-areas` (mobile unchanged, desktop `. stores .` / `logo search actions`), `CategoryBar` (dropdown + top-level links, scrolls sideways, nothing without a menu) replaces the row dropdown, `--color-ds-search-accent` `#ffa70f`, desktop tab styles in `search-form.module.css`, unused `CategoriesDropdownPlaceholder` removed. RED observed (2 suites failed to load). Unit 1651, integration 103, local e2e 30. Screenshots at 375, 1024 and 1440 before and after: mobile identical; desktop checked with a temporary 12-category menu on the local stack (reverted). Commit `15ae714`.
 
 ## Log
 
 - L1 (2026-11-17) user: "vamos a empezar a actualizar el header me mandaron esta propuesta https://www.figma.com/design/yyiYug3ascAJYqOm3caRMv/Chupaprecios---Home-Redesign-2026?node-id=3460-4925&t=p4PM0G7BoUa1CVHM-4 es para desktop podemos ir aplicandola"
 - L2 (2026-11-18) user, on the category list: "Ahorita has algo sencillo para que se vean, aún no me comparten ese diseño". Mapped by a read-only explorer: categories come from the Magento `HeaderMenu` query; the Figma names are not the Magento top level; the store selector is five native radios outside the form; tests pin the header DOM order and the radios.
+- L3 (2026-11-18) T1 done. Open: the white search icon on `#ffa70f` is about 2:1 contrast (WCAG 1.4.11 asks 3:1 for UI graphics), as drawn in Figma; the twelfth staging-like category does not fit at 1440 and scrolls; S4 items wait for content and urls.
