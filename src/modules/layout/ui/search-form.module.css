@@ -215,9 +215,9 @@
     background-color: transparent;
   }
 
+  /* No hover state on the tabs: only the chosen store is marked. */
   .store:hover {
     border-color: transparent;
-    background-color: var(--color-ds-surface-subtle);
   }
 
   .store:has(input:checked) {
