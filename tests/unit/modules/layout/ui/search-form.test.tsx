@@ -103,4 +103,18 @@ describe('StoreSelector: pill logos sized as the PWA', () => {
     expect(desktop.match(/var\(--search-accent\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
     expect(css).not.toContain('--color-ds-search-accent');
   });
+
+  it('from 1160 the Acme Tools logo takes its Figma size (148x15), not the 50x5 PWA box', () => {
+    render(<CurrentStoreSelector />);
+    const acme = screen.getByRole('radio', { name: 'Acme' }).closest('label');
+    expect(acme?.getAttribute('data-store')).toBe('acme');
+    const css = readFileSync(
+      join(process.cwd(), 'src/modules/layout/ui/search-form.module.css'),
+      'utf8',
+    );
+    const desktop = css.slice(css.indexOf('@media (min-width: 72.5rem)'));
+    const rule = /\.store\[data-store='acme'\] img\s*\{([^}]*)\}/.exec(desktop)?.[1] ?? '';
+    expect(rule).toContain('width: 148px');
+    expect(rule).toContain('height: 15px');
+  });
 });

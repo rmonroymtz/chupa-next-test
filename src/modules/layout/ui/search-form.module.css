@@ -215,6 +215,15 @@
     background-color: transparent;
   }
 
+  /*
+   * Acme Tools at its Figma size: the Next asset is cropped to its artwork
+   * (148x15), so the 50x5 box the PWA needs for its padded SVG is too small here.
+   */
+  .store[data-store='acme'] img {
+    width: 148px;
+    height: 15px;
+  }
+
   /* No hover state on the tabs: only the chosen store is marked. */
   .store:hover {
     border-color: transparent;
